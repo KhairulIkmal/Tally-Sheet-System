@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet><link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Mrs+Saint+Delafield&display=swap" rel="stylesheet"></helmet>
+<div style="width:794px;height:1123px;background:#fff;box-sizing:border-box;padding:42px 40px 34px;font-family:Arial,Helvetica,sans-serif;color:#111;display:flex;flex-direction:column;position:relative;overflow:hidden">
+  <div style="text-align:center;font-weight:700;font-size:15px;letter-spacing:.02em;margin-bottom:14px">COUNT TALLY SHEET</div>
+
+  <sc-if value="{{ isA }}" hint-placeholder-val="{{ true }}">
+    <div style="display:grid;grid-template-columns:1fr 1fr;column-gap:40px;row-gap:7px;font-size:10.5px;font-weight:700;margin-bottom:12px">
+      <div style="display:grid;grid-template-columns:92px 10px 1fr;align-items:end"><span>CONTRACT NO</span><span>:</span><span style="border-bottom:1px solid #111;font:600 11px 'IBM Plex Mono',monospace;padding:0 4px 1px;height:15px">{{ h.contract }}</span></div>
+      <div style="display:grid;grid-template-columns:70px 10px 1fr;align-items:end"><span>DATE</span><span>:</span><span style="border-bottom:1px solid #111;font:600 11px 'IBM Plex Mono',monospace;padding:0 4px 1px;height:15px">{{ h.date }}</span></div>
+      <div style="display:grid;grid-template-columns:92px 10px 1fr;align-items:end"><span>CONTAINER NO</span><span>:</span><span style="border-bottom:1px solid #111;font:600 11px 'IBM Plex Mono',monospace;padding:0 4px 1px;height:15px">{{ h.container }}</span></div>
+      <div style="display:grid;grid-template-columns:70px 10px 1fr;align-items:end"><span>SEAL NO</span><span>:</span><span style="border-bottom:1px solid #111;font:600 11px 'IBM Plex Mono',monospace;padding:0 4px 1px;height:15px">{{ h.seal }}</span></div>
+      <div style="display:grid;grid-template-columns:92px 10px 1fr;align-items:end"><span>SI NO</span><span>:</span><span style="border-bottom:1px solid #111;font:600 11px 'IBM Plex Mono',monospace;padding:0 4px 1px;height:15px">{{ h.si }}</span></div>
+      <div style="display:grid;grid-template-columns:70px 10px 1fr;align-items:end"><span>DISPORT</span><span>:</span><span style="border-bottom:1px solid #111;font:600 11px 'IBM Plex Mono',monospace;padding:0 4px 1px;height:15px">{{ h.disport }}</span></div>
+    </div>
+    <div style="border:1.5px solid #111">
+      <div style="display:grid;grid-template-columns:34px minmax(0,1fr) 46px 62px 62px 92px 86px;height:30px;border-bottom:1.5px solid #111;font-size:9.5px;font-weight:700;text-align:center">
+        <div style="border-right:1px solid #111;display:flex;align-items:center;justify-content:center">NO</div>
+        <div style="border-right:1px solid #111;display:flex;align-items:center;justify-content:center">ITEM (DESCRIPTION)</div>
+        <div style="border-right:1px solid #111;display:flex;align-items:center;justify-content:center">QTY</div>
+        <div style="border-right:1px solid #111;display:flex;align-items:center;justify-content:center">EXPIRED</div>
+        <div style="border-right:1px solid #111;display:flex;align-items:center;justify-content:center">PROD</div>
+        <div style="border-right:1px solid #111;display:flex;align-items:center;justify-content:center">BATCH</div>
+        <div style="display:flex;align-items:center;justify-content:center">REMARK</div>
+      </div>
+      <sc-for list="{{ rows }}" as="r" hint-placeholder-count="25">
+        <div style="display:grid;grid-template-columns:34px minmax(0,1fr) 46px 62px 62px 92px 86px;height:28px;border-bottom:1px solid #111;font:500 9.5px 'IBM Plex Mono',monospace;background:{{ r.bg }}">
+          <div style="border-right:1px solid #111;display:flex;align-items:center;justify-content:center;font:700 10px Arial,sans-serif">{{ r.no }}</div>
+          <div style="border-right:1px solid #111;display:flex;align-items:center;padding:0 5px;white-space:nowrap;overflow:hidden">{{ r.item }}</div>
+          <div style="border-right:1px solid #111;display:flex;flex-direction:column;justify-content:center;align-items:flex-end;padding:0 5px"><sc-for list="{{ r.lines }}" as="l"><div style="line-height:11px">{{ l.q }}</div></sc-for></div>
+          <div style="border-right:1px solid #111;display:flex;flex-direction:column;justify-content:center;align-items:center"><sc-for list="{{ r.lines }}" as="l"><div style="line-height:11px">{{ l.e }}</div></sc-for></div>
+          <div style="border-right:1px solid #111;display:flex;flex-direction:column;justify-content:center;align-items:center"><sc-for list="{{ r.lines }}" as="l"><div style="line-height:11px">{{ l.p }}</div></sc-for></div>
+          <div style="border-right:1px solid #111;display:flex;flex-direction:column;justify-content:center;padding:0 5px"><sc-for list="{{ r.lines }}" as="l"><div style="line-height:11px">{{ l.b }}</div></sc-for></div>
+          <div style="display:flex;align-items:center;padding:0 5px;font-size:9px">{{ r.rm }}</div>
+        </div>
+      </sc-for>
+    </div>
+    <sc-if value="{{ isLast }}" hint-placeholder-val="{{ true }}">
+      <div style="display:grid;grid-template-columns:minmax(0,1fr) 330px;gap:28px;margin-top:16px;font-size:10.5px;font-weight:700">
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <div style="display:grid;grid-template-columns:72px 10px 1fr;align-items:end"><span>REMARKS</span><span>:</span><span style="border-bottom:1px solid #111;font:500 10px 'IBM Plex Mono',monospace;padding:0 4px 1px;height:14px">{{ remark }}</span></div>
+          <div style="margin-left:82px;border-bottom:1px solid #111;height:14px"></div>
+          <div style="margin-top:12px">COUNT &amp; PREPARED BY :</div>
+          <div style="height:44px;display:flex;align-items:flex-end;padding-left:14px"><span style="font:400 40px/1 'Mrs Saint Delafield',cursive;color:#1b2a6e">{{ sig }}</span><sc-if value="{{ hasSigImg }}" hint-placeholder-val="{{ false }}"><img src="{{ sigImg }}" style="height:42px;max-width:230px;object-fit:contain;object-position:left bottom"></sc-if></div>
+          <div style="width:230px;border-bottom:1.5px dotted #111"></div>
+          <div style="font-size:9px;font-weight:400">{{ signedBy }}</div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:5px 10px;align-content:start">
+          <sc-for list="{{ mats }}" as="m" hint-placeholder-count="9">
+            <div style="display:grid;grid-template-columns:1fr 36px;border:1px solid #111;height:22px"><span style="padding:0 6px;display:flex;align-items:center;font-size:9px;border-right:1px solid #111">{{ m.k }}</span><span style="font:600 10px 'IBM Plex Mono',monospace;display:flex;align-items:center;justify-content:center">{{ m.v }}</span></div>
+          </sc-for>
+        </div>
+      </div>
+    </sc-if>
+  </sc-if>
+
+  <sc-if value="{{ isB }}" hint-placeholder-val="{{ false }}">
+    <div style="display:grid;grid-template-columns:1fr 1fr;column-gap:40px;row-gap:7px;font-size:10.5px;font-weight:700;margin-bottom:12px">
+      <div style="display:grid;grid-template-columns:92px 10px 1fr;align-items:end"><span>TRANSFER TO</span><span>:</span><span style="border-bottom:1px solid #111;font:600 11px 'IBM Plex Mono',monospace;padding:0 4px 1px;height:15px;white-space:nowrap">{{ h.transfer }}</span></div>
+      <div style="display:grid;grid-template-columns:70px 10px 1fr;align-items:end"><span>DATE</span><span>:</span><span style="border-bottom:1px solid #111;font:600 11px 'IBM Plex Mono',monospace;padding:0 4px 1px;height:15px">{{ h.date }}</span></div>
+      <div style="display:grid;grid-template-columns:92px 10px 1fr;align-items:end"><span>D/O NO</span><span>:</span><span style="border-bottom:1px solid #111;font:600 11px 'IBM Plex Mono',monospace;padding:0 4px 1px;height:15px">{{ h.do }}</span></div>
+      <div style="display:grid;grid-template-columns:70px 10px 1fr;align-items:end"><span>LORRY NO</span><span>:</span><span style="border-bottom:1px solid #111;font:600 11px 'IBM Plex Mono',monospace;padding:0 4px 1px;height:15px">{{ h.lorry }}</span></div>
+    </div>
+    <div style="border:1.5px solid #111">
+      <div style="display:grid;grid-template-columns:32px 34px 76px minmax(0,1fr) 38px 56px 56px 78px 62px;height:30px;border-bottom:1.5px solid #111;font-size:8.5px;font-weight:700;text-align:center;line-height:10px">
+        <div style="border-right:1px solid #111;display:flex;align-items:center;justify-content:center">PLT<br>NO</div>
+        <div style="border-right:1px solid #111;display:flex;align-items:center;justify-content:center">PLT<br>TYPE</div>
+        <div style="border-right:1px solid #111;display:flex;align-items:center;justify-content:center">CONTRACT<br>NO.</div>
+        <div style="border-right:1px solid #111;display:flex;align-items:center;justify-content:center">ITEM (DESC)</div>
+        <div style="border-right:1px solid #111;display:flex;align-items:center;justify-content:center">QTY</div>
+        <div style="border-right:1px solid #111;display:flex;align-items:center;justify-content:center">EXPIRED</div>
+        <div style="border-right:1px solid #111;display:flex;align-items:center;justify-content:center">PROD</div>
+        <div style="border-right:1px solid #111;display:flex;align-items:center;justify-content:center">BATCH</div>
+        <div style="display:flex;align-items:center;justify-content:center">REMARK</div>
+      </div>
+      <sc-for list="{{ rows }}" as="r" hint-placeholder-count="25">
+        <div style="display:grid;grid-template-columns:32px 34px 76px minmax(0,1fr) 38px 56px 56px 78px 62px;height:28px;border-bottom:1px solid #111;font:500 9px 'IBM Plex Mono',monospace;background:{{ r.bg }}">
+          <div style="border-right:1px solid #111;display:flex;align-items:center;justify-content:center;font:700 10px Arial,sans-serif">{{ r.no }}</div>
+          <div style="border-right:1px solid #111;display:flex;align-items:center;justify-content:center;font-weight:600">{{ r.t }}</div>
+          <div style="border-right:1px solid #111;display:flex;align-items:center;padding:0 4px;white-space:nowrap;overflow:hidden">{{ r.c }}</div>
+          <div style="border-right:1px solid #111;display:flex;align-items:center;padding:0 5px;white-space:nowrap;overflow:hidden">{{ r.item }}</div>
+          <div style="border-right:1px solid #111;display:flex;flex-direction:column;justify-content:center;align-items:flex-end;padding:0 4px"><sc-for list="{{ r.lines }}" as="l"><div style="line-height:11px">{{ l.q }}</div></sc-for></div>
+          <div style="border-right:1px solid #111;display:flex;flex-direction:column;justify-content:center;align-items:center"><sc-for list="{{ r.lines }}" as="l"><div style="line-height:11px">{{ l.e }}</div></sc-for></div>
+          <div style="border-right:1px solid #111;display:flex;flex-direction:column;justify-content:center;align-items:center"><sc-for list="{{ r.lines }}" as="l"><div style="line-height:11px">{{ l.p }}</div></sc-for></div>
+          <div style="border-right:1px solid #111;display:flex;flex-direction:column;justify-content:center;padding:0 4px"><sc-for list="{{ r.lines }}" as="l"><div style="line-height:11px">{{ l.b }}</div></sc-for></div>
+          <div style="display:flex;align-items:center;padding:0 4px;font-size:8.5px">{{ r.rm }}</div>
+        </div>
+      </sc-for>
+    </div>
+    <sc-if value="{{ isLast }}" hint-placeholder-val="{{ true }}">
+      <div style="display:grid;grid-template-columns:minmax(0,1fr) 230px;gap:40px;margin-top:12px;font-size:10.5px;font-weight:700">
+        <div style="display:flex;flex-direction:column;gap:7px;padding-top:16px">
+          <sc-for list="{{ checks }}" as="c" hint-placeholder-count="3">
+            <div style="display:grid;grid-template-columns:76px 10px 24px 1fr;align-items:end;gap:0 4px"><span>{{ c.k }}</span><span>:</span><span style="width:22px;height:16px;border:1.5px solid #111;display:flex;align-items:center;justify-content:center;font-size:11px">{{ c.x }}</span><span style="border-bottom:1px solid #111;font:500 10px 'IBM Plex Mono',monospace;padding:0 4px 1px;height:14px;margin-left:8px">{{ c.note }}</span></div>
+          </sc-for>
+          <div style="display:grid;grid-template-columns:76px 10px 1fr;align-items:end;gap:0 4px"><span>REMARK</span><span>:</span><span style="border-bottom:1px solid #111;font:500 10px 'IBM Plex Mono',monospace;padding:0 4px 1px;height:14px">{{ remark }}</span></div>
+          <div style="margin-left:94px;border-bottom:1px solid #111;height:14px"></div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:4px">
+          <div style="text-align:right;font-size:10.5px;margin-bottom:2px">TOTAL NUMBER OF PLT</div>
+          <sc-for list="{{ plt }}" as="p" hint-placeholder-count="4">
+            <div style="display:grid;grid-template-columns:1fr 60px;border:1.5px solid #111;height:21px"><span style="padding:0 6px;display:flex;align-items:center;font-size:9.5px;border-right:1.5px solid #111">{{ p.k }}</span><span style="font:600 10.5px 'IBM Plex Mono',monospace;display:flex;align-items:center;justify-content:center">{{ p.v }}</span></div>
+          </sc-for>
+        </div>
+      </div>
+      <div style="margin-top:14px;font-size:10.5px;font-weight:700">COUNT &amp; PREPARED BY :</div>
+      <div style="height:40px;display:flex;align-items:flex-end;padding-left:14px"><span style="font:400 40px/1 'Mrs Saint Delafield',cursive;color:#1b2a6e">{{ sig }}</span><sc-if value="{{ hasSigImg }}" hint-placeholder-val="{{ false }}"><img src="{{ sigImg }}" style="height:42px;max-width:230px;object-fit:contain;object-position:left bottom"></sc-if></div>
+      <div style="width:230px;border-bottom:1.5px dotted #111"></div>
+      <div style="font-size:9px;margin-top:5px">{{ signedBy }}</div>
+    </sc-if>
+  </sc-if>
+
+  <sc-if value="{{ notLast }}" hint-placeholder-val="{{ false }}">
+    <div style="margin-top:16px;display:flex;justify-content:space-between;align-items:flex-end;font-size:10.5px;font-weight:700">
+      <div style="display:flex;flex-direction:column;gap:6px">
+        <div>COUNT &amp; PREPARED BY :</div>
+        <div style="height:40px;display:flex;align-items:flex-end;padding-left:14px"><span style="font:400 40px/1 'Mrs Saint Delafield',cursive;color:#1b2a6e">{{ sig }}</span><sc-if value="{{ hasSigImg }}" hint-placeholder-val="{{ false }}"><img src="{{ sigImg }}" style="height:42px;max-width:230px;object-fit:contain;object-position:left bottom"></sc-if></div>
+        <div style="width:230px;border-bottom:1.5px dotted #111"></div>
+      </div>
+      <div style="border:1.5px solid #111;padding:8px 12px;font-size:10px">CONTINUED ON PAGE {{ nextPage }} →</div>
+    </div>
+  </sc-if>
+
+  <div style="position:absolute;left:40px;right:40px;bottom:14px;display:flex;justify-content:space-between;font:400 8px 'IBM Plex Mono',monospace;color:#666"><span>{{ refLine }}</span><span>{{ pageLabel }}</span></div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:794,&quot;height&quot;:1123},&quot;form&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;A&quot;,&quot;B&quot;],&quot;default&quot;:&quot;A&quot;,&quot;tsType&quot;:&quot;'A'|'B'&quot;},&quot;page&quot;:{&quot;editor&quot;:&quot;int&quot;,&quot;default&quot;:1,&quot;tsType&quot;:&quot;number&quot;},&quot;many&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;},&quot;signed&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;},&quot;highlightMixed&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;}}">
+class Component extends DCLogic {
+  build(many) {
+    const P = [], C = 'LS-DOM-3318';
+    const add = (item, t, lines, rm) => P.push({ item, t, c: C, lines, rm: rm || '' });
+    const M = 'LAM SOON MARGARINE 5KG', S = 'LAM SOON SHORTENING 16KG', O = 'LAM SOON PALM OLEIN 17KG';
+    [32, 32, 32, 32, 22].forEach(q => add(M, 'L', [{ b: 'B240915A', e: '16/04/27', p: '16/04/25', q }], q < 32 ? 'LOOSE' : ''));
+    const s1 = { b: 'B240920C', e: '20/09/26', p: '20/09/25' };
+    add(S, 'C', [{ ...s1, q: 40 }]);
+    add(S, 'C', [{ ...s1, q: 40 }]);
+    add(S, 'C', [{ ...s1, q: 12 }, { b: 'B241002A', e: '02/10/26', p: '02/10/25', q: 8 }], 'MIXED');
+    if (many) for (let i = 0; i < 23; i++) add(O, i % 4 ? 'L' : 'C', [{ b: 'B241008B', e: '08/10/26', p: '08/04/26', q: i === 22 ? 44 : 48 }]);
+    return P;
+  }
+  renderVals() {
+    const d = this.props.data; const form = d ? d.form : (this.props.form ?? 'A'), page = this.props.page ?? 1, many = !!this.props.many, signed = this.props.signed ?? true;
+    const isA = form !== 'B';
+    const P = d ? d.pallets : this.build(many), pages = Math.max(1, Math.ceil(P.length / 25)), start = (page - 1) * 25;
+    const hl = this.props.highlightMixed;
+    const rows = [];
+    for (let i = 0; i < 25; i++) {
+      const p = P[start + i];
+      rows.push(p ? { no: start + i + 1, ...p, t: isA ? '' : p.t, bg: hl && p.lines.length > 1 ? '#fff6d6' : 'transparent' } : { no: start + i + 1, item: '', c: '', t: '', lines: [], rm: '', bg: 'transparent' });
+    }
+    const cnt = k => P.filter(p => p.t === k).length;
+    const isLast = page >= pages;
+    return {
+      isA, isB: !isA, isLast, notLast: !isLast, nextPage: page + 1, rows,
+      h: d ? d.header : isA ? { contract: 'LS-EXP-2410', container: 'TGHU 1234567', seal: 'ML-889012', si: 'SI-55821', disport: 'PORT KLANG', date: '14/10/26' }
+             : { transfer: 'LAM SOON SHAH ALAM DC', do: 'DO-778120', lorry: 'WXY 4521', date: '14/10/26' },
+      remark: d ? d.remark : isA ? 'CONTAINER CLEAN & DRY. 2 LAYER PAD/PLT.' : 'PLT 8 MIXED BATCH.',
+      mats: d && d.mats ? d.mats : [['SAMPLE', 2], ['EMPTY CTN', 0], ['PE BAG', 0], ['WOODEN FRAME', 0], ['PLYWOOD', 0], ['LINER', 1], ['LAYER PAD', 16], ['AIR BAG', 4], ['POLYFOAM', 0]].map(([k, v]) => ({ k, v })),
+      checks: d && d.checks ? d.checks : [{ k: 'SAMPLE', x: '✓', note: '2 CTN FOR QC' }, { k: 'EMPTY CTN', x: '', note: '' }, { k: 'OTHERS', x: '', note: '' }],
+      plt: d && d.plt ? d.plt : [{ k: 'L - (LAM SOON)', v: cnt('L') }, { k: 'E - (ECR)', v: cnt('E') }, { k: 'C - (LOSCAM)', v: cnt('C') }, { k: 'O - (OTHERS)', v: cnt('O') }],
+      sig: d ? (d.sigImg ? '' : (d.sigName || '')) : (signed ? 'M. Hafiz' : ''), sigImg: d ? d.sigImg : '', hasSigImg: !!(d && d.sigImg),
+      signedBy: d ? d.signedBy : signed ? 'MOHD HAFIZ RAHMAN · 14/10/26 15:42' : '',
+      refLine: (d ? d.ref : isA ? 'TS-2610-0147' : 'TS-2610-0146') + ' · ' + P.length + ' PLT · ' + P.reduce((s, p) => s + p.lines.reduce((a, l) => a + (Number(l.q) || 0), 0), 0) + ' CTN',
+      pageLabel: 'PAGE ' + page + ' OF ' + pages
+    };
+  }
+}
+</script>
+</body>
+</html>

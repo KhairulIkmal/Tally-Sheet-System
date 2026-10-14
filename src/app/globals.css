@@ -1,0 +1,135 @@
+@import "tailwindcss";
+
+/*
+ * Tally Sheet design tokens, from the Claude Design prototype (design/).
+ * Light is the default; dark (for dim warehouses) follows the device
+ * setting.
+ */
+@theme {
+  --color-primary: #1e4fa3;
+  --color-primary-hover: #163c7e;
+  --color-primary-soft: #e8edf6;
+  --color-primary-ring: #dce5f5;
+
+  --color-ink: #15181d;
+  --color-body: #3a3f47;
+  --color-muted: #5b6270;
+  --color-faint: #7a818c;
+  --color-placeholder: #aeb4bd;
+  --color-line: #e2e5e9;
+  --color-line-soft: #eef0f2;
+  --color-field: #cfd4da;
+  --color-canvas: #f3f4f1;
+  --color-surface: #ffffff;
+  --color-surface-sunken: #f7f8f6;
+  --color-chip: #eceef1;
+  --color-solid: #15181d;
+  --color-on-solid: #ffffff;
+
+  --color-success: #17733e;
+  --color-success-bg: #e5f4ea;
+  --color-success-border: #a9d9b9;
+  --color-warning: #b26a00;
+  --color-warning-ink: #6b4000;
+  --color-warning-bg: #fff1d6;
+  --color-warning-border: #f0c877;
+  --color-danger: #c2332b;
+  --color-danger-ink: #8e1f19;
+  --color-danger-bg: #fbe5e3;
+  --color-danger-border: #f0b9b4;
+
+  --color-container: #0b6266;
+  --color-container-mark: #0f7c80;
+  --color-container-bg: #e1f1f1;
+  --color-lorry: #5e3aa3;
+  --color-lorry-mark: #7a4fc2;
+  --color-lorry-bg: #eee8f8;
+
+  --font-sans: var(--font-barlow), ui-sans-serif, system-ui, sans-serif;
+  --font-condensed: var(--font-barlow-condensed), var(--font-barlow), sans-serif;
+  --font-mono: var(--font-plex-mono), ui-monospace, Menlo, Consolas, monospace;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --color-primary: #6f9cff;
+    --color-primary-hover: #8fb2ff;
+    --color-primary-soft: #1b2740;
+    --color-primary-ring: #24365a;
+    --color-ink: #eef1f4;
+    --color-body: #c4cad1;
+    --color-muted: #9aa3ad;
+    --color-faint: #7a828c;
+    --color-placeholder: #5d6570;
+    --color-line: #2a3039;
+    --color-line-soft: #222831;
+    --color-field: #3a414c;
+    --color-canvas: #0e1115;
+    --color-surface: #161a20;
+    --color-surface-sunken: #181c22;
+    --color-chip: #232932;
+    --color-solid: #eef1f4;
+    --color-on-solid: #0e1115;
+    --color-success: #7be0a3;
+    --color-success-bg: #123d25;
+    --color-success-border: #1f5c39;
+    --color-warning: #f0b04a;
+    --color-warning-ink: #f6cf8a;
+    --color-warning-bg: #3a2a0c;
+    --color-warning-border: #6b4f17;
+    --color-danger: #ff8a80;
+    --color-danger-ink: #ffb4ad;
+    --color-danger-bg: #3d1614;
+    --color-danger-border: #6e2a25;
+    --color-container: #6fd0d3;
+    --color-container-mark: #2aa3a8;
+    --color-container-bg: #10302f;
+    --color-lorry: #c3a6f5;
+    --color-lorry-mark: #9a72e0;
+    --color-lorry-bg: #261c3a;
+  }
+}
+
+html {
+  font-variant-numeric: tabular-nums;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  background: var(--color-canvas);
+  color: var(--color-ink);
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--color-placeholder);
+  font-weight: 500;
+}
+
+/* Hide number spinners; quantities are typed on the phone's number pad. */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* Printing: only the A4 pages, one per sheet of paper. */
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 0;
+  }
+  html,
+  body {
+    background: #fff !important;
+  }
+  [data-noprint] {
+    display: none !important;
+  }
+  [data-print-area] {
+    display: block !important;
+  }
+  [data-print-area] > * {
+    break-after: page;
+  }
+}

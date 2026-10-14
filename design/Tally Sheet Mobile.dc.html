@@ -1,0 +1,734 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet data-dc-atomics><meta name="design_doc_mode" content="canvas"><link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700;800&family=Barlow+Condensed:wght@600;700;800&family=IBM+Plex+Mono:wght@500;600&family=Mrs+Saint+Delafield&display=swap" rel="stylesheet"><style>body{margin:0;background:#E9EAE6;font-family:Barlow,system-ui,sans-serif;font-variant-numeric:tabular-nums}a{color:#1E4FA3}a:hover{color:#163C7E}.dv-turn{padding:40px 44px 32px;border-bottom:1px solid rgba(0,0,0,.08);scroll-margin-top:16px}.dv-thd{display:flex;align-items:baseline;gap:10px;margin:0 0 20px}.dv-tid{font:600 10px ui-monospace,Menlo,monospace;padding:3px 7px;background:#1a1a1a;color:#fff;border-radius:4px;text-decoration:none}.dv-tname{font:600 13px/1.2 system-ui,sans-serif;color:#1a1a1a}.dv-opts{display:flex;flex-wrap:wrap;gap:44px 36px;align-items:flex-start}.dv-opt{flex:none;display:flex;flex-direction:column;gap:14px;scroll-margin-top:16px}.dv-oid{font:600 10.5px ui-monospace,Menlo,monospace;padding:3px 7px;background:rgba(0,0,0,.08);color:#1a1a1a;border-radius:5px;text-decoration:none}.dv-olabel{display:flex;align-items:baseline;gap:8px;font:500 12px/1.3 system-ui,sans-serif;color:rgba(0,0,0,.6)}.dv-opt:target .dv-oid{background:#2a78d6;color:#fff}.dv-next{margin:28px 0 0;font:12px/1.5 system-ui,sans-serif;color:rgba(0,0,0,.5)}</style></helmet>
+<section class="dv-turn" id="t1">
+<div class="dv-thd"><a class="dv-tid" href="#t1">1</a><span class="dv-tname">Tally Sheet · worker app (390×844 phone, 820/1180 tablet)</span></div>
+<div style="max-width:880px;font:15px/1.55 Barlow,sans-serif;color:#3a3f47;margin:0 0 36px;display:grid;gap:6px">
+<div><b>Approach.</b> One task per screen, primary action pinned to the thumb zone, 56px targets. Deep blue is the only action colour; teal marks <b>Container</b>, violet marks <b>Lori</b>; green/amber/red appear only for count status. Pallet numbers use condensed bold numerals so they read like the physical sticker. Office screens and A4 print layouts are in <a href="Tally Sheet Office.dc.html">Tally Sheet Office</a>.</div>
+<div><b>Assumptions.</b> Product master list comes from the server and is cached offline. Worker name comes from login. References are TS-YYMM-####. Sample data is invented for the second item (LAM SOON SHORTENING 16KG, pallet 8 mixed).</div>
+</div>
+
+<div style="font:700 13px Barlow;letter-spacing:.08em;text-transform:uppercase;color:#5B6270;margin:0 0 18px">Main flow</div>
+<div class="dv-opts">
+
+<!-- 1 HOME -->
+<div class="dv-opt" id="1a"><div class="dv-olabel"><a class="dv-oid" href="#1a">1a</a>1 · Senarai sheet (offline, 2 waiting to sync)</div>
+<div style="width:390px;height:844px;background:#F3F4F1;border-radius:30px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 0 0 8px #1A1C20,0 24px 48px rgba(0,0,0,.2);color:#15181D;font-family:Barlow,sans-serif;font-variant-numeric:tabular-nums">
+  <div style="height:36px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:0 24px;font:600 14px Barlow;background:#fff"><span>15:42</span><span style="font-size:12px">— no signal</span></div>
+  <div style="flex:none;background:#fff;padding:8px 16px 14px;display:flex;align-items:center;justify-content:space-between">
+    <div><div style="font:800 26px Barlow;letter-spacing:-.01em">Tally Sheet</div><div style="font:500 14px Barlow;color:#5B6270">Mohd Hafiz · Gudang Pasir Gudang</div></div>
+    <div style="width:48px;height:48px;border-radius:24px;background:#E8EDF6;color:#1E4FA3;display:flex;align-items:center;justify-content:center;font:700 16px Barlow">MH</div>
+  </div>
+  <div style="flex:none;background:#2B2F36;color:#fff;padding:10px 16px;display:flex;align-items:center;gap:10px;font:600 14px Barlow"><span style="width:10px;height:10px;border-radius:5px;background:#F0B04A;flex:none"></span><span style="flex:1">Offline · 2 sheet menunggu sync</span><span style="text-decoration:underline">Cuba lagi</span></div>
+  <div style="flex:1;min-height:0;overflow:hidden;padding:16px;display:flex;flex-direction:column;gap:10px">
+    <div style="font:700 13px Barlow;letter-spacing:.06em;text-transform:uppercase;color:#5B6270;display:flex;justify-content:space-between"><span>Draf</span><span>1</span></div>
+    <sc-for list="{{ drafts }}" as="s" hint-placeholder-count="1">
+      <div style="background:#fff;border:1px solid #E2E5E9;border-radius:14px;padding:14px;display:grid;grid-template-columns:1fr auto;gap:6px 10px">
+        <div style="display:flex;gap:8px;align-items:center">
+          <sc-if value="{{ s.isA }}"><span style="display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 8px;border-radius:6px;background:#E1F1F1;color:#0B6266;font:700 12px Barlow;letter-spacing:.05em;text-transform:uppercase"><span style="width:8px;height:8px;background:#0F7C80;border-radius:1px"></span>Container</span></sc-if>
+          <sc-if value="{{ s.isB }}"><span style="display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 8px;border-radius:6px;background:#EEE8F8;color:#5E3AA3;font:700 12px Barlow;letter-spacing:.05em;text-transform:uppercase"><span style="width:8px;height:8px;background:#7A4FC2;border-radius:4px"></span>Lori</span></sc-if>
+        </div>
+        <span style="height:24px;padding:0 9px;border-radius:12px;background:#ECEEF1;color:#3A3F47;font:700 12px Barlow;display:flex;align-items:center">Draf</span>
+        <div style="font:700 21px Barlow;grid-column:1/3">{{ s.no }}</div>
+        <div style="font:500 14px Barlow;color:#5B6270;grid-column:1/3;display:flex;gap:12px"><span>{{ s.ref }}</span><span>{{ s.date }}</span><span>{{ s.plt }} pallet</span></div>
+        <div style="grid-column:1/3;margin-top:4px;height:48px;border-radius:10px;background:#E8EDF6;color:#1E4FA3;font:700 16px Barlow;display:flex;align-items:center;justify-content:center">Sambung · Pallet details</div>
+      </div>
+    </sc-for>
+    <div style="font:700 13px Barlow;letter-spacing:.06em;text-transform:uppercase;color:#5B6270;display:flex;justify-content:space-between;margin-top:8px"><span>Dihantar</span><span>Hari ini</span></div>
+    <sc-for list="{{ submitted }}" as="s" hint-placeholder-count="3">
+      <div style="background:#fff;border:1px solid #E2E5E9;border-radius:14px;padding:12px 14px;display:grid;grid-template-columns:1fr auto;gap:4px 10px;align-items:center">
+        <div style="display:flex;gap:8px;align-items:center">
+          <sc-if value="{{ s.isA }}"><span style="display:inline-flex;align-items:center;gap:6px;height:22px;padding:0 7px;border-radius:6px;background:#E1F1F1;color:#0B6266;font:700 11px Barlow;letter-spacing:.05em;text-transform:uppercase"><span style="width:7px;height:7px;background:#0F7C80;border-radius:1px"></span>Container</span></sc-if>
+          <sc-if value="{{ s.isB }}"><span style="display:inline-flex;align-items:center;gap:6px;height:22px;padding:0 7px;border-radius:6px;background:#EEE8F8;color:#5E3AA3;font:700 11px Barlow;letter-spacing:.05em;text-transform:uppercase"><span style="width:7px;height:7px;background:#7A4FC2;border-radius:4px"></span>Lori</span></sc-if>
+          <span style="font:700 18px Barlow">{{ s.no }}</span>
+        </div>
+        <span style="height:24px;padding:0 9px;border-radius:12px;font:700 12px Barlow;display:flex;align-items:center;gap:5px;background:{{ s.chipBg }};color:{{ s.chipFg }}">{{ s.status }}</span>
+        <div style="font:500 14px Barlow;color:#5B6270;grid-column:1/3;display:flex;gap:12px"><span>{{ s.ref }}</span><span>{{ s.date }}</span><span>{{ s.plt }} pallet</span><span>{{ s.ctn }} CTN</span></div>
+      </div>
+    </sc-for>
+  </div>
+  <div style="flex:none;padding:12px 16px 26px;background:#fff;border-top:1px solid #E2E5E9"><div style="height:60px;border-radius:14px;background:#1E4FA3;color:#fff;display:flex;align-items:center;justify-content:center;gap:10px;font:700 19px Barlow"><span style="font-size:26px;line-height:1">+</span>Tally sheet baru</div></div>
+</div></div>
+
+<!-- 2 CHOOSE TYPE -->
+<div class="dv-opt" id="1b"><div class="dv-olabel"><a class="dv-oid" href="#1b">1b</a>2 · Pilih jenis borang</div>
+<div style="width:390px;height:844px;background:#F3F4F1;border-radius:30px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 0 0 8px #1A1C20,0 24px 48px rgba(0,0,0,.2);color:#15181D;font-family:Barlow,sans-serif">
+  <div style="height:36px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:0 24px;font:600 14px Barlow;background:#fff"><span>15:42</span><span style="font-size:12px">4G</span></div>
+  <div style="height:60px;flex:none;display:flex;align-items:center;gap:4px;padding:0 8px;background:#fff;border-bottom:1px solid #E2E5E9"><div style="width:48px;height:48px;display:flex;align-items:center;justify-content:center;font-size:24px">←</div><div style="font:700 19px Barlow">Tally sheet baru</div></div>
+  <div style="flex:1;padding:20px 16px;display:flex;flex-direction:column;gap:14px">
+    <div style="font:700 24px/1.2 Barlow">Barang dimuat ke mana?</div>
+    <div style="font:500 15px Barlow;color:#5B6270;margin-top:-6px">Pilih ikut borang kertas yang biasa diguna.</div>
+    <div style="background:#fff;border:2px solid #0F7C80;border-radius:18px;padding:20px;display:flex;flex-direction:column;gap:14px;box-shadow:0 0 0 4px #E1F1F1">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start">
+        <div style="width:104px;height:56px;border-radius:4px;background:repeating-linear-gradient(90deg,#0F7C80 0 7px,#0B6266 7px 10px)"></div>
+        <span style="font:700 12px Barlow;color:#0B6266;letter-spacing:.06em">FORM A</span>
+      </div>
+      <div style="font:800 28px Barlow;color:#0B6266">Container</div>
+      <div style="font:500 15px/1.4 Barlow;color:#3A3F47">Muat ke container eksport. Contract No, Container No, Seal No, SI No, Disport. Footer bahan pembungkus.</div>
+    </div>
+    <div style="background:#fff;border:1.5px solid #D5D9DF;border-radius:18px;padding:20px;display:flex;flex-direction:column;gap:14px">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start">
+        <div style="position:relative;width:104px;height:58px"><div style="position:absolute;left:0;top:2px;width:68px;height:40px;background:#7A4FC2;border-radius:3px"></div><div style="position:absolute;left:71px;top:14px;width:30px;height:28px;background:#5E3AA3;border-radius:3px 10px 3px 3px"></div><div style="position:absolute;left:8px;top:36px;width:18px;height:18px;border-radius:9px;background:#15181D;border:3px solid #fff;box-sizing:border-box"></div><div style="position:absolute;left:44px;top:36px;width:18px;height:18px;border-radius:9px;background:#15181D;border:3px solid #fff;box-sizing:border-box"></div><div style="position:absolute;left:78px;top:36px;width:18px;height:18px;border-radius:9px;background:#15181D;border:3px solid #fff;box-sizing:border-box"></div></div>
+        <span style="font:700 12px Barlow;color:#5E3AA3;letter-spacing:.06em">FORM B</span>
+      </div>
+      <div style="font:800 28px Barlow;color:#5E3AA3">Lori</div>
+      <div style="font:500 15px/1.4 Barlow;color:#3A3F47">Muat ke lori biasa. Transfer To, D/O No, Lorry No. PLT Type dan Contract No ikut pallet.</div>
+    </div>
+  </div>
+  <div style="flex:none;padding:12px 16px 26px;background:#fff;border-top:1px solid #E2E5E9"><div style="height:56px;border-radius:12px;background:#1E4FA3;color:#fff;display:flex;align-items:center;justify-content:center;font:700 18px Barlow">Seterusnya · Container</div></div>
+</div></div>
+
+<!-- 3A HEADER CONTAINER -->
+<div class="dv-opt" id="1c"><div class="dv-olabel"><a class="dv-oid" href="#1c">1c</a>3 · Header, Container</div>
+<div style="width:390px;height:844px;background:#F3F4F1;border-radius:30px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 0 0 8px #1A1C20,0 24px 48px rgba(0,0,0,.2);color:#15181D;font-family:Barlow,sans-serif">
+  <div style="height:36px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:0 24px;font:600 14px Barlow;background:#fff"><span>15:42</span><span style="font-size:12px">4G</span></div>
+  <div style="height:60px;flex:none;display:flex;align-items:center;gap:4px;padding:0 8px;background:#fff"><div style="width:48px;height:48px;display:flex;align-items:center;justify-content:center;font-size:24px">←</div><div style="flex:1;font:700 19px Barlow">Header</div><span style="display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 8px;margin-right:8px;border-radius:6px;background:#E1F1F1;color:#0B6266;font:700 12px Barlow;letter-spacing:.05em;text-transform:uppercase"><span style="width:8px;height:8px;background:#0F7C80;border-radius:1px"></span>Container</span></div>
+  <div style="flex:none;display:grid;grid-template-columns:repeat(6,1fr);gap:4px;padding:4px 16px 10px;background:#fff;border-bottom:1px solid #E2E5E9"><sc-for list="{{ pg0 }}" as="s" hint-placeholder-count="6"><div style="display:flex;flex-direction:column;gap:5px"><div style="height:4px;border-radius:2px;background:{{ s.c }}"></div><div style="font-size:11px;font-weight:{{ s.w }};color:{{ s.t }}">{{ s.l }}</div></div></sc-for></div>
+  <div style="flex:1;min-height:0;overflow:hidden;padding:16px;display:flex;flex-direction:column;gap:14px">
+    <sc-for list="{{ hdrA }}" as="f" hint-placeholder-count="6">
+      <div style="display:flex;flex-direction:column;gap:6px">
+        <div style="display:flex;justify-content:space-between;font:700 14px Barlow;color:#3A3F47"><span>{{ f.k }}</span><span style="font-weight:500;color:#7A818C">{{ f.hint }}</span></div>
+        <div style="height:56px;border-radius:10px;background:#fff;border:1.5px solid {{ f.bd }};display:flex;align-items:center;padding:0 14px;font:600 20px Barlow;letter-spacing:.02em;box-shadow:{{ f.sh }}">{{ f.v }}</div>
+      </div>
+    </sc-for>
+  </div>
+  <div style="flex:none;padding:12px 16px 26px;background:#fff;border-top:1px solid #E2E5E9"><div style="height:56px;border-radius:12px;background:#1E4FA3;color:#fff;display:flex;align-items:center;justify-content:center;font:700 18px Barlow">Seterusnya · Tambah item</div></div>
+</div></div>
+
+<!-- 3B HEADER LORI -->
+<div class="dv-opt" id="1d"><div class="dv-olabel"><a class="dv-oid" href="#1d">1d</a>3 · Header, Lori</div>
+<div style="width:390px;height:844px;background:#F3F4F1;border-radius:30px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 0 0 8px #1A1C20,0 24px 48px rgba(0,0,0,.2);color:#15181D;font-family:Barlow,sans-serif">
+  <div style="height:36px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:0 24px;font:600 14px Barlow;background:#fff"><span>15:42</span><span style="font-size:12px">4G</span></div>
+  <div style="height:60px;flex:none;display:flex;align-items:center;gap:4px;padding:0 8px;background:#fff"><div style="width:48px;height:48px;display:flex;align-items:center;justify-content:center;font-size:24px">←</div><div style="flex:1;font:700 19px Barlow">Header</div><span style="display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 8px;margin-right:8px;border-radius:6px;background:#EEE8F8;color:#5E3AA3;font:700 12px Barlow;letter-spacing:.05em;text-transform:uppercase"><span style="width:8px;height:8px;background:#7A4FC2;border-radius:4px"></span>Lori</span></div>
+  <div style="flex:none;display:grid;grid-template-columns:repeat(6,1fr);gap:4px;padding:4px 16px 10px;background:#fff;border-bottom:1px solid #E2E5E9"><sc-for list="{{ pg0 }}" as="s" hint-placeholder-count="6"><div style="display:flex;flex-direction:column;gap:5px"><div style="height:4px;border-radius:2px;background:{{ s.c }}"></div><div style="font-size:11px;font-weight:{{ s.w }};color:{{ s.t }}">{{ s.l }}</div></div></sc-for></div>
+  <div style="flex:1;min-height:0;overflow:hidden;padding:16px;display:flex;flex-direction:column;gap:14px">
+    <div style="display:flex;flex-direction:column;gap:6px">
+      <div style="font:700 14px Barlow;color:#3A3F47">Transfer To</div>
+      <div style="height:56px;border-radius:10px;background:#fff;border:1.5px solid #CFD4DA;display:flex;align-items:center;padding:0 14px;font:600 19px Barlow;justify-content:space-between"><span>Lam Soon Shah Alam DC</span><span style="color:#7A818C;font-size:16px">▾</span></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap"><span style="height:36px;padding:0 12px;border-radius:18px;background:#E8EDF6;color:#1E4FA3;font:600 14px Barlow;display:flex;align-items:center">Shah Alam DC</span><span style="height:36px;padding:0 12px;border-radius:18px;background:#fff;border:1px solid #D5D9DF;font:600 14px Barlow;display:flex;align-items:center">Prai DC</span><span style="height:36px;padding:0 12px;border-radius:18px;background:#fff;border:1px solid #D5D9DF;font:600 14px Barlow;display:flex;align-items:center">Senai DC</span></div>
+    </div>
+    <sc-for list="{{ hdrB }}" as="f" hint-placeholder-count="3">
+      <div style="display:flex;flex-direction:column;gap:6px">
+        <div style="display:flex;justify-content:space-between;font:700 14px Barlow;color:#3A3F47"><span>{{ f.k }}</span><span style="font-weight:500;color:#7A818C">{{ f.hint }}</span></div>
+        <div style="height:56px;border-radius:10px;background:#fff;border:1.5px solid {{ f.bd }};display:flex;align-items:center;padding:0 14px;font:600 20px Barlow;letter-spacing:.02em;box-shadow:{{ f.sh }}">{{ f.v }}</div>
+      </div>
+    </sc-for>
+    <div style="margin-top:auto;display:grid;grid-template-columns:repeat(3,1fr);gap:6px;background:#D5D9DF;padding:6px;border-radius:12px;margin:auto -16px -16px">
+      <sc-for list="{{ kbd }}" as="k" hint-placeholder-count="12"><div style="height:46px;border-radius:8px;background:#fff;display:flex;align-items:center;justify-content:center;font:600 22px Barlow">{{ k }}</div></sc-for>
+    </div>
+  </div>
+  <div style="flex:none;padding:12px 16px 26px;background:#fff;border-top:1px solid #E2E5E9"><div style="height:56px;border-radius:12px;background:#1E4FA3;color:#fff;display:flex;align-items:center;justify-content:center;font:700 18px Barlow">Seterusnya · Tambah item</div></div>
+</div></div>
+
+<!-- 4 PRODUCT PICKER -->
+<div class="dv-opt" id="1e"><div class="dv-olabel"><a class="dv-oid" href="#1e">1e</a>4 · Tambah item: pilih produk</div>
+<div style="width:390px;height:844px;background:#F3F4F1;border-radius:30px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 0 0 8px #1A1C20,0 24px 48px rgba(0,0,0,.2);color:#15181D;font-family:Barlow,sans-serif">
+  <div style="height:36px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:0 24px;font:600 14px Barlow;background:#fff"><span>15:43</span><span style="font-size:12px">4G</span></div>
+  <div style="height:60px;flex:none;display:flex;align-items:center;gap:4px;padding:0 8px;background:#fff"><div style="width:48px;height:48px;display:flex;align-items:center;justify-content:center;font-size:24px">×</div><div style="flex:1"><div style="font:700 19px Barlow">Tambah item</div><div style="font:500 13px Barlow;color:#5B6270">Item 2 · bermula Pallet 6</div></div></div>
+  <div style="flex:none;display:grid;grid-template-columns:repeat(6,1fr);gap:4px;padding:4px 16px 10px;background:#fff"><sc-for list="{{ pg1 }}" as="s" hint-placeholder-count="6"><div style="display:flex;flex-direction:column;gap:5px"><div style="height:4px;border-radius:2px;background:{{ s.c }}"></div><div style="font-size:11px;font-weight:{{ s.w }};color:{{ s.t }}">{{ s.l }}</div></div></sc-for></div>
+  <div style="flex:none;padding:6px 16px 12px;background:#fff;border-bottom:1px solid #E2E5E9"><div style="height:56px;border-radius:12px;background:#F3F4F1;border:1.5px solid #1E4FA3;display:flex;align-items:center;gap:10px;padding:0 14px;font:600 18px Barlow"><span style="width:14px;height:14px;border:2.5px solid #5B6270;border-radius:8px;box-sizing:border-box"></span><span>short</span><span style="width:2px;height:24px;background:#1E4FA3"></span><span style="flex:1"></span><span style="color:#7A818C;font-size:22px">×</span></div></div>
+  <div style="flex:1;min-height:0;overflow:hidden;display:flex;flex-direction:column">
+    <div style="padding:14px 16px 6px;font:700 13px Barlow;letter-spacing:.06em;text-transform:uppercase;color:#5B6270">Baru diguna</div>
+    <sc-for list="{{ recents }}" as="p" hint-placeholder-count="2">
+      <div style="min-height:64px;padding:8px 16px;display:flex;align-items:center;gap:12px;background:#fff;border-bottom:1px solid #EEF0F2">
+        <div style="flex:1;min-width:0"><div style="font:700 17px Barlow">{{ p.n }}</div><div style="font:500 13px Barlow;color:#5B6270">{{ p.meta }}</div></div>
+        <span style="font:700 14px Barlow;color:#1E4FA3">Pilih</span>
+      </div>
+    </sc-for>
+    <div style="padding:16px 16px 6px;font:700 13px Barlow;letter-spacing:.06em;text-transform:uppercase;color:#5B6270">Senarai produk · 2 padanan</div>
+    <sc-for list="{{ products }}" as="p" hint-placeholder-count="2">
+      <div style="min-height:64px;padding:8px 16px;display:flex;align-items:center;gap:12px;background:{{ p.bg }};border-bottom:1px solid #EEF0F2">
+        <div style="flex:1;min-width:0"><div style="font:700 17px Barlow">{{ p.n }}</div><div style="font:500 13px Barlow;color:#5B6270">{{ p.meta }}</div></div>
+        <span style="width:28px;height:28px;border-radius:14px;border:2px solid {{ p.ring }};background:{{ p.dot }};box-sizing:border-box"></span>
+      </div>
+    </sc-for>
+    <div style="margin:14px 16px 0;min-height:60px;border:1.5px dashed #AEB4BD;border-radius:12px;padding:10px 14px;display:flex;align-items:center;gap:12px">
+      <span style="font:600 26px Barlow;color:#1E4FA3">+</span>
+      <div><div style="font:700 16px Barlow">Guna nama sendiri</div><div style="font:500 13px Barlow;color:#5B6270">"short" tiada dalam senarai? Taip nama item.</div></div>
+    </div>
+  </div>
+  <div style="flex:none;padding:12px 16px 26px;background:#fff;border-top:1px solid #E2E5E9;display:flex;flex-direction:column;gap:10px">
+    <div style="display:flex;flex-direction:column;gap:4px"><div style="font:700 13px Barlow;color:#5B6270">Nama item (boleh ubah)</div><div style="height:52px;border-radius:10px;border:1.5px solid #CFD4DA;display:flex;align-items:center;padding:0 12px;font:600 17px Barlow">LAM SOON SHORTENING 16KG</div></div>
+    <div style="height:56px;border-radius:12px;background:#1E4FA3;color:#fff;display:flex;align-items:center;justify-content:center;font:700 18px Barlow">Seterusnya · Pallet</div>
+  </div>
+</div></div>
+
+<!-- 5 PALLET SETUP (LORI) -->
+<div class="dv-opt" id="1f"><div class="dv-olabel"><a class="dv-oid" href="#1f">1f</a>5 · Pallet setup (Lori: PLT Type + Contract)</div>
+<div style="width:390px;height:844px;background:#F3F4F1;border-radius:30px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 0 0 8px #1A1C20,0 24px 48px rgba(0,0,0,.2);color:#15181D;font-family:Barlow,sans-serif;font-variant-numeric:tabular-nums">
+  <div style="height:36px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:0 24px;font:600 14px Barlow;background:#fff"><span>15:44</span><span style="font-size:12px">4G</span></div>
+  <div style="height:60px;flex:none;display:flex;align-items:center;gap:4px;padding:0 8px;background:#fff"><div style="width:48px;height:48px;display:flex;align-items:center;justify-content:center;font-size:24px">←</div><div style="flex:1;min-width:0"><div style="font:700 17px Barlow;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">LAM SOON MARGARINE 5KG</div><div style="font:500 13px Barlow;color:#5B6270">Item 1 · Lori</div></div><span style="width:48px;height:48px;display:flex;align-items:center;justify-content:center;font:600 14px Barlow;color:#1E4FA3">Ubah</span></div>
+  <div style="flex:none;display:grid;grid-template-columns:repeat(6,1fr);gap:4px;padding:4px 16px 10px;background:#fff;border-bottom:1px solid #E2E5E9"><sc-for list="{{ pg2 }}" as="s" hint-placeholder-count="6"><div style="display:flex;flex-direction:column;gap:5px"><div style="height:4px;border-radius:2px;background:{{ s.c }}"></div><div style="font-size:11px;font-weight:{{ s.w }};color:{{ s.t }}">{{ s.l }}</div></div></sc-for></div>
+  <div style="flex:1;min-height:0;overflow:hidden;padding:14px 16px;display:flex;flex-direction:column;gap:12px">
+    <div style="display:grid;grid-template-columns:1fr 1fr;background:#E2E5E9;border-radius:12px;padding:4px;gap:4px"><div style="height:44px;border-radius:9px;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.1);font:700 15px Barlow;display:flex;align-items:center;justify-content:center">Kira dari jumlah CTN</div><div style="height:44px;border-radius:9px;font:600 15px Barlow;color:#5B6270;display:flex;align-items:center;justify-content:center">Bilangan pallet</div></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div style="display:flex;flex-direction:column;gap:6px"><div style="font:700 14px Barlow;color:#3A3F47">Total CTN</div><div style="height:64px;border-radius:12px;background:#fff;border:2px solid #1E4FA3;display:flex;align-items:center;padding:0 14px;font:700 32px Barlow">150</div></div>
+      <div style="display:flex;flex-direction:column;gap:6px"><div style="font:700 14px Barlow;color:#3A3F47">CTN per pallet</div><div style="height:64px;border-radius:12px;background:#fff;border:1.5px solid #CFD4DA;display:flex;align-items:center;padding:0 14px;font:700 32px Barlow">32</div></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1.3fr;gap:10px">
+      <div style="display:flex;flex-direction:column;gap:6px"><div style="font:700 14px Barlow;color:#3A3F47">PLT Type</div><div style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px"><div style="height:52px;border-radius:9px;background:#1E4FA3;color:#fff;font:700 20px Barlow;display:flex;align-items:center;justify-content:center">L</div><div style="height:52px;border-radius:9px;background:#fff;border:1.5px solid #CFD4DA;font:700 20px Barlow;display:flex;align-items:center;justify-content:center">E</div><div style="height:52px;border-radius:9px;background:#fff;border:1.5px solid #CFD4DA;font:700 20px Barlow;display:flex;align-items:center;justify-content:center">C</div><div style="height:52px;border-radius:9px;background:#fff;border:1.5px solid #CFD4DA;font:700 20px Barlow;display:flex;align-items:center;justify-content:center">O</div></div></div>
+      <div style="display:flex;flex-direction:column;gap:6px"><div style="font:700 14px Barlow;color:#3A3F47">Contract No</div><div style="height:52px;border-radius:9px;background:#fff;border:1.5px solid #CFD4DA;display:flex;align-items:center;padding:0 12px;font:600 18px Barlow">LS-DOM-3318</div></div>
+    </div>
+    <div style="background:#fff;border:1px solid #E2E5E9;border-radius:14px;overflow:hidden">
+      <div style="padding:12px 14px;display:flex;justify-content:space-between;align-items:baseline;border-bottom:1px solid #EEF0F2"><span style="font:700 15px Barlow">5 pallet akan dibuat</span><span style="font:600 14px Barlow;color:#5B6270">Pallet 1–5</span></div>
+      <sc-for list="{{ setupPreview }}" as="p" hint-placeholder-count="5">
+        <div style="height:48px;display:grid;grid-template-columns:52px 1fr auto auto;gap:10px;align-items:center;padding:0 14px;border-bottom:1px solid #EEF0F2">
+          <span style="height:34px;border-radius:7px;background:#15181D;color:#fff;font:800 22px 'Barlow Condensed';display:flex;align-items:center;justify-content:center">{{ p.no }}</span>
+          <span style="font:500 14px Barlow;color:{{ p.noteC }}">{{ p.note }}</span>
+          <span style="font:700 13px Barlow;color:#5B6270;width:24px;text-align:center">{{ p.t }}</span>
+          <span style="font:700 20px Barlow;min-width:56px;text-align:right">{{ p.q }}</span>
+        </div>
+      </sc-for>
+      <div style="padding:10px 14px;display:flex;justify-content:space-between;font:700 16px Barlow;background:#E5F4EA;color:#17733E"><span>Jumlah</span><span>150 / 150 CTN ✓</span></div>
+    </div>
+  </div>
+  <div style="flex:none;padding:12px 16px 26px;background:#fff;border-top:1px solid #E2E5E9"><div style="height:56px;border-radius:12px;background:#1E4FA3;color:#fff;display:flex;align-items:center;justify-content:center;font:700 18px Barlow">Buat 5 pallet</div></div>
+</div></div>
+
+<!-- 6 PALLET DETAILS -->
+<div class="dv-opt" id="1g"><div class="dv-olabel"><a class="dv-oid" href="#1g">1g</a>6 · Pallet details (core) · item 2, mixed pallet 8</div>
+<div style="width:390px;height:844px;background:#F3F4F1;border-radius:30px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 0 0 8px #1A1C20,0 24px 48px rgba(0,0,0,.2);color:#15181D;font-family:Barlow,sans-serif;font-variant-numeric:tabular-nums">
+  <div style="height:36px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:0 24px;font:600 14px Barlow;background:#fff"><span>15:51</span><span style="font-size:12px">4G</span></div>
+  <div style="height:56px;flex:none;display:flex;align-items:center;gap:4px;padding:0 8px;background:#fff"><div style="width:48px;height:48px;display:flex;align-items:center;justify-content:center;font-size:24px">←</div><div style="flex:1;min-width:0"><div style="font:700 17px Barlow;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">LAM SOON SHORTENING 16KG</div><div style="font:500 13px Barlow;color:#5B6270">Item 2 · Pallet 6–8</div></div></div>
+  <div style="flex:none;display:grid;grid-template-columns:repeat(6,1fr);gap:4px;padding:2px 16px 10px;background:#fff"><sc-for list="{{ pg2 }}" as="s" hint-placeholder-count="6"><div style="display:flex;flex-direction:column;gap:5px"><div style="height:4px;border-radius:2px;background:{{ s.c }}"></div><div style="font-size:11px;font-weight:{{ s.w }};color:{{ s.t }}">{{ s.l }}</div></div></sc-for></div>
+  <div style="flex:none;height:52px;background:#17733E;color:#fff;display:flex;align-items:center;justify-content:space-between;padding:0 16px"><span style="font:600 15px Barlow">Jumlah item</span><span style="font:800 26px Barlow">100 / 100 CTN ✓</span></div>
+  <div style="flex:1;min-height:0;overflow:hidden;padding:12px;display:flex;flex-direction:column;gap:10px">
+    <div style="background:#fff;border:1px solid #E2E5E9;border-radius:14px;padding:12px;display:flex;align-items:center;gap:12px">
+      <span style="width:60px;height:60px;border-radius:10px;background:#15181D;color:#fff;font:800 40px 'Barlow Condensed';display:flex;align-items:center;justify-content:center;flex:none">6</span>
+      <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:3px"><div style="font:700 17px Barlow">40 CTN · B240920C</div><div style="font:500 14px Barlow;color:#5B6270">Exp 20/09/26 · Prod 20/09/25</div><div style="font:700 12px Barlow;color:#17733E">✓ Lengkap</div></div>
+      <span style="width:48px;height:48px;border-radius:10px;background:#F3F4F1;display:flex;align-items:center;justify-content:center;font:600 14px Barlow;color:#1E4FA3">Ubah</span>
+    </div>
+    <div style="background:#fff;border:1px solid #E2E5E9;border-radius:14px;padding:12px;display:flex;align-items:center;gap:12px">
+      <span style="width:60px;height:60px;border-radius:10px;background:#15181D;color:#fff;font:800 40px 'Barlow Condensed';display:flex;align-items:center;justify-content:center;flex:none">7</span>
+      <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:3px"><div style="font:700 17px Barlow">40 CTN · B240920C</div><div style="font:500 14px Barlow;color:#5B6270">Exp 20/09/26 · Prod 20/09/25</div><div style="font:700 12px Barlow;color:#1E4FA3">✓ Sama macam pallet 6</div></div>
+      <span style="width:48px;height:48px;border-radius:10px;background:#F3F4F1;display:flex;align-items:center;justify-content:center;font:600 14px Barlow;color:#1E4FA3">Ubah</span>
+    </div>
+    <div style="background:#fff;border:2px solid #1E4FA3;border-radius:14px;padding:12px;display:flex;flex-direction:column;gap:10px">
+      <div style="display:flex;align-items:center;gap:12px">
+        <span style="width:60px;height:60px;border-radius:10px;background:#15181D;color:#fff;font:800 40px 'Barlow Condensed';display:flex;align-items:center;justify-content:center">8</span>
+        <div style="flex:1"><div style="font:700 17px Barlow">Pallet 8 · 2 batch</div><div style="display:inline-flex;margin-top:3px;height:22px;padding:0 8px;border-radius:5px;background:#15181D;color:#fff;font:700 11px Barlow;letter-spacing:.06em;align-items:center">PALLET CAMPUR</div></div>
+        <span style="font:800 26px Barlow">20</span>
+      </div>
+      <div style="display:grid;grid-template-columns:28px 1fr 1fr 64px;gap:6px;align-items:center;font:700 11px Barlow;color:#5B6270;padding:0 2px"><span></span><span>BATCH</span><span>EXP · PROD</span><span style="text-align:right">QTY</span></div>
+      <div style="display:grid;grid-template-columns:28px 1fr 1fr 64px;gap:6px;align-items:center">
+        <span style="font:800 16px Barlow;color:#5B6270">a</span>
+        <div style="height:52px;border-radius:9px;border:1.5px solid #CFD4DA;display:flex;align-items:center;padding:0 8px;font:700 16px Barlow">B240920C</div>
+        <div style="height:52px;border-radius:9px;border:1.5px solid #CFD4DA;display:flex;flex-direction:column;justify-content:center;padding:0 8px;font:700 14px/1.2 Barlow"><span>20/09/26</span><span style="color:#5B6270">20/09/25</span></div>
+        <div style="height:52px;border-radius:9px;border:1.5px solid #CFD4DA;display:flex;align-items:center;justify-content:flex-end;padding:0 10px;font:700 21px Barlow">12</div>
+      </div>
+      <div style="display:grid;grid-template-columns:28px 1fr 1fr 64px;gap:6px;align-items:center">
+        <span style="font:800 16px Barlow;color:#5B6270">b</span>
+        <div style="height:52px;border-radius:9px;border:2px solid #1E4FA3;display:flex;align-items:center;padding:0 8px;font:700 16px Barlow">B241002A</div>
+        <div style="height:52px;border-radius:9px;border:1.5px solid #CFD4DA;display:flex;flex-direction:column;justify-content:center;padding:0 8px;font:700 14px/1.2 Barlow"><span>02/10/26</span><span style="color:#5B6270">02/10/25</span></div>
+        <div style="height:52px;border-radius:9px;border:1.5px solid #CFD4DA;display:flex;align-items:center;justify-content:flex-end;padding:0 10px;font:700 21px Barlow">8</div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><div style="height:48px;border-radius:10px;border:1.5px dashed #1E4FA3;color:#1E4FA3;font:700 15px Barlow;display:flex;align-items:center;justify-content:center">+ Tambah batch</div><div style="height:48px;border-radius:10px;background:#F3F4F1;color:#3A3F47;font:700 15px Barlow;display:flex;align-items:center;justify-content:center">Remark: MIXED</div></div>
+    </div>
+  </div>
+  <div style="flex:none;padding:10px 16px 24px;background:#fff;border-top:1px solid #E2E5E9;display:grid;grid-template-columns:1fr 1.4fr;gap:10px">
+    <div style="height:56px;border-radius:12px;border:1.5px solid #CFD4DA;font:700 16px Barlow;display:flex;align-items:center;justify-content:center">+ Pallet</div>
+    <div style="height:56px;border-radius:12px;background:#1E4FA3;color:#fff;display:flex;align-items:center;justify-content:center;font:700 18px Barlow">Simpan item</div>
+  </div>
+</div></div>
+
+<!-- 7 ITEM LIST -->
+<div class="dv-opt" id="1h"><div class="dv-olabel"><a class="dv-oid" href="#1h">1h</a>7 · Senarai item</div>
+<div style="width:390px;height:844px;background:#F3F4F1;border-radius:30px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 0 0 8px #1A1C20,0 24px 48px rgba(0,0,0,.2);color:#15181D;font-family:Barlow,sans-serif;font-variant-numeric:tabular-nums">
+  <div style="height:36px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:0 24px;font:600 14px Barlow;background:#fff"><span>15:53</span><span style="font-size:12px">4G</span></div>
+  <div style="height:60px;flex:none;display:flex;align-items:center;gap:4px;padding:0 8px;background:#fff"><div style="width:48px;height:48px;display:flex;align-items:center;justify-content:center;font-size:24px">←</div><div style="flex:1"><div style="font:700 19px Barlow">Item</div><div style="font:500 13px Barlow;color:#5B6270">TGHU 1234567</div></div><span style="display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 8px;margin-right:8px;border-radius:6px;background:#E1F1F1;color:#0B6266;font:700 12px Barlow;letter-spacing:.05em;text-transform:uppercase"><span style="width:8px;height:8px;background:#0F7C80;border-radius:1px"></span>Container</span></div>
+  <div style="flex:none;display:grid;grid-template-columns:repeat(6,1fr);gap:4px;padding:4px 16px 10px;background:#fff;border-bottom:1px solid #E2E5E9"><sc-for list="{{ pg2 }}" as="s" hint-placeholder-count="6"><div style="display:flex;flex-direction:column;gap:5px"><div style="height:4px;border-radius:2px;background:{{ s.c }}"></div><div style="font-size:11px;font-weight:{{ s.w }};color:{{ s.t }}">{{ s.l }}</div></div></sc-for></div>
+  <div style="flex:1;min-height:0;overflow:hidden;padding:16px;display:flex;flex-direction:column;gap:10px">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div style="background:#fff;border-radius:12px;padding:12px 14px;border:1px solid #E2E5E9"><div style="font:600 13px Barlow;color:#5B6270">Pallet</div><div style="font:800 32px Barlow">8</div></div>
+      <div style="background:#fff;border-radius:12px;padding:12px 14px;border:1px solid #E2E5E9"><div style="font:600 13px Barlow;color:#5B6270">Jumlah CTN</div><div style="font:800 32px Barlow">250</div></div>
+    </div>
+    <sc-for list="{{ items }}" as="it" hint-placeholder-count="2">
+      <div style="background:#fff;border:1px solid #E2E5E9;border-radius:14px;display:flex;align-items:stretch;overflow:hidden">
+        <div style="width:36px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;background:#F7F8F6;border-right:1px solid #EEF0F2"><span style="width:16px;height:2px;background:#AEB4BD"></span><span style="width:16px;height:2px;background:#AEB4BD"></span><span style="width:16px;height:2px;background:#AEB4BD"></span></div>
+        <div style="flex:1;min-width:0;padding:12px;display:flex;flex-direction:column;gap:6px">
+          <div style="font:700 17px Barlow">{{ it.n }}</div>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><span style="height:28px;padding:0 10px;border-radius:6px;background:#15181D;color:#fff;font:700 15px 'Barlow Condensed';display:flex;align-items:center;letter-spacing:.02em">{{ it.r }}</span><span style="font:600 14px Barlow;color:#5B6270">{{ it.extra }}</span></div>
+          <div style="font:800 18px Barlow;color:#17733E">{{ it.ctn }} ✓</div>
+        </div>
+        <div style="width:56px;display:flex;align-items:center;justify-content:center;font-size:22px;color:#5B6270">⋮</div>
+      </div>
+    </sc-for>
+    <div style="height:60px;border-radius:14px;border:2px dashed #1E4FA3;color:#1E4FA3;font:700 18px Barlow;display:flex;align-items:center;justify-content:center;gap:8px"><span style="font-size:24px">+</span>Tambah item</div>
+    <div style="font:500 13px Barlow;color:#7A818C;text-align:center">Item 3 akan bermula pada Pallet 9 · tekan lama untuk susun semula</div>
+  </div>
+  <div style="flex:none;padding:12px 16px 26px;background:#fff;border-top:1px solid #E2E5E9"><div style="height:56px;border-radius:12px;background:#1E4FA3;color:#fff;display:flex;align-items:center;justify-content:center;font:700 18px Barlow">Selesai · Bahan</div></div>
+</div></div>
+
+<!-- 8A MATERIALS CONTAINER -->
+<div class="dv-opt" id="1i"><div class="dv-olabel"><a class="dv-oid" href="#1i">1i</a>8 · Bahan, Container</div>
+<div style="width:390px;height:844px;background:#F3F4F1;border-radius:30px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 0 0 8px #1A1C20,0 24px 48px rgba(0,0,0,.2);color:#15181D;font-family:Barlow,sans-serif;font-variant-numeric:tabular-nums">
+  <div style="height:36px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:0 24px;font:600 14px Barlow;background:#fff"><span>15:55</span><span style="font-size:12px">4G</span></div>
+  <div style="height:60px;flex:none;display:flex;align-items:center;gap:4px;padding:0 8px;background:#fff"><div style="width:48px;height:48px;display:flex;align-items:center;justify-content:center;font-size:24px">←</div><div style="flex:1;font:700 19px Barlow">Bahan pembungkus</div><span style="display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 8px;margin-right:8px;border-radius:6px;background:#E1F1F1;color:#0B6266;font:700 12px Barlow;letter-spacing:.05em;text-transform:uppercase"><span style="width:8px;height:8px;background:#0F7C80;border-radius:1px"></span>Container</span></div>
+  <div style="flex:none;display:grid;grid-template-columns:repeat(6,1fr);gap:4px;padding:4px 16px 10px;background:#fff;border-bottom:1px solid #E2E5E9"><sc-for list="{{ pg3 }}" as="s" hint-placeholder-count="6"><div style="display:flex;flex-direction:column;gap:5px"><div style="height:4px;border-radius:2px;background:{{ s.c }}"></div><div style="font-size:11px;font-weight:{{ s.w }};color:{{ s.t }}">{{ s.l }}</div></div></sc-for></div>
+  <div style="flex:1;min-height:0;overflow:hidden;padding:10px 16px;display:flex;flex-direction:column">
+    <sc-for list="{{ matsA }}" as="m" hint-placeholder-count="9">
+      <div style="height:60px;display:flex;align-items:center;gap:8px;border-bottom:1px solid #E2E5E9">
+        <span style="flex:1;font:700 17px Barlow">{{ m.k }}</span>
+        <span style="width:52px;height:48px;border-radius:10px;background:#fff;border:1.5px solid #CFD4DA;display:flex;align-items:center;justify-content:center;font:600 26px Barlow;color:{{ m.minus }}">−</span>
+        <span style="width:56px;text-align:center;font:800 24px Barlow;color:{{ m.c }}">{{ m.v }}</span>
+        <span style="width:52px;height:48px;border-radius:10px;background:#1E4FA3;color:#fff;display:flex;align-items:center;justify-content:center;font:600 26px Barlow">+</span>
+      </div>
+    </sc-for>
+    <div style="display:flex;flex-direction:column;gap:6px;margin-top:12px"><span style="font:700 14px Barlow;color:#3A3F47">Remarks</span><div style="min-height:52px;border-radius:10px;background:#fff;border:1.5px solid #CFD4DA;padding:12px 14px;font:600 16px Barlow;box-sizing:border-box">Container clean &amp; dry. 2 layer pad/plt.</div></div>
+  </div>
+  <div style="flex:none;padding:12px 16px 26px;background:#fff;border-top:1px solid #E2E5E9"><div style="height:56px;border-radius:12px;background:#1E4FA3;color:#fff;display:flex;align-items:center;justify-content:center;font:700 18px Barlow">Seterusnya · Semak</div></div>
+</div></div>
+
+<!-- 8B MATERIALS LORI -->
+<div class="dv-opt" id="1j"><div class="dv-olabel"><a class="dv-oid" href="#1j">1j</a>8 · Bahan &amp; PLT, Lori</div>
+<div style="width:390px;height:844px;background:#F3F4F1;border-radius:30px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 0 0 8px #1A1C20,0 24px 48px rgba(0,0,0,.2);color:#15181D;font-family:Barlow,sans-serif;font-variant-numeric:tabular-nums">
+  <div style="height:36px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:0 24px;font:600 14px Barlow;background:#fff"><span>15:55</span><span style="font-size:12px">4G</span></div>
+  <div style="height:60px;flex:none;display:flex;align-items:center;gap:4px;padding:0 8px;background:#fff"><div style="width:48px;height:48px;display:flex;align-items:center;justify-content:center;font-size:24px">←</div><div style="flex:1;font:700 19px Barlow">Bahan &amp; pallet</div><span style="display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 8px;margin-right:8px;border-radius:6px;background:#EEE8F8;color:#5E3AA3;font:700 12px Barlow;letter-spacing:.05em;text-transform:uppercase"><span style="width:8px;height:8px;background:#7A4FC2;border-radius:4px"></span>Lori</span></div>
+  <div style="flex:none;display:grid;grid-template-columns:repeat(6,1fr);gap:4px;padding:4px 16px 10px;background:#fff;border-bottom:1px solid #E2E5E9"><sc-for list="{{ pg3 }}" as="s" hint-placeholder-count="6"><div style="display:flex;flex-direction:column;gap:5px"><div style="height:4px;border-radius:2px;background:{{ s.c }}"></div><div style="font-size:11px;font-weight:{{ s.w }};color:{{ s.t }}">{{ s.l }}</div></div></sc-for></div>
+  <div style="flex:1;min-height:0;overflow:hidden;padding:14px 16px;display:flex;flex-direction:column;gap:10px">
+    <div style="background:#fff;border:1px solid #E2E5E9;border-radius:14px;padding:4px 12px">
+      <div style="min-height:60px;display:flex;align-items:center;gap:12px;border-bottom:1px solid #EEF0F2"><span style="width:32px;height:32px;border-radius:7px;background:#1E4FA3;color:#fff;display:flex;align-items:center;justify-content:center;font:800 18px Barlow">✓</span><span style="font:700 17px Barlow;width:96px">Sample</span><span style="flex:1;height:44px;border-radius:8px;background:#F3F4F1;display:flex;align-items:center;padding:0 10px;font:600 15px Barlow">2 CTN for QC</span></div>
+      <div style="min-height:60px;display:flex;align-items:center;gap:12px;border-bottom:1px solid #EEF0F2"><span style="width:32px;height:32px;border-radius:7px;border:2px solid #AEB4BD;box-sizing:border-box"></span><span style="font:700 17px Barlow;width:96px">Empty CTN</span><span style="flex:1;font:500 14px Barlow;color:#AEB4BD">Nota</span></div>
+      <div style="min-height:60px;display:flex;align-items:center;gap:12px"><span style="width:32px;height:32px;border-radius:7px;border:2px solid #AEB4BD;box-sizing:border-box"></span><span style="font:700 17px Barlow;width:96px">Others</span><span style="flex:1;font:500 14px Barlow;color:#AEB4BD">Nota</span></div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:6px"><span style="font:700 14px Barlow;color:#3A3F47">Remark</span><div style="height:52px;border-radius:10px;background:#fff;border:1.5px solid #CFD4DA;padding:0 14px;display:flex;align-items:center;font:600 16px Barlow">PLT 8 mixed batch.</div></div>
+    <div style="display:flex;justify-content:space-between;align-items:baseline;margin-top:6px"><span style="font:700 14px Barlow;color:#3A3F47;letter-spacing:.04em">TOTAL NUMBER OF PLT</span><span style="font:600 13px Barlow;color:#1E4FA3">Auto dari pallet</span></div>
+    <div style="background:#fff;border:1px solid #E2E5E9;border-radius:14px;padding:0 12px">
+      <sc-for list="{{ pltB }}" as="p" hint-placeholder-count="4">
+        <div style="height:58px;display:flex;align-items:center;gap:8px;border-bottom:1px solid #EEF0F2">
+          <span style="width:36px;height:36px;border-radius:8px;background:#ECEEF1;font:800 18px Barlow;display:flex;align-items:center;justify-content:center">{{ p.code }}</span>
+          <span style="flex:1;font:600 16px Barlow">{{ p.k }}</span>
+          <span style="width:48px;height:44px;border-radius:9px;border:1.5px solid #CFD4DA;display:flex;align-items:center;justify-content:center;font:600 22px Barlow">−</span>
+          <span style="width:44px;text-align:center;font:800 22px Barlow">{{ p.v }}</span>
+          <span style="width:48px;height:44px;border-radius:9px;border:1.5px solid #CFD4DA;display:flex;align-items:center;justify-content:center;font:600 22px Barlow">+</span>
+        </div>
+      </sc-for>
+      <div style="height:48px;display:flex;justify-content:space-between;align-items:center;font:800 17px Barlow"><span>Jumlah</span><span>8 PLT ✓ sama dengan pallet</span></div>
+    </div>
+  </div>
+  <div style="flex:none;padding:12px 16px 26px;background:#fff;border-top:1px solid #E2E5E9"><div style="height:56px;border-radius:12px;background:#1E4FA3;color:#fff;display:flex;align-items:center;justify-content:center;font:700 18px Barlow">Seterusnya · Semak</div></div>
+</div></div>
+
+<!-- 9 REVIEW -->
+<div class="dv-opt" id="1k"><div class="dv-olabel"><a class="dv-oid" href="#1k">1k</a>9 · Semak</div>
+<div style="width:390px;height:844px;background:#F3F4F1;border-radius:30px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 0 0 8px #1A1C20,0 24px 48px rgba(0,0,0,.2);color:#15181D;font-family:Barlow,sans-serif;font-variant-numeric:tabular-nums">
+  <div style="height:36px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:0 24px;font:600 14px Barlow;background:#fff"><span>15:57</span><span style="font-size:12px">4G</span></div>
+  <div style="height:60px;flex:none;display:flex;align-items:center;gap:4px;padding:0 8px;background:#fff"><div style="width:48px;height:48px;display:flex;align-items:center;justify-content:center;font-size:24px">←</div><div style="flex:1;font:700 19px Barlow">Semak sebelum sign</div></div>
+  <div style="flex:none;display:grid;grid-template-columns:repeat(6,1fr);gap:4px;padding:4px 16px 10px;background:#fff;border-bottom:1px solid #E2E5E9"><sc-for list="{{ pg4 }}" as="s" hint-placeholder-count="6"><div style="display:flex;flex-direction:column;gap:5px"><div style="height:4px;border-radius:2px;background:{{ s.c }}"></div><div style="font-size:11px;font-weight:{{ s.w }};color:{{ s.t }}">{{ s.l }}</div></div></sc-for></div>
+  <div style="flex:1;min-height:0;overflow:hidden;padding:12px;display:flex;flex-direction:column;gap:10px">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+      <div style="background:#15181D;color:#fff;border-radius:12px;padding:10px 14px"><div style="font:600 13px Barlow;opacity:.75">Jumlah pallet</div><div style="font:800 34px/1.1 Barlow">8</div></div>
+      <div style="background:#15181D;color:#fff;border-radius:12px;padding:10px 14px"><div style="font:600 13px Barlow;opacity:.75">Jumlah CTN</div><div style="font:800 34px/1.1 Barlow">250</div></div>
+    </div>
+    <div style="background:#FFF1D6;border:1px solid #F0C877;border-radius:12px;padding:10px 12px;display:flex;gap:10px;align-items:flex-start"><span style="width:22px;height:22px;border-radius:11px;background:#B26A00;color:#fff;font:800 14px Barlow;display:flex;align-items:center;justify-content:center;flex:none">!</span><div style="font:600 14px/1.35 Barlow;color:#6B4000;flex:1">Pallet 5 tidak penuh (22 / 32 CTN). Pastikan betul.</div><span style="font:700 14px Barlow;color:#1E4FA3">Lihat</span></div>
+    <div style="background:#fff;border:1px solid #E2E5E9;border-radius:12px;padding:10px 12px;display:grid;grid-template-columns:1fr auto;gap:2px 8px">
+      <span style="font:700 13px Barlow;letter-spacing:.06em;color:#5B6270">HEADER · CONTAINER</span><span style="font:700 14px Barlow;color:#1E4FA3">Edit</span>
+      <span style="grid-column:1/3;font:700 17px Barlow">TGHU 1234567 · Seal ML-889012</span>
+      <span style="grid-column:1/3;font:500 14px Barlow;color:#5B6270">LS-EXP-2410 · SI-55821 · Port Klang · 14/10/26</span>
+    </div>
+    <sc-for list="{{ reviewItems }}" as="it" hint-placeholder-count="2">
+      <div style="background:#fff;border:1px solid #E2E5E9;border-radius:12px;padding:10px 12px;display:flex;flex-direction:column;gap:6px">
+        <div style="display:flex;justify-content:space-between;align-items:baseline"><span style="font:700 15px Barlow">{{ it.n }}</span><span style="font:700 14px Barlow;color:#1E4FA3">Edit</span></div>
+        <div style="display:flex;gap:4px;flex-wrap:wrap"><sc-for list="{{ it.p }}" as="p"><span style="min-width:40px;height:40px;border-radius:7px;background:{{ p.bg }};border:1px solid #D5D9DF;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0 4px;box-sizing:border-box"><span style="font:800 15px/1 'Barlow Condensed'">{{ p.no }}</span><span style="font:600 11px/1.1 Barlow;color:#5B6270">{{ p.q }}</span></span></sc-for></div>
+        <div style="font:600 14px Barlow;color:#5B6270">{{ it.batch }}</div>
+        <div style="font:800 15px Barlow;color:#17733E">{{ it.ctn }}</div>
+      </div>
+    </sc-for>
+    <div style="background:#fff;border:1px solid #E2E5E9;border-radius:12px;padding:10px 12px;display:grid;grid-template-columns:1fr auto;gap:2px 8px">
+      <span style="font:700 13px Barlow;letter-spacing:.06em;color:#5B6270">BAHAN</span><span style="font:700 14px Barlow;color:#1E4FA3">Edit</span>
+      <span style="grid-column:1/3;font:600 15px Barlow">Sample 2 · Liner 1 · Layer Pad 16 · Air Bag 4</span>
+    </div>
+  </div>
+  <div style="flex:none;padding:12px 16px 26px;background:#fff;border-top:1px solid #E2E5E9"><div style="height:56px;border-radius:12px;background:#1E4FA3;color:#fff;display:flex;align-items:center;justify-content:center;font:700 18px Barlow">Betul · Sign</div></div>
+</div></div>
+
+<!-- 10 SIGNATURE -->
+<div class="dv-opt" id="1l"><div class="dv-olabel"><a class="dv-oid" href="#1l">1l</a>10 · Signature</div>
+<div style="width:390px;height:844px;background:#F3F4F1;border-radius:30px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 0 0 8px #1A1C20,0 24px 48px rgba(0,0,0,.2);color:#15181D;font-family:Barlow,sans-serif">
+  <div style="height:36px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:0 24px;font:600 14px Barlow;background:#fff"><span>15:58</span><span style="font-size:12px">4G</span></div>
+  <div style="height:60px;flex:none;display:flex;align-items:center;gap:4px;padding:0 8px;background:#fff"><div style="width:48px;height:48px;display:flex;align-items:center;justify-content:center;font-size:24px">←</div><div style="flex:1;font:700 19px Barlow">Count &amp; Prepared By</div></div>
+  <div style="flex:none;display:grid;grid-template-columns:repeat(6,1fr);gap:4px;padding:4px 16px 10px;background:#fff;border-bottom:1px solid #E2E5E9"><sc-for list="{{ pg5 }}" as="s" hint-placeholder-count="6"><div style="display:flex;flex-direction:column;gap:5px"><div style="height:4px;border-radius:2px;background:{{ s.c }}"></div><div style="font-size:11px;font-weight:{{ s.w }};color:{{ s.t }}">{{ s.l }}</div></div></sc-for></div>
+  <div style="flex:1;padding:16px;display:flex;flex-direction:column;gap:12px">
+    <div style="font:600 16px/1.4 Barlow;color:#3A3F47">Saya sahkan 8 pallet, 250 CTN telah dikira untuk TGHU 1234567.</div>
+    <div style="flex:1;background:#fff;border:2px solid #CFD4DA;border-radius:16px;position:relative;display:flex;align-items:center;justify-content:center;overflow:hidden">
+      <span style="font:400 110px/1 'Mrs Saint Delafield',cursive;color:#1B2A6E;transform:rotate(-6deg)">M. Hafiz</span>
+      <div style="position:absolute;left:24px;right:24px;bottom:70px;border-bottom:2px dashed #CFD4DA"></div>
+      <span style="position:absolute;left:24px;bottom:78px;font:700 20px Barlow;color:#AEB4BD">×</span>
+      <div style="position:absolute;left:24px;bottom:22px;display:flex;flex-direction:column"><span style="font:700 17px Barlow">MOHD HAFIZ RAHMAN</span><span style="font:500 13px Barlow;color:#5B6270">14/10/26 · 15:58</span></div>
+      <span style="position:absolute;right:14px;top:12px;font:600 13px Barlow;color:#7A818C">Putar untuk ruang lebih ⟲</span>
+    </div>
+  </div>
+  <div style="flex:none;padding:12px 16px 26px;background:#fff;border-top:1px solid #E2E5E9;display:grid;grid-template-columns:1fr 1.6fr;gap:10px">
+    <div style="height:56px;border-radius:12px;border:1.5px solid #CFD4DA;font:700 17px Barlow;display:flex;align-items:center;justify-content:center">Padam</div>
+    <div style="height:56px;border-radius:12px;background:#1E4FA3;color:#fff;display:flex;align-items:center;justify-content:center;font:700 18px Barlow">Sahkan</div>
+  </div>
+</div></div>
+
+<!-- 11A PREVIEW CONTAINER -->
+<div class="dv-opt" id="1m"><div class="dv-olabel"><a class="dv-oid" href="#1m">1m</a>11 · Preview, Container</div>
+<div style="width:390px;height:844px;background:#3A3F47;border-radius:30px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 0 0 8px #1A1C20,0 24px 48px rgba(0,0,0,.2);color:#15181D;font-family:Barlow,sans-serif">
+  <div style="height:36px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:0 24px;font:600 14px Barlow;background:#fff"><span>15:59</span><span style="font-size:12px">4G</span></div>
+  <div style="height:60px;flex:none;display:flex;align-items:center;gap:4px;padding:0 8px;background:#fff"><div style="width:48px;height:48px;display:flex;align-items:center;justify-content:center;font-size:24px">←</div><div style="flex:1;font:700 19px Barlow">Preview tally sheet</div><span style="display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 8px;margin-right:8px;border-radius:6px;background:#E1F1F1;color:#0B6266;font:700 12px Barlow;letter-spacing:.05em;text-transform:uppercase"><span style="width:8px;height:8px;background:#0F7C80;border-radius:1px"></span>Container</span></div>
+  <div style="flex:1;min-height:0;position:relative;overflow:hidden">
+    <div style="position:absolute;left:20px;top:22px;width:794px;height:1123px;transform:scale(.4383);transform-origin:0 0;box-shadow:0 10px 30px rgba(0,0,0,.4)"><dc-import name="PaperSheet" form="A" hint-size="794px,1123px"></dc-import></div>
+    <div style="position:absolute;right:12px;bottom:14px;display:flex;flex-direction:column;gap:6px"><span style="width:48px;height:48px;border-radius:12px;background:#fff;display:flex;align-items:center;justify-content:center;font:600 26px Barlow">+</span><span style="width:48px;height:48px;border-radius:12px;background:#fff;display:flex;align-items:center;justify-content:center;font:600 26px Barlow">−</span></div>
+    <div style="position:absolute;left:12px;bottom:14px;height:36px;padding:0 12px;border-radius:18px;background:rgba(0,0,0,.6);color:#fff;font:600 13px Barlow;display:flex;align-items:center">Cubit untuk zoom · 1 halaman</div>
+  </div>
+  <div style="flex:none;padding:12px 16px 26px;background:#fff;display:flex;flex-direction:column;gap:8px">
+    <div style="font:600 14px Barlow;color:#5B6270;text-align:center">8 pallet · 250 CTN · ditandatangani M. Hafiz</div>
+    <div style="height:60px;border-radius:14px;background:#1E4FA3;color:#fff;display:flex;align-items:center;justify-content:center;font:800 20px Barlow">Hantar</div>
+  </div>
+</div></div>
+
+<!-- 11B PREVIEW LORI zoomed -->
+<div class="dv-opt" id="1n"><div class="dv-olabel"><a class="dv-oid" href="#1n">1n</a>11 · Preview, Lori (zoomed into mixed pallet row 8)</div>
+<div style="width:390px;height:844px;background:#3A3F47;border-radius:30px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 0 0 8px #1A1C20,0 24px 48px rgba(0,0,0,.2);color:#15181D;font-family:Barlow,sans-serif">
+  <div style="height:36px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:0 24px;font:600 14px Barlow;background:#fff"><span>15:59</span><span style="font-size:12px">4G</span></div>
+  <div style="height:60px;flex:none;display:flex;align-items:center;gap:4px;padding:0 8px;background:#fff"><div style="width:48px;height:48px;display:flex;align-items:center;justify-content:center;font-size:24px">←</div><div style="flex:1;font:700 19px Barlow">Preview tally sheet</div><span style="display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 8px;margin-right:8px;border-radius:6px;background:#EEE8F8;color:#5E3AA3;font:700 12px Barlow;letter-spacing:.05em;text-transform:uppercase"><span style="width:8px;height:8px;background:#7A4FC2;border-radius:4px"></span>Lori</span></div>
+  <div style="flex:1;min-height:0;position:relative;overflow:hidden">
+    <div style="position:absolute;left:-330px;top:-60px;width:794px;height:1123px;transform:scale(.95);transform-origin:0 0"><dc-import name="PaperSheet" form="B" hint-size="794px,1123px"></dc-import></div>
+    <div style="position:absolute;right:12px;bottom:14px;display:flex;flex-direction:column;gap:6px"><span style="width:48px;height:48px;border-radius:12px;background:#fff;display:flex;align-items:center;justify-content:center;font:600 26px Barlow;box-shadow:0 2px 8px rgba(0,0,0,.25)">+</span><span style="width:48px;height:48px;border-radius:12px;background:#fff;display:flex;align-items:center;justify-content:center;font:600 26px Barlow;box-shadow:0 2px 8px rgba(0,0,0,.25)">−</span></div>
+    <div style="position:absolute;left:12px;bottom:14px;height:36px;padding:0 12px;border-radius:18px;background:rgba(0,0,0,.7);color:#fff;font:600 13px Barlow;display:flex;align-items:center">Zoom 217% · seret untuk alih</div>
+  </div>
+  <div style="flex:none;padding:12px 16px 26px;background:#fff;display:flex;flex-direction:column;gap:8px">
+    <div style="font:600 14px Barlow;color:#5B6270;text-align:center">8 pallet · 250 CTN · L 5 · C 3</div>
+    <div style="height:60px;border-radius:14px;background:#1E4FA3;color:#fff;display:flex;align-items:center;justify-content:center;font:800 20px Barlow">Hantar</div>
+  </div>
+</div></div>
+
+<!-- 12 SUCCESS -->
+<div class="dv-opt" id="1o"><div class="dv-olabel"><a class="dv-oid" href="#1o">1o</a>12 · Berjaya (online)</div>
+<div style="width:390px;height:844px;background:#F3F4F1;border-radius:30px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 0 0 8px #1A1C20,0 24px 48px rgba(0,0,0,.2);color:#15181D;font-family:Barlow,sans-serif">
+  <div style="height:36px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:0 24px;font:600 14px Barlow"><span>16:00</span><span style="font-size:12px">4G</span></div>
+  <div style="flex:1;padding:24px;display:flex;flex-direction:column;justify-content:center;gap:18px">
+    <div style="width:88px;height:88px;border-radius:44px;background:#17733E;color:#fff;display:flex;align-items:center;justify-content:center;font:800 48px Barlow">✓</div>
+    <div style="font:800 32px/1.1 Barlow">Tally sheet dihantar</div>
+    <div style="font:500 16px/1.45 Barlow;color:#3A3F47">Pejabat boleh lihat dan cetak sekarang. Tulis nombor rujukan ini pada salinan kertas jika perlu.</div>
+    <div style="background:#fff;border:1px solid #E2E5E9;border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:6px">
+      <span style="font:700 13px Barlow;letter-spacing:.06em;color:#5B6270">NO RUJUKAN</span>
+      <span style="font:600 32px 'IBM Plex Mono',monospace;letter-spacing:.02em">TS-2610-0147</span>
+      <span style="font:500 14px Barlow;color:#5B6270">Container TGHU 1234567 · 8 pallet · 250 CTN</span>
+    </div>
+  </div>
+  <div style="flex:none;padding:12px 16px 26px;display:flex;flex-direction:column;gap:10px">
+    <div style="height:56px;border-radius:12px;background:#1E4FA3;color:#fff;display:flex;align-items:center;justify-content:center;font:700 18px Barlow">+ Tally sheet baru</div>
+    <div style="height:56px;border-radius:12px;border:1.5px solid #CFD4DA;background:#fff;font:700 17px Barlow;display:flex;align-items:center;justify-content:center">Kembali ke senarai</div>
+  </div>
+</div></div>
+
+<!-- 12 OFFLINE -->
+<div class="dv-opt" id="1p"><div class="dv-olabel"><a class="dv-oid" href="#1p">1p</a>12 · Berjaya (offline, sync pending)</div>
+<div style="width:390px;height:844px;background:#F3F4F1;border-radius:30px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 0 0 8px #1A1C20,0 24px 48px rgba(0,0,0,.2);color:#15181D;font-family:Barlow,sans-serif">
+  <div style="height:36px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:0 24px;font:600 14px Barlow"><span>16:00</span><span style="font-size:12px">— no signal</span></div>
+  <div style="flex:1;padding:24px;display:flex;flex-direction:column;justify-content:center;gap:18px">
+    <div style="width:88px;height:88px;border-radius:44px;background:#FFF1D6;border:3px solid #B26A00;box-sizing:border-box;display:flex;align-items:center;justify-content:center"><span style="width:30px;height:30px;border-radius:15px;border:4px solid #B26A00;border-top-color:transparent;box-sizing:border-box"></span></div>
+    <div style="font:800 30px/1.15 Barlow">Disimpan dalam telefon, akan dihantar bila ada line</div>
+    <div style="font:500 16px/1.45 Barlow;color:#3A3F47">Jangan padam app. Sheet ini akan naik sendiri bila ada sambungan.</div>
+    <div style="background:#fff;border:1px solid #E2E5E9;border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:6px">
+      <span style="font:700 13px Barlow;letter-spacing:.06em;color:#5B6270">NO RUJUKAN SEMENTARA</span>
+      <span style="font:600 32px 'IBM Plex Mono',monospace">TS-2610-0147</span>
+      <span style="display:inline-flex;align-self:flex-start;height:26px;padding:0 10px;border-radius:13px;background:#FFF1D6;color:#8A5200;font:700 13px Barlow;align-items:center">Menunggu sync</span>
+    </div>
+  </div>
+  <div style="flex:none;padding:12px 16px 26px;display:flex;flex-direction:column;gap:10px">
+    <div style="height:56px;border-radius:12px;background:#1E4FA3;color:#fff;display:flex;align-items:center;justify-content:center;font:700 18px Barlow">+ Tally sheet baru</div>
+    <div style="height:56px;border-radius:12px;border:1.5px solid #CFD4DA;background:#fff;font:700 17px Barlow;display:flex;align-items:center;justify-content:center">Kembali ke senarai</div>
+  </div>
+</div></div>
+</div>
+
+<div style="font:700 13px Barlow;letter-spacing:.08em;text-transform:uppercase;color:#5B6270;margin:56px 0 18px">States</div>
+<div class="dv-opts">
+
+<!-- EMPTY -->
+<div class="dv-opt" id="1q"><div class="dv-olabel"><a class="dv-oid" href="#1q">1q</a>Kosong (first use)</div>
+<div style="width:390px;height:844px;background:#F3F4F1;border-radius:30px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 0 0 8px #1A1C20,0 24px 48px rgba(0,0,0,.2);color:#15181D;font-family:Barlow,sans-serif">
+  <div style="height:36px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:0 24px;font:600 14px Barlow;background:#fff"><span>08:02</span><span style="font-size:12px">4G</span></div>
+  <div style="flex:none;background:#fff;padding:8px 16px 14px;border-bottom:1px solid #E2E5E9"><div style="font:800 26px Barlow">Tally Sheet</div><div style="font:500 14px Barlow;color:#5B6270">Mohd Hafiz · Gudang Pasir Gudang</div></div>
+  <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:32px;text-align:center">
+    <div style="width:120px;height:80px;border:2px dashed #AEB4BD;border-radius:10px;display:grid;grid-template-rows:repeat(4,1fr);padding:10px;box-sizing:border-box;gap:6px"><span style="background:#DDE0E4;border-radius:2px"></span><span style="background:#DDE0E4;border-radius:2px;width:70%"></span><span style="background:#DDE0E4;border-radius:2px"></span><span style="background:#DDE0E4;border-radius:2px;width:50%"></span></div>
+    <div style="font:800 22px Barlow">Belum ada tally sheet</div>
+    <div style="font:500 16px/1.45 Barlow;color:#5B6270">Mula sheet baru bila anda terima dokumen order dan mula kira pallet.</div>
+  </div>
+  <div style="flex:none;padding:12px 16px 26px;background:#fff;border-top:1px solid #E2E5E9"><div style="height:60px;border-radius:14px;background:#1E4FA3;color:#fff;display:flex;align-items:center;justify-content:center;gap:10px;font:700 19px Barlow"><span style="font-size:26px;line-height:1">+</span>Tally sheet baru</div></div>
+</div></div>
+
+<!-- LOADING -->
+<div class="dv-opt" id="1r"><div class="dv-olabel"><a class="dv-oid" href="#1r">1r</a>Loading (product list)</div>
+<div style="width:390px;height:844px;background:#F3F4F1;border-radius:30px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 0 0 8px #1A1C20,0 24px 48px rgba(0,0,0,.2);color:#15181D;font-family:Barlow,sans-serif">
+  <div style="height:36px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:0 24px;font:600 14px Barlow;background:#fff"><span>15:43</span><span style="font-size:12px">E</span></div>
+  <div style="height:60px;flex:none;display:flex;align-items:center;gap:4px;padding:0 8px;background:#fff"><div style="width:48px;height:48px;display:flex;align-items:center;justify-content:center;font-size:24px">×</div><div style="font:700 19px Barlow">Tambah item</div></div>
+  <div style="flex:none;padding:6px 16px 12px;background:#fff;border-bottom:1px solid #E2E5E9"><div style="height:56px;border-radius:12px;background:#F3F4F1;border:1.5px solid #CFD4DA;display:flex;align-items:center;padding:0 14px;font:500 17px Barlow;color:#7A818C">Cari produk</div></div>
+  <div style="flex:none;height:4px;background:#DDE5F4;position:relative;overflow:hidden"><div style="position:absolute;left:0;top:0;bottom:0;width:38%;background:#1E4FA3"></div></div>
+  <div style="padding:10px 16px;font:600 14px Barlow;color:#5B6270">Memuat senarai produk… (line lemah)</div>
+  <sc-for list="{{ skel }}" as="k" hint-placeholder-count="7">
+    <div style="height:64px;padding:0 16px;display:flex;flex-direction:column;justify-content:center;gap:8px;background:#fff;border-bottom:1px solid #EEF0F2"><span style="height:14px;border-radius:4px;background:#E2E5E9;width:{{ k.w }}"></span><span style="height:10px;border-radius:4px;background:#EEF0F2;width:30%"></span></div>
+  </sc-for>
+  <div style="margin:14px 16px;min-height:56px;border:1.5px dashed #AEB4BD;border-radius:12px;padding:0 14px;display:flex;align-items:center;font:700 16px Barlow;color:#1E4FA3">+ Taip nama item sendiri</div>
+</div></div>
+
+<!-- VALIDATION -->
+<div class="dv-opt" id="1s"><div class="dv-olabel"><a class="dv-oid" href="#1s">1s</a>Validation error (header)</div>
+<div style="width:390px;height:844px;background:#F3F4F1;border-radius:30px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 0 0 8px #1A1C20,0 24px 48px rgba(0,0,0,.2);color:#15181D;font-family:Barlow,sans-serif">
+  <div style="height:36px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:0 24px;font:600 14px Barlow;background:#fff"><span>15:42</span><span style="font-size:12px">4G</span></div>
+  <div style="height:60px;flex:none;display:flex;align-items:center;gap:4px;padding:0 8px;background:#fff"><div style="width:48px;height:48px;display:flex;align-items:center;justify-content:center;font-size:24px">←</div><div style="flex:1;font:700 19px Barlow">Header</div><span style="display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 8px;margin-right:8px;border-radius:6px;background:#E1F1F1;color:#0B6266;font:700 12px Barlow;letter-spacing:.05em;text-transform:uppercase"><span style="width:8px;height:8px;background:#0F7C80;border-radius:1px"></span>Container</span></div>
+  <div style="flex:none;background:#FBE5E3;color:#8E1F19;padding:12px 16px;font:700 15px Barlow;border-bottom:1px solid #F0B9B4">2 medan perlu dibetulkan</div>
+  <div style="flex:1;padding:16px;display:flex;flex-direction:column;gap:14px">
+    <div style="display:flex;flex-direction:column;gap:6px"><span style="font:700 14px Barlow;color:#3A3F47">Contract No</span><div style="height:56px;border-radius:10px;background:#fff;border:1.5px solid #CFD4DA;display:flex;align-items:center;padding:0 14px;font:600 20px Barlow">LS-EXP-2410</div></div>
+    <div style="display:flex;flex-direction:column;gap:6px"><span style="font:700 14px Barlow;color:#C2332B">Container No</span><div style="height:56px;border-radius:10px;background:#fff;border:2px solid #C2332B;display:flex;align-items:center;padding:0 14px;font:600 20px Barlow">TGHU 123456</div><span style="font:600 14px Barlow;color:#C2332B">Container No perlu 4 huruf + 7 nombor (cth TGHU 1234567)</span></div>
+    <div style="display:flex;flex-direction:column;gap:6px"><span style="font:700 14px Barlow;color:#C2332B">Seal No</span><div style="height:56px;border-radius:10px;background:#fff;border:2px solid #C2332B;display:flex;align-items:center;padding:0 14px;font:500 18px Barlow;color:#AEB4BD">Wajib diisi</div><span style="font:600 14px Barlow;color:#C2332B">Isi Seal No dari pelekat seal</span></div>
+    <div style="display:flex;flex-direction:column;gap:6px"><span style="font:700 14px Barlow;color:#3A3F47">SI No</span><div style="height:56px;border-radius:10px;background:#fff;border:1.5px solid #CFD4DA;display:flex;align-items:center;padding:0 14px;font:600 20px Barlow">SI-55821</div></div>
+  </div>
+  <div style="flex:none;padding:12px 16px 26px;background:#fff;border-top:1px solid #E2E5E9"><div style="height:56px;border-radius:12px;background:#1E4FA3;color:#fff;display:flex;align-items:center;justify-content:center;font:700 18px Barlow;opacity:.45">Seterusnya · Tambah item</div></div>
+</div></div>
+
+<!-- FAST DATE + short count -->
+<div class="dv-opt" id="1t"><div class="dv-olabel"><a class="dv-oid" href="#1t">1t</a>Fast date entry · kurang 2 (amber) · sama macam atas per field</div>
+<div style="width:390px;height:844px;background:#F3F4F1;border-radius:30px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 0 0 8px #1A1C20,0 24px 48px rgba(0,0,0,.2);color:#15181D;font-family:Barlow,sans-serif;font-variant-numeric:tabular-nums">
+  <div style="height:36px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:0 24px;font:600 14px Barlow;background:#fff"><span>15:47</span><span style="font-size:12px">4G</span></div>
+  <div style="height:56px;flex:none;display:flex;align-items:center;gap:4px;padding:0 8px;background:#fff"><div style="width:48px;height:48px;display:flex;align-items:center;justify-content:center;font-size:24px">←</div><div style="flex:1;min-width:0"><div style="font:700 17px Barlow">LAM SOON MARGARINE 5KG</div><div style="font:500 13px Barlow;color:#5B6270">Item 1 · Pallet 1–5</div></div></div>
+  <div style="flex:none;height:52px;background:#B26A00;color:#fff;display:flex;align-items:center;justify-content:space-between;padding:0 16px"><span style="font:600 15px Barlow">Jumlah item</span><span style="font:800 24px Barlow">148 / 150 · kurang 2</span></div>
+  <div style="flex:1;min-height:0;overflow:hidden;padding:12px;display:flex;flex-direction:column;gap:10px">
+    <div style="background:#fff;border:2px solid #1E4FA3;border-radius:14px;padding:12px;display:flex;flex-direction:column;gap:10px">
+      <div style="display:flex;align-items:center;gap:12px">
+        <span style="width:60px;height:60px;border-radius:10px;background:#15181D;color:#fff;font:800 40px 'Barlow Condensed';display:flex;align-items:center;justify-content:center">2</span>
+        <div style="flex:1;font:700 17px Barlow">Pallet 2</div>
+        <span style="height:48px;padding:0 12px;border-radius:10px;background:#E8EDF6;color:#1E4FA3;font:700 14px Barlow;display:flex;align-items:center">↑ Sama semua</span>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:4px"><span style="font:700 12px Barlow;color:#5B6270">QTY (CTN)</span><div style="display:flex;gap:6px"><div style="flex:1;height:52px;border-radius:9px;border:1.5px solid #CFD4DA;display:flex;align-items:center;padding:0 12px;font:700 24px Barlow">30</div><span style="width:52px;height:52px;border-radius:9px;background:#F3F4F1;display:flex;flex-direction:column;align-items:center;justify-content:center;font:700 11px Barlow;color:#1E4FA3"><span style="font-size:18px;line-height:1">↑</span>sama</span></div></div>
+      <div style="display:flex;flex-direction:column;gap:4px"><span style="font:700 12px Barlow;color:#1E4FA3">EXPIRED</span><div style="display:flex;gap:6px"><div style="flex:1;height:52px;border-radius:9px;border:2px solid #1E4FA3;display:flex;align-items:center;justify-content:space-between;padding:0 12px;font:700 22px Barlow"><span>160427<span style="display:inline-block;width:2px;height:22px;background:#1E4FA3;vertical-align:middle;margin-left:2px"></span></span><span style="font:600 13px Barlow;color:#7A818C">📅</span></div><span style="width:52px;height:52px;border-radius:9px;background:#F3F4F1;display:flex;flex-direction:column;align-items:center;justify-content:center;font:700 11px Barlow;color:#1E4FA3"><span style="font-size:18px;line-height:1">↑</span>sama</span></div><span style="font:700 15px Barlow;color:#17733E">→ 16/04/27 (16 Apr 2027)</span></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <div style="display:flex;flex-direction:column;gap:4px"><span style="font:700 12px Barlow;color:#5B6270">PROD</span><div style="height:52px;border-radius:9px;border:1.5px dashed #CFD4DA;display:flex;align-items:center;padding:0 12px;font:600 15px Barlow;color:#1E4FA3">↑ 16/04/25</div></div>
+        <div style="display:flex;flex-direction:column;gap:4px"><span style="font:700 12px Barlow;color:#5B6270">BATCH</span><div style="height:52px;border-radius:9px;border:1.5px dashed #CFD4DA;display:flex;align-items:center;padding:0 12px;font:600 15px Barlow;color:#1E4FA3">↑ B240915A</div></div>
+      </div>
+    </div>
+  </div>
+  <div style="flex:none;background:#D5D9DF;padding:6px;display:grid;grid-template-columns:repeat(3,1fr);gap:6px">
+    <sc-for list="{{ kbdDate }}" as="k" hint-placeholder-count="12"><div style="height:50px;border-radius:8px;background:#fff;display:flex;align-items:center;justify-content:center;font:600 22px Barlow">{{ k }}</div></sc-for>
+  </div>
+  <div style="flex:none;height:20px;background:#D5D9DF"></div>
+</div></div>
+
+<!-- OVER COUNT -->
+<div class="dv-opt" id="1u"><div class="dv-olabel"><a class="dv-oid" href="#1u">1u</a>Lebih (red) · Lori per-pallet override</div>
+<div style="width:390px;height:844px;background:#F3F4F1;border-radius:30px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 0 0 8px #1A1C20,0 24px 48px rgba(0,0,0,.2);color:#15181D;font-family:Barlow,sans-serif;font-variant-numeric:tabular-nums">
+  <div style="height:36px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:0 24px;font:600 14px Barlow;background:#fff"><span>15:48</span><span style="font-size:12px">4G</span></div>
+  <div style="height:56px;flex:none;display:flex;align-items:center;gap:4px;padding:0 8px;background:#fff"><div style="width:48px;height:48px;display:flex;align-items:center;justify-content:center;font-size:24px">←</div><div style="flex:1;min-width:0"><div style="font:700 17px Barlow">LAM SOON MARGARINE 5KG</div><div style="font:500 13px Barlow;color:#5B6270">Item 1 · Pallet 1–5 · Lori</div></div></div>
+  <div style="flex:none;height:52px;background:#C2332B;color:#fff;display:flex;align-items:center;justify-content:space-between;padding:0 16px"><span style="font:600 15px Barlow">Jumlah item</span><span style="font:800 24px Barlow">152 / 150 · lebih 2</span></div>
+  <div style="flex:1;min-height:0;overflow:hidden;padding:12px;display:flex;flex-direction:column;gap:10px">
+    <sc-for list="{{ overList }}" as="p" hint-placeholder-count="4">
+      <div style="background:#fff;border:1px solid {{ p.bd }};border-radius:14px;padding:12px;display:flex;align-items:center;gap:12px">
+        <span style="width:56px;height:56px;border-radius:10px;background:#15181D;color:#fff;font:800 36px 'Barlow Condensed';display:flex;align-items:center;justify-content:center;flex:none">{{ p.no }}</span>
+        <div style="flex:1;min-width:0"><div style="font:700 17px Barlow">{{ p.q }} CTN · B240915A</div><div style="font:500 14px Barlow;color:#5B6270">Exp 16/04/27 · Prod 16/04/25</div></div>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px"><span style="height:28px;min-width:28px;padding:0 6px;border-radius:6px;font:800 15px Barlow;display:flex;align-items:center;justify-content:center;background:{{ p.tBg }};color:{{ p.tFg }}">{{ p.t }}</span><span style="font:600 11px Barlow;color:#7A818C">{{ p.c }}</span></div>
+      </div>
+    </sc-for>
+    <div style="background:#fff;border:2px solid #C2332B;border-radius:14px;padding:12px;display:flex;flex-direction:column;gap:10px">
+      <div style="display:flex;align-items:center;gap:12px"><span style="width:56px;height:56px;border-radius:10px;background:#15181D;color:#fff;font:800 36px 'Barlow Condensed';display:flex;align-items:center;justify-content:center">5</span><div style="flex:1"><div style="font:700 17px Barlow">Pallet 5</div><div style="font:600 14px Barlow;color:#C2332B">Sepatutnya 22, bukan 24?</div></div></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <div style="display:flex;flex-direction:column;gap:4px"><span style="font:700 12px Barlow;color:#5B6270">QTY (CTN)</span><div style="height:52px;border-radius:9px;border:2px solid #C2332B;display:flex;align-items:center;padding:0 12px;font:700 24px Barlow">24</div></div>
+        <div style="display:flex;flex-direction:column;gap:4px"><span style="font:700 12px Barlow;color:#5B6270">PLT TYPE</span><div style="display:grid;grid-template-columns:repeat(4,1fr);gap:3px"><span style="height:52px;border-radius:8px;border:1.5px solid #CFD4DA;font:700 17px Barlow;display:flex;align-items:center;justify-content:center">L</span><span style="height:52px;border-radius:8px;border:1.5px solid #CFD4DA;font:700 17px Barlow;display:flex;align-items:center;justify-content:center">E</span><span style="height:52px;border-radius:8px;background:#1E4FA3;color:#fff;font:700 17px Barlow;display:flex;align-items:center;justify-content:center">C</span><span style="height:52px;border-radius:8px;border:1.5px solid #CFD4DA;font:700 17px Barlow;display:flex;align-items:center;justify-content:center">O</span></div></div>
+      </div>
+      <div style="height:48px;border-radius:10px;background:#FBE5E3;color:#8E1F19;font:700 15px Barlow;display:flex;align-items:center;justify-content:center">Tukar ke 22 CTN</div>
+    </div>
+  </div>
+  <div style="flex:none;padding:10px 16px 24px;background:#fff;border-top:1px solid #E2E5E9;display:grid;grid-template-columns:1fr 1.4fr;gap:10px">
+    <div style="height:56px;border-radius:12px;border:1.5px solid #CFD4DA;font:700 16px Barlow;display:flex;align-items:center;justify-content:center">+ Pallet</div>
+    <div style="height:56px;border-radius:12px;background:#1E4FA3;color:#fff;display:flex;align-items:center;justify-content:center;font:700 17px Barlow">Simpan juga</div>
+  </div>
+</div></div>
+</div>
+
+<div style="font:700 13px Barlow;letter-spacing:.08em;text-transform:uppercase;color:#5B6270;margin:56px 0 18px">Dark mode (dim warehouse)</div>
+<div class="dv-opts">
+<div class="dv-opt" id="1v"><div class="dv-olabel"><a class="dv-oid" href="#1v">1v</a>6 · Pallet details, dark</div>
+<div style="width:390px;height:844px;background:#0E1115;border-radius:30px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 0 0 8px #1A1C20,0 24px 48px rgba(0,0,0,.2);color:#EEF1F4;font-family:Barlow,sans-serif;font-variant-numeric:tabular-nums">
+  <div style="height:36px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:0 24px;font:600 14px Barlow;background:#161A20"><span>21:14</span><span style="font-size:12px">4G</span></div>
+  <div style="height:56px;flex:none;display:flex;align-items:center;gap:4px;padding:0 8px;background:#161A20"><div style="width:48px;height:48px;display:flex;align-items:center;justify-content:center;font-size:24px">←</div><div style="flex:1;min-width:0"><div style="font:700 17px Barlow">LAM SOON SHORTENING 16KG</div><div style="font:500 13px Barlow;color:#9AA3AD">Item 2 · Pallet 6–8</div></div></div>
+  <div style="flex:none;display:grid;grid-template-columns:repeat(6,1fr);gap:4px;padding:2px 16px 10px;background:#161A20"><sc-for list="{{ pgD }}" as="s" hint-placeholder-count="6"><div style="display:flex;flex-direction:column;gap:5px"><div style="height:4px;border-radius:2px;background:{{ s.c }}"></div><div style="font-size:11px;font-weight:{{ s.w }};color:{{ s.t }}">{{ s.l }}</div></div></sc-for></div>
+  <div style="flex:none;height:52px;background:#123D25;color:#7BE0A3;display:flex;align-items:center;justify-content:space-between;padding:0 16px;border-top:1px solid #1F5C39;border-bottom:1px solid #1F5C39"><span style="font:600 15px Barlow">Jumlah item</span><span style="font:800 26px Barlow">100 / 100 CTN ✓</span></div>
+  <div style="flex:1;min-height:0;overflow:hidden;padding:12px;display:flex;flex-direction:column;gap:10px">
+    <div style="background:#181C22;border:1px solid #2A3039;border-radius:14px;padding:12px;display:flex;align-items:center;gap:12px">
+      <span style="width:60px;height:60px;border-radius:10px;background:#EEF1F4;color:#0E1115;font:800 40px 'Barlow Condensed';display:flex;align-items:center;justify-content:center;flex:none">6</span>
+      <div style="flex:1;display:flex;flex-direction:column;gap:3px"><div style="font:700 17px Barlow">40 CTN · B240920C</div><div style="font:500 14px Barlow;color:#9AA3AD">Exp 20/09/26 · Prod 20/09/25</div><div style="font:700 12px Barlow;color:#7BE0A3">✓ Lengkap</div></div>
+    </div>
+    <div style="background:#181C22;border:1px solid #2A3039;border-radius:14px;padding:12px;display:flex;align-items:center;gap:12px">
+      <span style="width:60px;height:60px;border-radius:10px;background:#EEF1F4;color:#0E1115;font:800 40px 'Barlow Condensed';display:flex;align-items:center;justify-content:center;flex:none">7</span>
+      <div style="flex:1;display:flex;flex-direction:column;gap:3px"><div style="font:700 17px Barlow">40 CTN · B240920C</div><div style="font:500 14px Barlow;color:#9AA3AD">Exp 20/09/26 · Prod 20/09/25</div><div style="font:700 12px Barlow;color:#8DB0FF">✓ Sama macam pallet 6</div></div>
+    </div>
+    <div style="background:#181C22;border:2px solid #6F9CFF;border-radius:14px;padding:12px;display:flex;flex-direction:column;gap:10px">
+      <div style="display:flex;align-items:center;gap:12px"><span style="width:60px;height:60px;border-radius:10px;background:#EEF1F4;color:#0E1115;font:800 40px 'Barlow Condensed';display:flex;align-items:center;justify-content:center">8</span><div style="flex:1"><div style="font:700 17px Barlow">Pallet 8 · 2 batch</div><div style="display:inline-flex;margin-top:3px;height:22px;padding:0 8px;border-radius:5px;background:#EEF1F4;color:#0E1115;font:700 11px Barlow;letter-spacing:.06em;align-items:center">PALLET CAMPUR</div></div><span style="font:800 26px Barlow">20</span></div>
+      <div style="display:grid;grid-template-columns:28px 1fr 1fr 64px;gap:6px;align-items:center"><span style="font:800 16px Barlow;color:#9AA3AD">a</span><div style="height:52px;border-radius:9px;border:1.5px solid #3A424D;background:#0E1115;display:flex;align-items:center;padding:0 8px;font:700 16px Barlow">B240920C</div><div style="height:52px;border-radius:9px;border:1.5px solid #3A424D;background:#0E1115;display:flex;flex-direction:column;justify-content:center;padding:0 8px;font:700 14px/1.2 Barlow"><span>20/09/26</span><span style="color:#9AA3AD">20/09/25</span></div><div style="height:52px;border-radius:9px;border:1.5px solid #3A424D;background:#0E1115;display:flex;align-items:center;justify-content:flex-end;padding:0 10px;font:700 21px Barlow">12</div></div>
+      <div style="display:grid;grid-template-columns:28px 1fr 1fr 64px;gap:6px;align-items:center"><span style="font:800 16px Barlow;color:#9AA3AD">b</span><div style="height:52px;border-radius:9px;border:1.5px solid #3A424D;background:#0E1115;display:flex;align-items:center;padding:0 8px;font:700 16px Barlow">B241002A</div><div style="height:52px;border-radius:9px;border:1.5px solid #3A424D;background:#0E1115;display:flex;flex-direction:column;justify-content:center;padding:0 8px;font:700 14px/1.2 Barlow"><span>02/10/26</span><span style="color:#9AA3AD">02/10/25</span></div><div style="height:52px;border-radius:9px;border:1.5px solid #3A424D;background:#0E1115;display:flex;align-items:center;justify-content:flex-end;padding:0 10px;font:700 21px Barlow">8</div></div>
+      <div style="height:48px;border-radius:10px;border:1.5px dashed #6F9CFF;color:#8DB0FF;font:700 15px Barlow;display:flex;align-items:center;justify-content:center">+ Tambah batch</div>
+    </div>
+  </div>
+  <div style="flex:none;padding:10px 16px 24px;background:#161A20;border-top:1px solid #2A3039;display:grid;grid-template-columns:1fr 1.4fr;gap:10px">
+    <div style="height:56px;border-radius:12px;border:1.5px solid #3A424D;font:700 16px Barlow;display:flex;align-items:center;justify-content:center">+ Pallet</div>
+    <div style="height:56px;border-radius:12px;background:#6F9CFF;color:#0A1430;display:flex;align-items:center;justify-content:center;font:800 18px Barlow">Simpan item</div>
+  </div>
+</div></div>
+
+<div class="dv-opt" id="1w"><div class="dv-olabel"><a class="dv-oid" href="#1w">1w</a>1 · Senarai, dark</div>
+<div style="width:390px;height:844px;background:#0E1115;border-radius:30px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 0 0 8px #1A1C20,0 24px 48px rgba(0,0,0,.2);color:#EEF1F4;font-family:Barlow,sans-serif;font-variant-numeric:tabular-nums">
+  <div style="height:36px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:0 24px;font:600 14px Barlow;background:#161A20"><span>21:10</span><span style="font-size:12px">4G</span></div>
+  <div style="flex:none;background:#161A20;padding:8px 16px 14px;border-bottom:1px solid #2A3039"><div style="font:800 26px Barlow">Tally Sheet</div><div style="font:500 14px Barlow;color:#9AA3AD">Mohd Hafiz · Syif malam</div></div>
+  <div style="flex:1;padding:16px;display:flex;flex-direction:column;gap:10px">
+    <div style="font:700 13px Barlow;letter-spacing:.06em;color:#9AA3AD">DRAF</div>
+    <div style="background:#181C22;border:1px solid #2A3039;border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:6px">
+      <div style="display:flex;justify-content:space-between"><span style="display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 8px;border-radius:6px;background:#2A2142;color:#C7AEF5;font:700 12px Barlow;letter-spacing:.05em"><span style="width:8px;height:8px;background:#A27CEB;border-radius:4px"></span>LORI</span><span style="height:24px;padding:0 9px;border-radius:12px;background:#2A3039;font:700 12px Barlow;display:flex;align-items:center">Draf</span></div>
+      <div style="font:700 21px Barlow">WXY 4521</div>
+      <div style="font:500 14px Barlow;color:#9AA3AD">DO-778120 · 14/10/26 · 8 pallet</div>
+    </div>
+    <div style="font:700 13px Barlow;letter-spacing:.06em;color:#9AA3AD;margin-top:8px">DIHANTAR</div>
+    <div style="background:#181C22;border:1px solid #2A3039;border-radius:14px;padding:12px 14px;display:flex;flex-direction:column;gap:4px">
+      <div style="display:flex;justify-content:space-between;align-items:center"><span style="display:flex;gap:8px;align-items:center"><span style="display:inline-flex;align-items:center;gap:6px;height:22px;padding:0 7px;border-radius:6px;background:#103638;color:#7FD3D5;font:700 11px Barlow;letter-spacing:.05em"><span style="width:7px;height:7px;background:#3DB2B5;border-radius:1px"></span>CONTAINER</span><span style="font:700 18px Barlow">TGHU 1234567</span></span><span style="height:24px;padding:0 9px;border-radius:12px;background:#3D2C0A;color:#F0B04A;font:700 12px Barlow;display:flex;align-items:center">Menunggu sync</span></div>
+      <div style="font:500 14px Barlow;color:#9AA3AD">LS-EXP-2410 · 8 pallet · 250 CTN</div>
+    </div>
+  </div>
+  <div style="flex:none;padding:12px 16px 26px;background:#161A20;border-top:1px solid #2A3039"><div style="height:60px;border-radius:14px;background:#6F9CFF;color:#0A1430;display:flex;align-items:center;justify-content:center;font:800 19px Barlow">+ Tally sheet baru</div></div>
+</div></div>
+</div>
+
+<div style="font:700 13px Barlow;letter-spacing:.08em;text-transform:uppercase;color:#5B6270;margin:56px 0 18px">Tablet</div>
+<div class="dv-opts">
+<div class="dv-opt" id="1x"><div class="dv-olabel"><a class="dv-oid" href="#1x">1x</a>6 · Pallet details, tablet 820×1180</div>
+<div style="width:820px;height:1180px;background:#F3F4F1;border-radius:28px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 0 0 12px #1A1C20,0 24px 48px rgba(0,0,0,.2);color:#15181D;font-family:Barlow,sans-serif;font-variant-numeric:tabular-nums">
+  <div style="height:72px;flex:none;display:flex;align-items:center;gap:12px;padding:0 20px;background:#fff;border-bottom:1px solid #E2E5E9">
+    <div style="width:52px;height:52px;display:flex;align-items:center;justify-content:center;font-size:26px">←</div>
+    <div style="flex:1"><div style="font:700 22px Barlow">LAM SOON SHORTENING 16KG</div><div style="font:500 15px Barlow;color:#5B6270">TGHU 1234567 · Item 2 · Pallet 6–8</div></div>
+    <span style="display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 10px;border-radius:6px;background:#E1F1F1;color:#0B6266;font:700 13px Barlow;letter-spacing:.05em"><span style="width:9px;height:9px;background:#0F7C80;border-radius:1px"></span>CONTAINER</span>
+  </div>
+  <div style="flex:none;display:grid;grid-template-columns:repeat(6,1fr);gap:6px;padding:10px 20px 12px;background:#fff;border-bottom:1px solid #E2E5E9"><sc-for list="{{ pg2 }}" as="s" hint-placeholder-count="6"><div style="display:flex;flex-direction:column;gap:6px"><div style="height:5px;border-radius:3px;background:{{ s.c }}"></div><div style="font-size:13px;font-weight:{{ s.w }};color:{{ s.t }}">{{ s.l }}</div></div></sc-for></div>
+  <div style="flex:1;min-height:0;display:grid;grid-template-columns:200px 1fr">
+    <div style="background:#fff;border-right:1px solid #E2E5E9;padding:16px;display:flex;flex-direction:column;gap:8px">
+      <div style="font:700 13px Barlow;letter-spacing:.06em;color:#5B6270">PALLET ITEM INI</div>
+      <sc-for list="{{ tabRail }}" as="r" hint-placeholder-count="3">
+        <div style="height:64px;border-radius:12px;background:{{ r.bg }};color:{{ r.fg }};display:flex;align-items:center;gap:12px;padding:0 12px"><span style="font:800 34px 'Barlow Condensed'">{{ r.no }}</span><span style="font:600 15px/1.2 Barlow">{{ r.s }}</span></div>
+      </sc-for>
+      <div style="height:56px;border-radius:12px;border:1.5px dashed #AEB4BD;font:700 16px Barlow;display:flex;align-items:center;justify-content:center;color:#1E4FA3">+ Pallet 9</div>
+      <div style="margin-top:auto;font:500 14px/1.4 Barlow;color:#5B6270">Item lain: MARGARINE 5KG, Pallet 1–5, 150 CTN ✓</div>
+    </div>
+    <div style="padding:20px;display:flex;flex-direction:column;gap:14px;overflow:hidden">
+      <div style="height:64px;border-radius:14px;background:#17733E;color:#fff;display:flex;align-items:center;justify-content:space-between;padding:0 20px"><span style="font:600 18px Barlow">Jumlah item</span><span style="font:800 32px Barlow">100 / 100 CTN ✓</span></div>
+      <div style="background:#fff;border:1px solid #E2E5E9;border-radius:16px;padding:18px;display:flex;flex-direction:column;gap:14px">
+        <div style="display:flex;align-items:center;gap:16px"><span style="width:76px;height:76px;border-radius:12px;background:#15181D;color:#fff;font:800 52px 'Barlow Condensed';display:flex;align-items:center;justify-content:center">6</span><div style="flex:1;font:700 22px Barlow">Pallet 6</div></div>
+        <div style="display:grid;grid-template-columns:120px 1fr 1fr 1fr;gap:10px">
+          <div style="display:flex;flex-direction:column;gap:5px"><span style="font:700 13px Barlow;color:#5B6270">QTY (CTN)</span><div style="height:60px;border-radius:10px;border:1.5px solid #CFD4DA;display:flex;align-items:center;padding:0 14px;font:700 28px Barlow">40</div></div>
+          <div style="display:flex;flex-direction:column;gap:5px"><span style="font:700 13px Barlow;color:#5B6270">BATCH</span><div style="height:60px;border-radius:10px;border:1.5px solid #CFD4DA;display:flex;align-items:center;padding:0 14px;font:700 22px Barlow">B240920C</div></div>
+          <div style="display:flex;flex-direction:column;gap:5px"><span style="font:700 13px Barlow;color:#5B6270">EXPIRED</span><div style="height:60px;border-radius:10px;border:1.5px solid #CFD4DA;display:flex;align-items:center;padding:0 14px;font:700 22px Barlow">20/09/26</div></div>
+          <div style="display:flex;flex-direction:column;gap:5px"><span style="font:700 13px Barlow;color:#5B6270">PROD</span><div style="height:60px;border-radius:10px;border:1.5px solid #CFD4DA;display:flex;align-items:center;padding:0 14px;font:700 22px Barlow">20/09/25</div></div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:5px"><span style="font:700 13px Barlow;color:#5B6270">REMARK</span><div style="height:56px;border-radius:10px;border:1.5px solid #CFD4DA;display:flex;align-items:center;padding:0 14px;font:500 18px Barlow;color:#AEB4BD">Tiada</div></div>
+      </div>
+      <div style="background:#fff;border:1px solid #E2E5E9;border-radius:16px;padding:16px 18px;display:flex;align-items:center;gap:16px">
+        <span style="width:76px;height:76px;border-radius:12px;background:#15181D;color:#fff;font:800 52px 'Barlow Condensed';display:flex;align-items:center;justify-content:center">7</span>
+        <div style="flex:1"><div style="font:700 22px Barlow">40 CTN · B240920C</div><div style="font:500 17px Barlow;color:#5B6270">Exp 20/09/26 · Prod 20/09/25</div><div style="font:700 14px Barlow;color:#1E4FA3">✓ Sama macam pallet 6</div></div>
+        <span style="height:52px;padding:0 18px;border-radius:12px;background:#F3F4F1;font:700 16px Barlow;color:#1E4FA3;display:flex;align-items:center">Ubah</span>
+      </div>
+      <div style="background:#fff;border:2px solid #1E4FA3;border-radius:16px;padding:18px;display:flex;flex-direction:column;gap:12px">
+        <div style="display:flex;align-items:center;gap:16px"><span style="width:76px;height:76px;border-radius:12px;background:#15181D;color:#fff;font:800 52px 'Barlow Condensed';display:flex;align-items:center;justify-content:center">8</span><div style="flex:1"><div style="font:700 22px Barlow">Pallet 8 · 2 batch</div><div style="display:inline-flex;margin-top:4px;height:24px;padding:0 9px;border-radius:5px;background:#15181D;color:#fff;font:700 12px Barlow;letter-spacing:.06em;align-items:center">PALLET CAMPUR</div></div><span style="font:800 34px Barlow">20 CTN</span></div>
+        <div style="display:grid;grid-template-columns:36px 1.2fr 1fr 1fr 110px;gap:10px;font:700 13px Barlow;color:#5B6270"><span></span><span>BATCH</span><span>EXPIRED</span><span>PROD</span><span style="text-align:right">QTY</span></div>
+        <sc-for list="{{ mixLines }}" as="l" hint-placeholder-count="2">
+          <div style="display:grid;grid-template-columns:36px 1.2fr 1fr 1fr 110px;gap:10px;align-items:center">
+            <span style="font:800 20px Barlow;color:#5B6270">{{ l.k }}</span>
+            <div style="height:58px;border-radius:10px;border:1.5px solid #CFD4DA;display:flex;align-items:center;padding:0 12px;font:700 20px Barlow">{{ l.b }}</div>
+            <div style="height:58px;border-radius:10px;border:1.5px solid #CFD4DA;display:flex;align-items:center;padding:0 12px;font:700 20px Barlow">{{ l.e }}</div>
+            <div style="height:58px;border-radius:10px;border:1.5px solid #CFD4DA;display:flex;align-items:center;padding:0 12px;font:700 20px Barlow">{{ l.p }}</div>
+            <div style="height:58px;border-radius:10px;border:1.5px solid #CFD4DA;display:flex;align-items:center;justify-content:flex-end;padding:0 14px;font:700 26px Barlow">{{ l.q }}</div>
+          </div>
+        </sc-for>
+        <div style="height:52px;border-radius:12px;border:1.5px dashed #1E4FA3;color:#1E4FA3;font:700 17px Barlow;display:flex;align-items:center;justify-content:center">+ Tambah batch</div>
+      </div>
+    </div>
+  </div>
+  <div style="flex:none;padding:14px 20px 22px;background:#fff;border-top:1px solid #E2E5E9;display:flex;gap:12px;justify-content:flex-end">
+    <div style="height:60px;padding:0 28px;border-radius:14px;border:1.5px solid #CFD4DA;font:700 18px Barlow;display:flex;align-items:center">+ Pallet</div>
+    <div style="height:60px;width:300px;border-radius:14px;background:#1E4FA3;color:#fff;display:flex;align-items:center;justify-content:center;font:700 20px Barlow">Simpan item</div>
+  </div>
+</div></div>
+
+<div class="dv-opt" id="1y"><div class="dv-olabel"><a class="dv-oid" href="#1y">1y</a>10 · Signature, tablet landscape 1180×820</div>
+<div style="width:1180px;height:820px;background:#F3F4F1;border-radius:28px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 0 0 12px #1A1C20,0 24px 48px rgba(0,0,0,.2);color:#15181D;font-family:Barlow,sans-serif">
+  <div style="height:72px;flex:none;display:flex;align-items:center;gap:12px;padding:0 20px;background:#fff;border-bottom:1px solid #E2E5E9"><div style="width:52px;height:52px;display:flex;align-items:center;justify-content:center;font-size:26px">←</div><div style="flex:1;font:700 22px Barlow">Count &amp; Prepared By</div><span style="font:600 16px Barlow;color:#5B6270">TGHU 1234567 · 8 pallet · 250 CTN</span></div>
+  <div style="flex:1;padding:24px;display:flex">
+    <div style="flex:1;background:#fff;border:2px solid #CFD4DA;border-radius:20px;position:relative;display:flex;align-items:center;justify-content:center">
+      <span style="font:400 200px/1 'Mrs Saint Delafield',cursive;color:#1B2A6E;transform:rotate(-5deg)">M. Hafiz</span>
+      <div style="position:absolute;left:40px;right:40px;bottom:96px;border-bottom:2px dashed #CFD4DA"></div>
+      <span style="position:absolute;left:40px;bottom:104px;font:700 26px Barlow;color:#AEB4BD">×</span>
+      <div style="position:absolute;left:40px;bottom:32px;display:flex;gap:16px;align-items:baseline"><span style="font:700 22px Barlow">MOHD HAFIZ RAHMAN</span><span style="font:500 16px Barlow;color:#5B6270">14/10/26 · 15:58</span></div>
+    </div>
+  </div>
+  <div style="flex:none;padding:0 24px 24px;display:flex;gap:12px;justify-content:flex-end">
+    <div style="height:64px;width:200px;border-radius:14px;border:1.5px solid #CFD4DA;background:#fff;font:700 19px Barlow;display:flex;align-items:center;justify-content:center">Padam</div>
+    <div style="height:64px;width:320px;border-radius:14px;background:#1E4FA3;color:#fff;display:flex;align-items:center;justify-content:center;font:700 20px Barlow">Sahkan</div>
+  </div>
+</div></div>
+</div>
+<p class="dv-next">Try next: "make the pallet card on <a class="dv-oid" href="#1g">1g</a> one-pallet-per-screen with swipe" · "show 1k with a short count warning" · "add a scan-sticker shortcut"</p>
+</section>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  pg(n, dark) {
+    const on = dark ? '#6F9CFF' : '#1E4FA3', off = dark ? '#2A3039' : '#D5D9DF';
+    return ['Header', 'Item', 'Pallet', 'Bahan', 'Semak', 'Sign'].map((l, i) => ({ l, c: i <= n ? on : off, t: i === n ? (dark ? '#EEF1F4' : '#15181D') : (dark ? '#7A828C' : '#7A818C'), w: i === n ? 700 : 500 }));
+  }
+  renderVals() {
+    const st = {
+      sync: { status: 'Menunggu sync', chipBg: '#FFF1D6', chipFg: '#8A5200' },
+      sent: { status: 'Dihantar', chipBg: '#E5F4EA', chipFg: '#17733E' },
+      printed: { status: 'Dicetak', chipBg: '#E8EDF6', chipFg: '#1E4FA3' }
+    };
+    const f = (k, v, hint, focus) => ({ k, v, hint: hint || '', bd: focus ? '#1E4FA3' : '#CFD4DA', sh: focus ? '0 0 0 3px #DCE5F5' : 'none' });
+    const plt = (no, q, extra) => ({ no, q, bg: extra || '#fff' });
+    return {
+      pg0: this.pg(0), pg1: this.pg(1), pg2: this.pg(2), pg3: this.pg(3), pg4: this.pg(4), pg5: this.pg(5), pgD: this.pg(2, true),
+      drafts: [{ isA: false, isB: true, no: 'WXY 4521', ref: 'DO-778120', date: '14/10/26', plt: 8 }],
+      submitted: [
+        { isA: true, isB: false, no: 'TGHU 1234567', ref: 'LS-EXP-2410', date: '14/10', plt: 8, ctn: 250, ...st.sync },
+        { isA: false, isB: true, no: 'BKT 8812', ref: 'DO-778101', date: '14/10', plt: 12, ctn: 410, ...st.sync },
+        { isA: true, isB: false, no: 'MSKU 7730214', ref: 'LS-EXP-2407', date: '14/10', plt: 20, ctn: 640, ...st.sent },
+        { isA: false, isB: true, no: 'WTP 3390', ref: 'DO-778095', date: '13/10', plt: 6, ctn: 192, ...st.printed }
+      ],
+      hdrA: [f('Contract No', 'LS-EXP-2410'), f('Container No', 'TGHU 1234567', '4 huruf + 7 nombor'), f('Seal No', 'ML-889012'), f('SI No', 'SI-55821'), f('Disport', 'Port Klang'), f('Date', '14/10/26', 'Hari ini', false)],
+      hdrB: [f('D/O No', 'DO-778120'), f('Lorry No', 'WXY 4521', 'Papan nombor', true), f('Date', '14/10/26', 'Hari ini')],
+      kbd: ['1', '2', '3', '4', '5', '6', '7', '8', '9', 'ABC', '0', '⌫'],
+      kbdDate: ['1', '2', '3', '4', '5', '6', '7', '8', '9', '/', '0', '⌫'],
+      recents: [{ n: 'LAM SOON SHORTENING 16KG', meta: 'Guna semalam · 40 CTN/plt' }],
+      products: [
+        { n: 'LAM SOON SHORTENING 16KG', meta: 'SKU 20431 · 40 CTN/plt', bg: '#EEF3FB', ring: '#1E4FA3', dot: '#1E4FA3' },
+        { n: 'LAM SOON SHORTENING 2KG', meta: 'SKU 20412 · 60 CTN/plt', bg: '#fff', ring: '#AEB4BD', dot: '#fff' }
+      ],
+      setupPreview: [1, 2, 3, 4, 5].map(no => ({ no, q: no < 5 ? 32 : 22, t: 'L', note: no < 5 ? 'Penuh' : 'Baki · tak penuh', noteC: no < 5 ? '#5B6270' : '#B26A00' })),
+      items: [
+        { n: 'LAM SOON MARGARINE 5KG', r: 'PALLET 1–5', extra: '5 pallet', ctn: '150 / 150 CTN' },
+        { n: 'LAM SOON SHORTENING 16KG', r: 'PALLET 6–8', extra: '3 pallet · 1 campur', ctn: '100 / 100 CTN' }
+      ],
+      matsA: [['Sample', 2], ['Empty CTN', 0], ['PE Bag', 0], ['Wooden Frame', 0], ['Plywood', 0], ['Liner', 1], ['Layer Pad', 16], ['Air Bag', 4], ['Polyfoam', 0]].map(([k, v]) => ({ k, v, c: v ? '#15181D' : '#AEB4BD', minus: v ? '#15181D' : '#CFD4DA' })),
+      pltB: [{ code: 'L', k: 'Lam Soon', v: 5 }, { code: 'E', k: 'ECR', v: 0 }, { code: 'C', k: 'Loscam', v: 3 }, { code: 'O', k: 'Others', v: 0 }],
+      reviewItems: [
+        { n: 'LAM SOON MARGARINE 5KG', p: [plt(1, 32), plt(2, 32), plt(3, 32), plt(4, 32), plt(5, 22, '#FFF1D6')], batch: 'B240915A · Exp 16/04/27 · Prod 16/04/25', ctn: '150 / 150 CTN ✓' },
+        { n: 'LAM SOON SHORTENING 16KG', p: [plt(6, 40), plt(7, 40), plt(8, '12+8', '#EEF3FB')], batch: 'B240920C, B241002A (pallet 8 campur)', ctn: '100 / 100 CTN ✓' }
+      ],
+      skel: ['70%', '55%', '80%', '62%', '74%', '50%', '66%'].map(w => ({ w })),
+      overList: [1, 2, 3, 4].map(no => ({ no, q: 32, t: no === 4 ? 'C' : 'L', c: no === 4 ? 'diubah' : 'LS-DOM-3318', tBg: no === 4 ? '#1E4FA3' : '#ECEEF1', tFg: no === 4 ? '#fff' : '#15181D', bd: '#E2E5E9' })),
+      tabRail: [
+        { no: 6, s: '40 CTN', bg: '#15181D', fg: '#fff' },
+        { no: 7, s: '40 CTN · sama', bg: '#F3F4F1', fg: '#15181D' },
+        { no: 8, s: '20 CTN · 2 batch', bg: '#E8EDF6', fg: '#1E4FA3' }
+      ],
+      mixLines: [{ k: 'a', b: 'B240920C', e: '20/09/26', p: '20/09/25', q: 12 }, { k: 'b', b: 'B241002A', e: '02/10/26', p: '02/10/25', q: 8 }]
+    };
+  }
+}
+</script>
+</body>
+</html>

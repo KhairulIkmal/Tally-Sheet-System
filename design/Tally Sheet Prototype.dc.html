@@ -1,0 +1,729 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet><link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700;800&family=Barlow+Condensed:wght@600;700;800&family=IBM+Plex+Mono:wght@500;600&family=Mrs+Saint+Delafield&display=swap" rel="stylesheet"><style>body{margin:0;background:#E9EAE6;font-family:Barlow,system-ui,sans-serif;font-variant-numeric:tabular-nums}a{color:#1E4FA3}a:hover{color:#163C7E}input{font-variant-numeric:tabular-nums}input::placeholder{color:#AEB4BD;font-weight:500}</style></helmet>
+<div style="min-height:100vh;display:flex;justify-content:center;align-items:flex-start;gap:40px;padding:32px 24px;box-sizing:border-box;flex-wrap:wrap">
+
+  <div style="width:280px;display:flex;flex-direction:column;gap:14px;padding-top:12px;color:#15181D">
+    <div style="font:800 24px Barlow">Tally Sheet · prototaip</div>
+    <div style="font:500 15px/1.5 Barlow;color:#3A3F47">Klik melalui aliran pekerja dari mula hingga hantar. Data yang anda isi akan muncul dalam preview kertas.</div>
+    <div style="background:#fff;border:1px solid #DDE0E4;border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:10px">
+      <div style="font:700 12px Barlow;letter-spacing:.06em;color:#5B6270">SKRIN SEKARANG</div>
+      <div style="font:700 18px Barlow">{{ stepName }}</div>
+      <div onClick="{{ fillSample }}" style="height:44px;border-radius:9px;background:#1E4FA3;color:#fff;font:700 15px Barlow;display:flex;align-items:center;justify-content:center;cursor:pointer">Isi contoh cepat (2 item)</div>
+      <div onClick="{{ toggleOnline }}" style="height:44px;border-radius:9px;border:1.5px solid #CFD4DA;font:700 15px Barlow;display:flex;align-items:center;justify-content:space-between;padding:0 12px;cursor:pointer"><span>Sambungan</span><span style="height:26px;padding:0 10px;border-radius:13px;display:flex;align-items:center;font:700 13px Barlow;background:{{ netBg }};color:{{ netFg }}">{{ netTxt }}</span></div>
+      <div onClick="{{ resetAll }}" style="height:44px;border-radius:9px;border:1.5px solid #CFD4DA;font:700 15px Barlow;display:flex;align-items:center;justify-content:center;cursor:pointer">Mula semula</div>
+    </div>
+    <div style="font:500 13px/1.5 Barlow;color:#5B6270">Cuba: taip <b>160427</b> dalam Expired, tekan ↑ untuk salin dari pallet atas, + Tambah batch untuk pallet campur, dan sign dengan tetikus.</div>
+    <div style="font:500 13px Barlow;display:flex;gap:12px"><a href="Tally Sheet Mobile.dc.html">Semua mockup</a><a href="Tally Sheet Office.dc.html">Pejabat &amp; print</a></div>
+  </div>
+
+  <div style="width:390px;height:844px;flex:none;background:#F3F4F1;border-radius:30px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 0 0 8px #1A1C20,0 24px 48px rgba(0,0,0,.2);color:#15181D;font-family:Barlow,sans-serif;position:relative">
+    <div style="height:36px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:0 24px;font:600 14px Barlow;background:#fff"><span>15:42</span><span style="font-size:12px">{{ sigTxt }}</span></div>
+
+    <sc-if value="{{ showBar }}" hint-placeholder-val="{{ false }}">
+      <div style="height:60px;flex:none;display:flex;align-items:center;gap:4px;padding:0 8px;background:#fff">
+        <div onClick="{{ back }}" style="width:48px;height:48px;display:flex;align-items:center;justify-content:center;font-size:24px;cursor:pointer;border-radius:10px">←</div>
+        <div style="flex:1;min-width:0"><div style="font:700 18px Barlow;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ bar.t }}</div><div style="font:500 13px Barlow;color:#5B6270;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ bar.s }}</div></div>
+        <sc-if value="{{ badgeA }}" hint-placeholder-val="{{ false }}"><span style="display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 8px;margin-right:8px;border-radius:6px;background:#E1F1F1;color:#0B6266;font:700 12px Barlow;letter-spacing:.05em"><span style="width:8px;height:8px;background:#0F7C80;border-radius:1px"></span>CONTAINER</span></sc-if>
+        <sc-if value="{{ badgeB }}" hint-placeholder-val="{{ false }}"><span style="display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 8px;margin-right:8px;border-radius:6px;background:#EEE8F8;color:#5E3AA3;font:700 12px Barlow;letter-spacing:.05em"><span style="width:8px;height:8px;background:#7A4FC2;border-radius:4px"></span>LORI</span></sc-if>
+      </div>
+    </sc-if>
+    <sc-if value="{{ showPg }}" hint-placeholder-val="{{ false }}">
+      <div style="flex:none;display:grid;grid-template-columns:repeat(6,1fr);gap:4px;padding:4px 16px 10px;background:#fff;border-bottom:1px solid #E2E5E9"><sc-for list="{{ pg }}" as="g" hint-placeholder-count="6"><div style="display:flex;flex-direction:column;gap:5px"><div style="height:4px;border-radius:2px;background:{{ g.c }}"></div><div style="font-size:11px;font-weight:{{ g.w }};color:{{ g.t }}">{{ g.l }}</div></div></sc-for></div>
+    </sc-if>
+
+    <!-- HOME -->
+    <sc-if value="{{ scr.home }}" hint-placeholder-val="{{ true }}">
+      <div style="flex:none;background:#fff;padding:8px 16px 14px;display:flex;align-items:center;justify-content:space-between">
+        <div><div style="font:800 26px Barlow">Tally Sheet</div><div style="font:500 14px Barlow;color:#5B6270">Mohd Hafiz · Gudang Pasir Gudang</div></div>
+        <div style="width:48px;height:48px;border-radius:24px;background:#E8EDF6;color:#1E4FA3;display:flex;align-items:center;justify-content:center;font:700 16px Barlow">MH</div>
+      </div>
+      <sc-if value="{{ showNetBar }}" hint-placeholder-val="{{ false }}"><div style="flex:none;background:#2B2F36;color:#fff;padding:10px 16px;display:flex;align-items:center;gap:10px;font:600 14px Barlow"><span style="width:10px;height:10px;border-radius:5px;background:{{ netDot }};flex:none"></span><span style="flex:1">{{ netBarTxt }}</span></div></sc-if>
+      <div style="flex:1;min-height:0;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:10px">
+        <sc-if value="{{ hasDraft }}" hint-placeholder-val="{{ false }}">
+          <div style="font:700 13px Barlow;letter-spacing:.06em;color:#5B6270">DRAF</div>
+          <div style="background:#fff;border:1px solid #E2E5E9;border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:6px">
+            <div style="display:flex;justify-content:space-between"><span style="font:700 12px Barlow;letter-spacing:.05em;color:{{ draft.c }}">{{ draft.type }}</span><span style="height:24px;padding:0 9px;border-radius:12px;background:#ECEEF1;font:700 12px Barlow;display:flex;align-items:center">Draf</span></div>
+            <div style="font:700 21px Barlow">{{ draft.no }}</div>
+            <div style="font:500 14px Barlow;color:#5B6270">{{ draft.meta }}</div>
+            <div onClick="{{ resume }}" style="margin-top:4px;height:48px;border-radius:10px;background:#E8EDF6;color:#1E4FA3;font:700 16px Barlow;display:flex;align-items:center;justify-content:center;cursor:pointer">Sambung</div>
+          </div>
+        </sc-if>
+        <div style="font:700 13px Barlow;letter-spacing:.06em;color:#5B6270;margin-top:6px">DIHANTAR</div>
+        <sc-for list="{{ sheets }}" as="r" hint-placeholder-count="4">
+          <div style="background:#fff;border:1px solid #E2E5E9;border-radius:14px;padding:12px 14px;display:grid;grid-template-columns:1fr auto;gap:4px 10px;align-items:center">
+            <div style="display:flex;gap:8px;align-items:center;min-width:0">
+              <sc-if value="{{ r.isA }}"><span style="display:inline-flex;align-items:center;gap:6px;height:22px;padding:0 7px;border-radius:6px;background:#E1F1F1;color:#0B6266;font:700 11px Barlow;letter-spacing:.05em"><span style="width:7px;height:7px;background:#0F7C80;border-radius:1px"></span>CONTAINER</span></sc-if>
+              <sc-if value="{{ r.isB }}"><span style="display:inline-flex;align-items:center;gap:6px;height:22px;padding:0 7px;border-radius:6px;background:#EEE8F8;color:#5E3AA3;font:700 11px Barlow;letter-spacing:.05em"><span style="width:7px;height:7px;background:#7A4FC2;border-radius:4px"></span>LORI</span></sc-if>
+              <span style="font:700 18px Barlow;white-space:nowrap">{{ r.no }}</span>
+            </div>
+            <span style="height:24px;padding:0 9px;border-radius:12px;font:700 12px Barlow;display:flex;align-items:center;background:{{ r.chipBg }};color:{{ r.chipFg }}">{{ r.status }}</span>
+            <div style="font:500 14px Barlow;color:#5B6270;grid-column:1/3;display:flex;gap:12px"><span>{{ r.ref }}</span><span>{{ r.date }}</span><span>{{ r.plt }} pallet</span><span>{{ r.ctn }} CTN</span></div>
+          </div>
+        </sc-for>
+      </div>
+      <div style="flex:none;padding:12px 16px 26px;background:#fff;border-top:1px solid #E2E5E9"><div onClick="{{ newSheet }}" style="height:60px;border-radius:14px;background:#1E4FA3;color:#fff;display:flex;align-items:center;justify-content:center;gap:10px;font:700 19px Barlow;cursor:pointer"><span style="font-size:26px;line-height:1">+</span>Tally sheet baru</div></div>
+    </sc-if>
+
+    <!-- TYPE -->
+    <sc-if value="{{ scr.type }}" hint-placeholder-val="{{ false }}">
+      <div style="flex:1;min-height:0;overflow-y:auto;padding:20px 16px;display:flex;flex-direction:column;gap:14px">
+        <div style="font:700 24px/1.2 Barlow">Barang dimuat ke mana?</div>
+        <div onClick="{{ chooseA }}" style="background:#fff;border:{{ typeA.bd }};box-shadow:{{ typeA.sh }};border-radius:18px;padding:20px;display:flex;flex-direction:column;gap:12px;cursor:pointer">
+          <div style="display:flex;justify-content:space-between"><div style="width:104px;height:56px;border-radius:4px;background:repeating-linear-gradient(90deg,#0F7C80 0 7px,#0B6266 7px 10px)"></div><span style="font:700 12px Barlow;color:#0B6266;letter-spacing:.06em">FORM A</span></div>
+          <div style="font:800 28px Barlow;color:#0B6266">Container</div>
+          <div style="font:500 15px/1.4 Barlow;color:#3A3F47">Muat ke container eksport. Contract No, Container No, Seal No, SI No, Disport.</div>
+        </div>
+        <div onClick="{{ chooseB }}" style="background:#fff;border:{{ typeB.bd }};box-shadow:{{ typeB.sh }};border-radius:18px;padding:20px;display:flex;flex-direction:column;gap:12px;cursor:pointer">
+          <div style="display:flex;justify-content:space-between"><div style="position:relative;width:104px;height:58px"><div style="position:absolute;left:0;top:2px;width:68px;height:40px;background:#7A4FC2;border-radius:3px"></div><div style="position:absolute;left:71px;top:14px;width:30px;height:28px;background:#5E3AA3;border-radius:3px 10px 3px 3px"></div><div style="position:absolute;left:8px;top:36px;width:18px;height:18px;border-radius:9px;background:#15181D;border:3px solid #fff;box-sizing:border-box"></div><div style="position:absolute;left:44px;top:36px;width:18px;height:18px;border-radius:9px;background:#15181D;border:3px solid #fff;box-sizing:border-box"></div><div style="position:absolute;left:78px;top:36px;width:18px;height:18px;border-radius:9px;background:#15181D;border:3px solid #fff;box-sizing:border-box"></div></div><span style="font:700 12px Barlow;color:#5E3AA3;letter-spacing:.06em">FORM B</span></div>
+          <div style="font:800 28px Barlow;color:#5E3AA3">Lori</div>
+          <div style="font:500 15px/1.4 Barlow;color:#3A3F47">Muat ke lori biasa. Transfer To, D/O No, Lorry No. PLT Type dan Contract No ikut pallet.</div>
+        </div>
+      </div>
+      <div style="flex:none;padding:12px 16px 26px;background:#fff;border-top:1px solid #E2E5E9"><div onClick="{{ typeNext }}" style="height:56px;border-radius:12px;background:#1E4FA3;color:#fff;display:flex;align-items:center;justify-content:center;font:700 18px Barlow;cursor:pointer">{{ typeNextTxt }}</div></div>
+    </sc-if>
+
+    <!-- HEADER -->
+    <sc-if value="{{ scr.header }}" hint-placeholder-val="{{ false }}">
+      <sc-if value="{{ hasHdrErr }}" hint-placeholder-val="{{ false }}"><div style="flex:none;background:#FBE5E3;color:#8E1F19;padding:12px 16px;font:700 15px Barlow;border-bottom:1px solid #F0B9B4">{{ hdrErrTxt }}</div></sc-if>
+      <div style="flex:1;min-height:0;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:14px">
+        <sc-for list="{{ hdrFields }}" as="f" hint-placeholder-count="6">
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <div style="display:flex;justify-content:space-between;font:700 14px Barlow;color:{{ f.lc }}"><span>{{ f.k }}</span><span style="font-weight:500;color:#7A818C">{{ f.hint }}</span></div>
+            <input value="{{ f.v }}" onChange="{{ f.on }}" onBlur="{{ f.blur }}" inputmode="{{ f.im }}" placeholder="{{ f.ph }}" style="width:100%;box-sizing:border-box;height:56px;border-radius:10px;border:{{ f.bd }};padding:0 14px;font:600 19px Barlow,sans-serif;color:#15181D;background:#fff;outline:none;text-transform:uppercase" style-focus="border-color:#1E4FA3;box-shadow:0 0 0 3px #DCE5F5">
+            <sc-if value="{{ f.hasErr }}"><span style="font:600 14px Barlow;color:#C2332B">{{ f.err }}</span></sc-if>
+            <sc-if value="{{ f.chips }}"><div style="display:flex;gap:8px;flex-wrap:wrap"><sc-for list="{{ transferChips }}" as="c"><span onClick="{{ c.on }}" style="height:40px;padding:0 12px;border-radius:20px;background:#fff;border:1px solid #D5D9DF;font:600 14px Barlow;display:flex;align-items:center;cursor:pointer">{{ c.k }}</span></sc-for></div></sc-if>
+          </div>
+        </sc-for>
+      </div>
+      <div style="flex:none;padding:12px 16px 26px;background:#fff;border-top:1px solid #E2E5E9"><div onClick="{{ hdrNext }}" style="height:56px;border-radius:12px;background:#1E4FA3;color:#fff;display:flex;align-items:center;justify-content:center;font:700 18px Barlow;cursor:pointer">Seterusnya · Tambah item</div></div>
+    </sc-if>
+
+    <!-- PICKER -->
+    <sc-if value="{{ scr.picker }}" hint-placeholder-val="{{ false }}">
+      <div style="flex:none;padding:10px 16px 12px;background:#fff;border-bottom:1px solid #E2E5E9"><input value="{{ pick.q }}" onChange="{{ onQ }}" placeholder="Cari produk" style="width:100%;box-sizing:border-box;height:56px;border-radius:12px;border:1.5px solid #CFD4DA;padding:0 14px;font:600 18px Barlow,sans-serif;color:#15181D;background:#F3F4F1;outline:none" style-focus="border-color:#1E4FA3;background:#fff"></div>
+      <div style="flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column">
+        <sc-if value="{{ hasRecent }}" hint-placeholder-val="{{ false }}"><div style="padding:14px 16px 6px;font:700 13px Barlow;letter-spacing:.06em;color:#5B6270">BARU DIGUNA</div></sc-if>
+        <sc-for list="{{ recentList }}" as="p" hint-placeholder-count="1">
+          <div onClick="{{ p.on }}" style="min-height:64px;padding:8px 16px;display:flex;align-items:center;gap:12px;background:{{ p.bg }};border-bottom:1px solid #EEF0F2;cursor:pointer"><div style="flex:1;min-width:0"><div style="font:700 17px Barlow">{{ p.n }}</div><div style="font:500 13px Barlow;color:#5B6270">{{ p.meta }}</div></div><span style="width:28px;height:28px;border-radius:14px;border:2px solid {{ p.ring }};background:{{ p.dot }};box-sizing:border-box;flex:none"></span></div>
+        </sc-for>
+        <div style="padding:16px 16px 6px;font:700 13px Barlow;letter-spacing:.06em;color:#5B6270">{{ prodHead }}</div>
+        <sc-for list="{{ prodList }}" as="p" hint-placeholder-count="5">
+          <div onClick="{{ p.on }}" style="min-height:64px;padding:8px 16px;display:flex;align-items:center;gap:12px;background:{{ p.bg }};border-bottom:1px solid #EEF0F2;cursor:pointer"><div style="flex:1;min-width:0"><div style="font:700 17px Barlow">{{ p.n }}</div><div style="font:500 13px Barlow;color:#5B6270">{{ p.meta }}</div></div><span style="width:28px;height:28px;border-radius:14px;border:2px solid {{ p.ring }};background:{{ p.dot }};box-sizing:border-box;flex:none"></span></div>
+        </sc-for>
+        <div onClick="{{ onCustom }}" style="margin:14px 16px 16px;min-height:60px;border:1.5px dashed #AEB4BD;border-radius:12px;padding:10px 14px;display:flex;align-items:center;gap:12px;cursor:pointer;flex:none"><span style="font:600 26px Barlow;color:#1E4FA3">+</span><div><div style="font:700 16px Barlow">Guna nama sendiri</div><div style="font:500 13px Barlow;color:#5B6270">{{ customSub }}</div></div></div>
+      </div>
+      <div style="flex:none;padding:12px 16px 26px;background:#fff;border-top:1px solid #E2E5E9;display:flex;flex-direction:column;gap:10px">
+        <div style="display:flex;flex-direction:column;gap:4px"><div style="font:700 13px Barlow;color:#5B6270">Nama item (boleh ubah)</div><input value="{{ pick.name }}" onChange="{{ onPickName }}" placeholder="Pilih produk atau taip" style="width:100%;box-sizing:border-box;height:52px;border-radius:10px;border:1.5px solid #CFD4DA;padding:0 12px;font:600 17px Barlow,sans-serif;color:#15181D;background:#fff;outline:none;text-transform:uppercase" style-focus="border-color:#1E4FA3"></div>
+        <div onClick="{{ pickNext }}" style="height:56px;border-radius:12px;background:#1E4FA3;color:#fff;display:flex;align-items:center;justify-content:center;font:700 18px Barlow;cursor:pointer;opacity:{{ pickOp }}">Seterusnya · Pallet</div>
+      </div>
+    </sc-if>
+
+    <!-- SETUP -->
+    <sc-if value="{{ scr.setup }}" hint-placeholder-val="{{ false }}">
+      <div style="flex:1;min-height:0;overflow-y:auto;padding:14px 16px;display:flex;flex-direction:column;gap:12px">
+        <div style="display:grid;grid-template-columns:1fr 1fr;background:#E2E5E9;border-radius:12px;padding:4px;gap:4px">
+          <div onClick="{{ setAuto }}" style="height:44px;border-radius:9px;background:{{ seg.aBg }};font:700 15px Barlow;display:flex;align-items:center;justify-content:center;cursor:pointer;color:{{ seg.aFg }}">Kira dari jumlah CTN</div>
+          <div onClick="{{ setManual }}" style="height:44px;border-radius:9px;background:{{ seg.mBg }};font:700 15px Barlow;display:flex;align-items:center;justify-content:center;cursor:pointer;color:{{ seg.mFg }}">Bilangan pallet</div>
+        </div>
+        <sc-if value="{{ modeAuto }}" hint-placeholder-val="{{ true }}">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+            <div style="display:flex;flex-direction:column;gap:6px"><div style="font:700 14px Barlow;color:#3A3F47">Total CTN</div><input value="{{ pick.total }}" onChange="{{ onTotal }}" inputmode="numeric" placeholder="150" style="width:100%;box-sizing:border-box;height:64px;border-radius:12px;border:1.5px solid #CFD4DA;padding:0 14px;font:700 30px Barlow,sans-serif;color:#15181D;background:#fff;outline:none" style-focus="border:2px solid #1E4FA3"></div>
+            <div style="display:flex;flex-direction:column;gap:6px"><div style="font:700 14px Barlow;color:#3A3F47">CTN per pallet</div><input value="{{ pick.per }}" onChange="{{ onPer }}" inputmode="numeric" placeholder="32" style="width:100%;box-sizing:border-box;height:64px;border-radius:12px;border:1.5px solid #CFD4DA;padding:0 14px;font:700 30px Barlow,sans-serif;color:#15181D;background:#fff;outline:none" style-focus="border:2px solid #1E4FA3"></div>
+          </div>
+        </sc-if>
+        <sc-if value="{{ modeManual }}" hint-placeholder-val="{{ false }}">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+            <div style="display:flex;flex-direction:column;gap:6px"><div style="font:700 14px Barlow;color:#3A3F47">Bilangan pallet</div><input value="{{ pick.n }}" onChange="{{ onN }}" inputmode="numeric" placeholder="5" style="width:100%;box-sizing:border-box;height:64px;border-radius:12px;border:1.5px solid #CFD4DA;padding:0 14px;font:700 30px Barlow,sans-serif;color:#15181D;background:#fff;outline:none" style-focus="border:2px solid #1E4FA3"></div>
+            <div style="display:flex;flex-direction:column;gap:6px"><div style="font:700 14px Barlow;color:#3A3F47">Total CTN (pilihan)</div><input value="{{ pick.total }}" onChange="{{ onTotal }}" inputmode="numeric" placeholder="—" style="width:100%;box-sizing:border-box;height:64px;border-radius:12px;border:1.5px solid #CFD4DA;padding:0 14px;font:700 30px Barlow,sans-serif;color:#15181D;background:#fff;outline:none" style-focus="border:2px solid #1E4FA3"></div>
+          </div>
+          <div style="font:500 14px Barlow;color:#5B6270">Qty diisi manual untuk setiap pallet.</div>
+        </sc-if>
+        <sc-if value="{{ isB }}" hint-placeholder-val="{{ false }}">
+          <div style="display:grid;grid-template-columns:1fr 1.2fr;gap:10px">
+            <div style="display:flex;flex-direction:column;gap:6px"><div style="font:700 14px Barlow;color:#3A3F47">PLT Type (default)</div><div style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px"><sc-for list="{{ setupTypes }}" as="t"><div onClick="{{ t.on }}" style="height:52px;border-radius:9px;background:{{ t.bg }};color:{{ t.fg }};border:{{ t.bd }};box-sizing:border-box;font:700 20px Barlow;display:flex;align-items:center;justify-content:center;cursor:pointer">{{ t.k }}</div></sc-for></div></div>
+            <div style="display:flex;flex-direction:column;gap:6px"><div style="font:700 14px Barlow;color:#3A3F47">Contract No</div><input value="{{ pick.c }}" onChange="{{ onPickC }}" style="width:100%;box-sizing:border-box;height:52px;border-radius:9px;border:1.5px solid #CFD4DA;padding:0 12px;font:600 17px Barlow,sans-serif;color:#15181D;background:#fff;outline:none;text-transform:uppercase" style-focus="border-color:#1E4FA3"></div>
+          </div>
+        </sc-if>
+        <div style="background:#fff;border:1px solid #E2E5E9;border-radius:14px;overflow:hidden">
+          <div style="padding:12px 14px;display:flex;justify-content:space-between;align-items:baseline;border-bottom:1px solid #EEF0F2"><span style="font:700 15px Barlow">{{ setupHead }}</span><span style="font:600 14px Barlow;color:#5B6270">{{ setupRange }}</span></div>
+          <sc-for list="{{ setupPrev }}" as="p" hint-placeholder-count="5">
+            <div style="height:48px;display:grid;grid-template-columns:52px 1fr auto auto;gap:10px;align-items:center;padding:0 14px;border-bottom:1px solid #EEF0F2">
+              <span style="height:34px;border-radius:7px;background:#15181D;color:#fff;font:800 22px 'Barlow Condensed';display:flex;align-items:center;justify-content:center">{{ p.no }}</span>
+              <span style="font:500 14px Barlow;color:{{ p.noteC }}">{{ p.note }}</span>
+              <span style="font:700 13px Barlow;color:#5B6270;min-width:16px;text-align:center">{{ p.t }}</span>
+              <span style="font:700 20px Barlow;min-width:56px;text-align:right">{{ p.q }}</span>
+            </div>
+          </sc-for>
+          <sc-if value="{{ setupHasSum }}" hint-placeholder-val="{{ false }}"><div style="padding:10px 14px;display:flex;justify-content:space-between;font:700 16px Barlow;background:#E5F4EA;color:#17733E"><span>Jumlah</span><span>{{ setupSum }}</span></div></sc-if>
+        </div>
+      </div>
+      <div style="flex:none;padding:12px 16px 26px;background:#fff;border-top:1px solid #E2E5E9"><div onClick="{{ setupGo }}" style="height:56px;border-radius:12px;background:#1E4FA3;color:#fff;display:flex;align-items:center;justify-content:center;font:700 18px Barlow;cursor:pointer;opacity:{{ setupOp }}">{{ setupBtn }}</div></div>
+    </sc-if>
+
+    <!-- PALLETS -->
+    <sc-if value="{{ scr.pallets }}" hint-placeholder-val="{{ false }}">
+      <div style="flex:none;height:52px;background:{{ itemStat.bg }};color:#fff;display:flex;align-items:center;justify-content:space-between;padding:0 16px"><span style="font:600 15px Barlow">Jumlah item</span><span style="font:800 24px Barlow">{{ itemStat.txt }}</span></div>
+      <div style="flex:1;min-height:0;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:12px">
+        <sc-for list="{{ palletCards }}" as="p" hint-placeholder-count="3">
+          <div style="background:#fff;border:{{ p.bd }};border-radius:14px;padding:12px;display:flex;flex-direction:column;gap:10px;flex:none">
+            <div style="display:flex;align-items:center;gap:12px">
+              <span style="width:60px;height:60px;border-radius:10px;background:#15181D;color:#fff;font:800 40px 'Barlow Condensed';display:flex;align-items:center;justify-content:center;flex:none">{{ p.no }}</span>
+              <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:3px"><div style="font:700 17px Barlow">{{ p.title }}</div><sc-if value="{{ p.mixed }}"><span style="align-self:flex-start;height:22px;padding:0 8px;border-radius:5px;background:#15181D;color:#fff;font:700 11px Barlow;letter-spacing:.06em;display:flex;align-items:center">PALLET CAMPUR</span></sc-if></div>
+              <span style="font:800 24px Barlow">{{ p.sum }}</span>
+              <div onClick="{{ p.onRemove }}" title="Buang pallet" style="width:44px;height:48px;border-radius:10px;display:flex;align-items:center;justify-content:center;font:500 26px Barlow;color:#7A818C;cursor:pointer">×</div>
+            </div>
+            <sc-if value="{{ p.hasPrev }}"><div onClick="{{ p.onCopyAll }}" style="height:48px;border-radius:10px;background:#E8EDF6;color:#1E4FA3;font:700 15px Barlow;display:flex;align-items:center;justify-content:center;cursor:pointer">{{ p.copyTxt }}</div></sc-if>
+            <sc-if value="{{ p.isB }}">
+              <div style="display:grid;grid-template-columns:1fr 1.1fr;gap:8px">
+                <div style="display:flex;flex-direction:column;gap:4px"><span style="font:700 12px Barlow;color:#5B6270">PLT TYPE</span><div style="display:grid;grid-template-columns:repeat(4,1fr);gap:3px"><sc-for list="{{ p.types }}" as="t"><div onClick="{{ t.on }}" style="height:48px;border-radius:8px;background:{{ t.bg }};color:{{ t.fg }};border:{{ t.bd }};box-sizing:border-box;font:700 17px Barlow;display:flex;align-items:center;justify-content:center;cursor:pointer">{{ t.k }}</div></sc-for></div></div>
+                <div style="display:flex;flex-direction:column;gap:4px"><span style="font:700 12px Barlow;color:#5B6270">CONTRACT NO</span><input value="{{ p.c }}" onChange="{{ p.onC }}" style="width:100%;box-sizing:border-box;height:48px;border-radius:9px;border:1.5px solid #CFD4DA;padding:0 10px;font:600 15px Barlow,sans-serif;color:#15181D;background:#fff;outline:none;text-transform:uppercase" style-focus="border-color:#1E4FA3"></div>
+              </div>
+            </sc-if>
+            <sc-for list="{{ p.lines }}" as="l">
+              <div style="display:flex;flex-direction:column;gap:8px;border-top:{{ l.bt }};padding-top:{{ l.pt }}">
+                <sc-if value="{{ l.mixed }}"><div style="display:flex;justify-content:space-between;align-items:center"><span style="font:800 14px Barlow;color:#5B6270;letter-spacing:.04em">{{ l.label }}</span><span onClick="{{ l.onRemove }}" style="height:36px;padding:0 10px;display:flex;align-items:center;font:700 13px Barlow;color:#C2332B;cursor:pointer">Buang baris</span></div></sc-if>
+                <div style="display:grid;grid-template-columns:0.8fr 1.2fr;gap:8px">
+                  <div style="display:flex;flex-direction:column;gap:4px;min-width:0"><span style="font:700 12px Barlow;color:#5B6270;height:18px;display:flex;align-items:center">QTY (CTN)</span><input value="{{ l.q }}" onChange="{{ l.onQ }}" inputmode="numeric" placeholder="0" style="width:100%;box-sizing:border-box;height:56px;border-radius:9px;border:1.5px solid #CFD4DA;padding:0 12px;font:700 24px Barlow,sans-serif;color:#15181D;background:#fff;outline:none" style-focus="border:2px solid #1E4FA3"></div>
+                  <div style="display:flex;flex-direction:column;gap:4px;min-width:0"><span style="font:700 12px Barlow;color:#5B6270;height:18px;display:flex;align-items:center">BATCH</span><div style="position:relative"><input value="{{ l.b }}" onChange="{{ l.onB }}" placeholder="B…" style="width:100%;box-sizing:border-box;height:56px;border-radius:9px;border:{{ l.bBd }};padding:0 50px 0 12px;font:700 18px Barlow,sans-serif;color:#15181D;background:#fff;outline:none;text-transform:uppercase" style-focus="border:2px solid #1E4FA3"><sc-if value="{{ l.hasPrev }}"><div onClick="{{ l.cpB }}" style="position:absolute;right:4px;top:4px;width:44px;height:48px;border-radius:7px;background:#F3F4F1;color:#1E4FA3;display:flex;flex-direction:column;align-items:center;justify-content:center;font:700 10px Barlow;cursor:pointer"><span style="font-size:16px;line-height:1">↑</span>sama</div></sc-if></div></div>
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+                  <div style="display:flex;flex-direction:column;gap:4px;min-width:0">
+                    <div style="display:flex;justify-content:space-between;align-items:center;height:18px"><span style="font:700 12px Barlow;color:#5B6270">EXPIRED</span><span style="position:relative;font:700 12px Barlow;color:#1E4FA3;cursor:pointer;padding:4px 0">Kalendar<input type="date" onChange="{{ l.calE }}" style="position:absolute;inset:0;opacity:0;cursor:pointer;width:100%"></span></div>
+                    <div style="position:relative"><input value="{{ l.e }}" onChange="{{ l.onE }}" onBlur="{{ l.blurE }}" inputmode="numeric" placeholder="160427" style="width:100%;box-sizing:border-box;height:56px;border-radius:9px;border:{{ l.eBd }};padding:0 50px 0 10px;font:700 18px Barlow,sans-serif;color:#15181D;background:#fff;outline:none" style-focus="border:2px solid #1E4FA3"><sc-if value="{{ l.hasPrev }}"><div onClick="{{ l.cpE }}" style="position:absolute;right:4px;top:4px;width:44px;height:48px;border-radius:7px;background:#F3F4F1;color:#1E4FA3;display:flex;flex-direction:column;align-items:center;justify-content:center;font:700 10px Barlow;cursor:pointer"><span style="font-size:16px;line-height:1">↑</span>sama</div></sc-if></div>
+                    <span style="font:700 13px Barlow;color:#17733E;min-height:16px">{{ l.eHint }}</span>
+                  </div>
+                  <div style="display:flex;flex-direction:column;gap:4px;min-width:0">
+                    <div style="display:flex;justify-content:space-between;align-items:center;height:18px"><span style="font:700 12px Barlow;color:#5B6270">PROD</span><span style="position:relative;font:700 12px Barlow;color:#1E4FA3;cursor:pointer;padding:4px 0">Kalendar<input type="date" onChange="{{ l.calP }}" style="position:absolute;inset:0;opacity:0;cursor:pointer;width:100%"></span></div>
+                    <div style="position:relative"><input value="{{ l.p }}" onChange="{{ l.onP }}" onBlur="{{ l.blurP }}" inputmode="numeric" placeholder="160425" style="width:100%;box-sizing:border-box;height:56px;border-radius:9px;border:{{ l.pBd }};padding:0 50px 0 10px;font:700 18px Barlow,sans-serif;color:#15181D;background:#fff;outline:none" style-focus="border:2px solid #1E4FA3"><sc-if value="{{ l.hasPrev }}"><div onClick="{{ l.cpP }}" style="position:absolute;right:4px;top:4px;width:44px;height:48px;border-radius:7px;background:#F3F4F1;color:#1E4FA3;display:flex;flex-direction:column;align-items:center;justify-content:center;font:700 10px Barlow;cursor:pointer"><span style="font-size:16px;line-height:1">↑</span>sama</div></sc-if></div>
+                    <span style="font:700 13px Barlow;color:#17733E;min-height:16px">{{ l.pHint }}</span>
+                  </div>
+                </div>
+              </div>
+            </sc-for>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+              <div onClick="{{ p.onAddLine }}" style="height:48px;border-radius:10px;border:1.5px dashed #1E4FA3;color:#1E4FA3;font:700 15px Barlow;display:flex;align-items:center;justify-content:center;cursor:pointer">+ Tambah batch</div>
+              <input value="{{ p.rm }}" onChange="{{ p.onRm }}" placeholder="Remark" style="width:100%;box-sizing:border-box;height:48px;border-radius:10px;border:1.5px solid #CFD4DA;padding:0 12px;font:600 15px Barlow,sans-serif;color:#15181D;background:#F7F8F6;outline:none;text-transform:uppercase" style-focus="border-color:#1E4FA3;background:#fff">
+            </div>
+          </div>
+        </sc-for>
+        <sc-if value="{{ noPallets }}" hint-placeholder-val="{{ false }}"><div style="padding:32px 16px;text-align:center;font:600 16px Barlow;color:#5B6270">Tiada pallet. Tekan + Pallet.</div></sc-if>
+      </div>
+      <div style="flex:none;padding:10px 16px 24px;background:#fff;border-top:1px solid #E2E5E9;display:grid;grid-template-columns:1fr 1.4fr;gap:10px">
+        <div onClick="{{ addPallet }}" style="height:56px;border-radius:12px;border:1.5px solid #CFD4DA;font:700 16px Barlow;display:flex;align-items:center;justify-content:center;cursor:pointer">+ Pallet</div>
+        <div onClick="{{ saveItem }}" style="height:56px;border-radius:12px;background:#1E4FA3;color:#fff;display:flex;align-items:center;justify-content:center;font:700 18px Barlow;cursor:pointer">Simpan item</div>
+      </div>
+    </sc-if>
+
+    <!-- ITEMS -->
+    <sc-if value="{{ scr.items }}" hint-placeholder-val="{{ false }}">
+      <div style="flex:1;min-height:0;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:10px">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;flex:none">
+          <div style="background:#fff;border-radius:12px;padding:12px 14px;border:1px solid #E2E5E9"><div style="font:600 13px Barlow;color:#5B6270">Pallet</div><div style="font:800 32px Barlow">{{ totPlt }}</div></div>
+          <div style="background:#fff;border-radius:12px;padding:12px 14px;border:1px solid #E2E5E9"><div style="font:600 13px Barlow;color:#5B6270">Jumlah CTN</div><div style="font:800 32px Barlow">{{ totCtn }}</div></div>
+        </div>
+        <sc-for list="{{ itemRows }}" as="it" hint-placeholder-count="2">
+          <div style="background:#fff;border:1px solid #E2E5E9;border-radius:14px;padding:12px;display:flex;flex-direction:column;gap:8px;flex:none">
+            <div style="font:700 17px Barlow">{{ it.n }}</div>
+            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><span style="height:28px;padding:0 10px;border-radius:6px;background:#15181D;color:#fff;font:700 15px 'Barlow Condensed';display:flex;align-items:center;letter-spacing:.02em">{{ it.r }}</span><span style="font:600 14px Barlow;color:#5B6270">{{ it.extra }}</span></div>
+            <div style="font:800 18px Barlow;color:{{ it.c }}">{{ it.ctn }}</div>
+            <div style="display:grid;grid-template-columns:1fr 56px 56px;gap:6px">
+              <div onClick="{{ it.edit }}" style="height:48px;border-radius:10px;background:#E8EDF6;color:#1E4FA3;font:700 15px Barlow;display:flex;align-items:center;justify-content:center;cursor:pointer">Ubah pallet</div>
+              <div onClick="{{ it.up }}" title="Naik" style="height:48px;border-radius:10px;border:1.5px solid #CFD4DA;font:700 18px Barlow;display:flex;align-items:center;justify-content:center;cursor:pointer;opacity:{{ it.upOp }}">↑</div>
+              <div onClick="{{ it.del }}" title="Padam" style="height:48px;border-radius:10px;border:1.5px solid #F0B9B4;color:#C2332B;font:700 13px Barlow;display:flex;align-items:center;justify-content:center;cursor:pointer">Padam</div>
+            </div>
+          </div>
+        </sc-for>
+        <div onClick="{{ addItem }}" style="height:60px;flex:none;border-radius:14px;border:2px dashed #1E4FA3;color:#1E4FA3;font:700 18px Barlow;display:flex;align-items:center;justify-content:center;gap:8px;cursor:pointer"><span style="font-size:24px">+</span>Tambah item</div>
+        <div style="font:500 13px Barlow;color:#7A818C;text-align:center">{{ nextStartTxt }}</div>
+      </div>
+      <div style="flex:none;padding:12px 16px 26px;background:#fff;border-top:1px solid #E2E5E9"><div onClick="{{ itemsDone }}" style="height:56px;border-radius:12px;background:#1E4FA3;color:#fff;display:flex;align-items:center;justify-content:center;font:700 18px Barlow;cursor:pointer;opacity:{{ itemsOp }}">Selesai · Bahan</div></div>
+    </sc-if>
+
+    <!-- MATERIALS -->
+    <sc-if value="{{ scr.materials }}" hint-placeholder-val="{{ false }}">
+      <div style="flex:1;min-height:0;overflow-y:auto;padding:10px 16px 16px;display:flex;flex-direction:column;gap:10px">
+        <sc-if value="{{ isA }}" hint-placeholder-val="{{ true }}">
+          <div style="display:flex;flex-direction:column">
+            <sc-for list="{{ matsA }}" as="m" hint-placeholder-count="9">
+              <div style="height:60px;display:flex;align-items:center;gap:8px;border-bottom:1px solid #E2E5E9">
+                <span style="flex:1;font:700 17px Barlow">{{ m.k }}</span>
+                <span onClick="{{ m.dec }}" style="width:52px;height:48px;border-radius:10px;background:#fff;border:1.5px solid #CFD4DA;display:flex;align-items:center;justify-content:center;font:600 26px Barlow;cursor:pointer;color:{{ m.minus }}">−</span>
+                <span style="width:56px;text-align:center;font:800 24px Barlow;color:{{ m.c }}">{{ m.v }}</span>
+                <span onClick="{{ m.inc }}" style="width:52px;height:48px;border-radius:10px;background:#1E4FA3;color:#fff;display:flex;align-items:center;justify-content:center;font:600 26px Barlow;cursor:pointer">+</span>
+              </div>
+            </sc-for>
+          </div>
+        </sc-if>
+        <sc-if value="{{ isB }}" hint-placeholder-val="{{ false }}">
+          <div style="background:#fff;border:1px solid #E2E5E9;border-radius:14px;padding:4px 12px">
+            <sc-for list="{{ checksB }}" as="c" hint-placeholder-count="3">
+              <div style="min-height:60px;display:flex;align-items:center;gap:12px;border-bottom:1px solid #EEF0F2">
+                <span onClick="{{ c.toggle }}" style="width:40px;height:40px;border-radius:8px;background:{{ c.bg }};border:{{ c.bd }};box-sizing:border-box;color:#fff;display:flex;align-items:center;justify-content:center;font:800 20px Barlow;cursor:pointer">{{ c.x }}</span>
+                <span onClick="{{ c.toggle }}" style="font:700 17px Barlow;width:92px;cursor:pointer">{{ c.k }}</span>
+                <input value="{{ c.note }}" onChange="{{ c.onNote }}" placeholder="Nota" style="flex:1;min-width:0;box-sizing:border-box;height:44px;border-radius:8px;border:1.5px solid #E2E5E9;padding:0 10px;font:600 15px Barlow,sans-serif;color:#15181D;background:#F3F4F1;outline:none" style-focus="border-color:#1E4FA3;background:#fff">
+              </div>
+            </sc-for>
+          </div>
+        </sc-if>
+        <div style="display:flex;flex-direction:column;gap:6px;margin-top:4px"><span style="font:700 14px Barlow;color:#3A3F47">{{ remarkLabel }}</span><input value="{{ remark }}" onChange="{{ onRemark }}" placeholder="Pilihan" style="width:100%;box-sizing:border-box;height:52px;border-radius:10px;border:1.5px solid #CFD4DA;padding:0 14px;font:600 16px Barlow,sans-serif;color:#15181D;background:#fff;outline:none" style-focus="border-color:#1E4FA3"></div>
+        <sc-if value="{{ isB }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex;justify-content:space-between;align-items:baseline;margin-top:6px"><span style="font:700 14px Barlow;color:#3A3F47;letter-spacing:.04em">TOTAL NUMBER OF PLT</span><span style="font:600 13px Barlow;color:#1E4FA3">Auto dari pallet</span></div>
+          <div style="background:#fff;border:1px solid #E2E5E9;border-radius:14px;padding:0 12px">
+            <sc-for list="{{ pltRows }}" as="p" hint-placeholder-count="4">
+              <div style="height:58px;display:flex;align-items:center;gap:8px;border-bottom:1px solid #EEF0F2">
+                <span style="width:36px;height:36px;border-radius:8px;background:#ECEEF1;font:800 18px Barlow;display:flex;align-items:center;justify-content:center">{{ p.code }}</span>
+                <span style="flex:1;font:600 16px Barlow">{{ p.k }}</span>
+                <span onClick="{{ p.dec }}" style="width:48px;height:44px;border-radius:9px;border:1.5px solid #CFD4DA;display:flex;align-items:center;justify-content:center;font:600 22px Barlow;cursor:pointer">−</span>
+                <span style="width:44px;text-align:center;font:800 22px Barlow">{{ p.v }}</span>
+                <span onClick="{{ p.inc }}" style="width:48px;height:44px;border-radius:9px;border:1.5px solid #CFD4DA;display:flex;align-items:center;justify-content:center;font:600 22px Barlow;cursor:pointer">+</span>
+              </div>
+            </sc-for>
+            <div style="min-height:48px;display:flex;justify-content:space-between;align-items:center;font:800 16px Barlow;color:{{ pltTot.c }}"><span>Jumlah</span><span>{{ pltTot.txt }}</span></div>
+          </div>
+        </sc-if>
+      </div>
+      <div style="flex:none;padding:12px 16px 26px;background:#fff;border-top:1px solid #E2E5E9"><div onClick="{{ toReview }}" style="height:56px;border-radius:12px;background:#1E4FA3;color:#fff;display:flex;align-items:center;justify-content:center;font:700 18px Barlow;cursor:pointer">Seterusnya · Semak</div></div>
+    </sc-if>
+
+    <!-- REVIEW -->
+    <sc-if value="{{ scr.review }}" hint-placeholder-val="{{ false }}">
+      <div style="flex:1;min-height:0;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:10px">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;flex:none">
+          <div style="background:#15181D;color:#fff;border-radius:12px;padding:10px 14px"><div style="font:600 13px Barlow;opacity:.75">Jumlah pallet</div><div style="font:800 34px/1.1 Barlow">{{ totPlt }}</div></div>
+          <div style="background:#15181D;color:#fff;border-radius:12px;padding:10px 14px"><div style="font:600 13px Barlow;opacity:.75">Jumlah CTN</div><div style="font:800 34px/1.1 Barlow">{{ totCtn }}</div></div>
+        </div>
+        <sc-for list="{{ warnings }}" as="w" hint-placeholder-count="0">
+          <div style="background:{{ w.bg }};border:1px solid {{ w.bd }};border-radius:12px;padding:10px 12px;display:flex;gap:10px;align-items:center;flex:none"><span style="width:22px;height:22px;border-radius:11px;background:{{ w.ic }};color:#fff;font:800 14px Barlow;display:flex;align-items:center;justify-content:center;flex:none">!</span><div style="font:600 14px/1.35 Barlow;color:{{ w.fg }};flex:1">{{ w.t }}</div><span onClick="{{ w.go }}" style="font:700 14px Barlow;color:#1E4FA3;cursor:pointer;padding:8px 0">Lihat</span></div>
+        </sc-for>
+        <sc-if value="{{ noWarn }}" hint-placeholder-val="{{ false }}"><div style="background:#E5F4EA;border:1px solid #A9D9B9;border-radius:12px;padding:12px;font:700 15px Barlow;color:#17733E;flex:none">✓ Semua kiraan cukup, tiada medan kosong</div></sc-if>
+        <div style="background:#fff;border:1px solid #E2E5E9;border-radius:12px;padding:10px 12px;display:grid;grid-template-columns:1fr auto;gap:2px 8px;flex:none">
+          <span style="font:700 13px Barlow;letter-spacing:.06em;color:#5B6270">{{ rvHead.k }}</span><span onClick="{{ editHeader }}" style="font:700 14px Barlow;color:#1E4FA3;cursor:pointer">Edit</span>
+          <span style="grid-column:1/3;font:700 17px Barlow">{{ rvHead.t }}</span>
+          <span style="grid-column:1/3;font:500 14px Barlow;color:#5B6270">{{ rvHead.s }}</span>
+        </div>
+        <sc-for list="{{ rvItems }}" as="it" hint-placeholder-count="2">
+          <div style="background:#fff;border:1px solid #E2E5E9;border-radius:12px;padding:10px 12px;display:flex;flex-direction:column;gap:6px;flex:none">
+            <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px"><span style="font:700 15px Barlow">{{ it.n }}</span><span onClick="{{ it.edit }}" style="font:700 14px Barlow;color:#1E4FA3;cursor:pointer">Edit</span></div>
+            <div style="display:flex;gap:4px;flex-wrap:wrap"><sc-for list="{{ it.p }}" as="p"><span style="min-width:40px;height:40px;border-radius:7px;background:{{ p.bg }};border:1px solid #D5D9DF;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0 4px;box-sizing:border-box"><span style="font:800 15px/1 'Barlow Condensed'">{{ p.no }}</span><span style="font:600 11px/1.1 Barlow;color:#5B6270">{{ p.q }}</span></span></sc-for></div>
+            <div style="font:600 14px Barlow;color:#5B6270">{{ it.batch }}</div>
+            <div style="font:800 15px Barlow;color:{{ it.c }}">{{ it.ctn }}</div>
+          </div>
+        </sc-for>
+        <div style="background:#fff;border:1px solid #E2E5E9;border-radius:12px;padding:10px 12px;display:grid;grid-template-columns:1fr auto;gap:2px 8px;flex:none">
+          <span style="font:700 13px Barlow;letter-spacing:.06em;color:#5B6270">BAHAN</span><span onClick="{{ editMats }}" style="font:700 14px Barlow;color:#1E4FA3;cursor:pointer">Edit</span>
+          <span style="grid-column:1/3;font:600 15px Barlow">{{ rvMats }}</span>
+        </div>
+      </div>
+      <div style="flex:none;padding:12px 16px 26px;background:#fff;border-top:1px solid #E2E5E9"><div onClick="{{ toSign }}" style="height:56px;border-radius:12px;background:#1E4FA3;color:#fff;display:flex;align-items:center;justify-content:center;font:700 18px Barlow;cursor:pointer">{{ toSignTxt }}</div></div>
+    </sc-if>
+
+    <!-- SIGN -->
+    <sc-if value="{{ scr.sign }}" hint-placeholder-val="{{ false }}">
+      <div style="flex:1;min-height:0;padding:16px;display:flex;flex-direction:column;gap:12px">
+        <div style="font:600 16px/1.4 Barlow;color:#3A3F47">{{ signTxt }}</div>
+        <div style="flex:1;background:#fff;border:2px solid #CFD4DA;border-radius:16px;position:relative;overflow:hidden">
+          <canvas ref="{{ sigRef }}" style="position:absolute;inset:0;width:100%;height:100%;touch-action:none;cursor:crosshair;display:block"></canvas>
+          <sc-if value="{{ noInk }}" hint-placeholder-val="{{ true }}"><div style="position:absolute;left:0;right:0;top:40%;text-align:center;font:600 18px Barlow;color:#AEB4BD;pointer-events:none">Sign di sini dengan jari</div></sc-if>
+          <div style="position:absolute;left:24px;right:24px;bottom:70px;border-bottom:2px dashed #CFD4DA;pointer-events:none"></div>
+          <span style="position:absolute;left:24px;bottom:78px;font:700 20px Barlow;color:#AEB4BD;pointer-events:none">×</span>
+          <div style="position:absolute;left:24px;bottom:22px;display:flex;flex-direction:column;pointer-events:none"><span style="font:700 17px Barlow">MOHD HAFIZ RAHMAN</span><span style="font:500 13px Barlow;color:#5B6270">14/10/26 · 15:58</span></div>
+        </div>
+      </div>
+      <div style="flex:none;padding:12px 16px 26px;background:#fff;border-top:1px solid #E2E5E9;display:grid;grid-template-columns:1fr 1.6fr;gap:10px">
+        <div onClick="{{ clearSig }}" style="height:56px;border-radius:12px;border:1.5px solid #CFD4DA;font:700 17px Barlow;display:flex;align-items:center;justify-content:center;cursor:pointer">Padam</div>
+        <div onClick="{{ confirmSig }}" style="height:56px;border-radius:12px;background:#1E4FA3;color:#fff;display:flex;align-items:center;justify-content:center;font:700 18px Barlow;cursor:pointer;opacity:{{ signOp }}">Sahkan</div>
+      </div>
+    </sc-if>
+
+    <!-- PREVIEW -->
+    <sc-if value="{{ scr.preview }}" hint-placeholder-val="{{ false }}">
+      <div style="flex:1;min-height:0;position:relative;background:#3A3F47">
+        <div style="position:absolute;inset:0;overflow:auto">
+          <div style="width:{{ pw }};height:{{ ph }};position:relative;margin:18px 20px">
+            <div style="position:absolute;left:0;top:0;width:794px;height:1123px;transform:scale({{ scale }});transform-origin:0 0;box-shadow:0 10px 30px rgba(0,0,0,.4)"><dc-import name="PaperSheet" data="{{ sheetData }}" page="{{ page }}" hint-size="794px,1123px"></dc-import></div>
+          </div>
+        </div>
+        <div style="position:absolute;right:12px;bottom:14px;display:flex;flex-direction:column;gap:6px"><span onClick="{{ zoomIn }}" style="width:48px;height:48px;border-radius:12px;background:#fff;display:flex;align-items:center;justify-content:center;font:600 26px Barlow;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.25)">+</span><span onClick="{{ zoomOut }}" style="width:48px;height:48px;border-radius:12px;background:#fff;display:flex;align-items:center;justify-content:center;font:600 26px Barlow;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.25)">−</span></div>
+        <div style="position:absolute;left:12px;bottom:14px;display:flex;gap:6px;align-items:center">
+          <span style="height:36px;padding:0 12px;border-radius:18px;background:rgba(0,0,0,.7);color:#fff;font:600 13px Barlow;display:flex;align-items:center">{{ zoomTxt }}</span>
+          <sc-if value="{{ multiPage }}" hint-placeholder-val="{{ false }}"><span onClick="{{ flipPage }}" style="height:36px;padding:0 12px;border-radius:18px;background:#fff;font:700 13px Barlow;display:flex;align-items:center;cursor:pointer">{{ pageTxt }}</span></sc-if>
+        </div>
+      </div>
+      <div style="flex:none;padding:12px 16px 26px;background:#fff;display:flex;flex-direction:column;gap:8px">
+        <div style="font:600 14px Barlow;color:#5B6270;text-align:center">{{ previewSum }}</div>
+        <div onClick="{{ submit }}" style="height:60px;border-radius:14px;background:#1E4FA3;color:#fff;display:flex;align-items:center;justify-content:center;font:800 20px Barlow;cursor:pointer">Hantar</div>
+      </div>
+    </sc-if>
+
+    <!-- SUCCESS -->
+    <sc-if value="{{ scr.success }}" hint-placeholder-val="{{ false }}">
+      <div style="flex:1;padding:24px;display:flex;flex-direction:column;justify-content:center;gap:18px">
+        <sc-if value="{{ lastOnline }}"><div style="width:88px;height:88px;border-radius:44px;background:#17733E;color:#fff;display:flex;align-items:center;justify-content:center;font:800 48px Barlow">✓</div><div style="font:800 32px/1.1 Barlow">Tally sheet dihantar</div><div style="font:500 16px/1.45 Barlow;color:#3A3F47">Pejabat boleh lihat dan cetak sekarang.</div></sc-if>
+        <sc-if value="{{ lastOffline }}"><div style="width:88px;height:88px;border-radius:44px;background:#FFF1D6;border:3px solid #B26A00;box-sizing:border-box;display:flex;align-items:center;justify-content:center"><span style="width:30px;height:30px;border-radius:15px;border:4px solid #B26A00;border-top-color:transparent;box-sizing:border-box"></span></div><div style="font:800 30px/1.15 Barlow">Disimpan dalam telefon, akan dihantar bila ada line</div><div style="font:500 16px/1.45 Barlow;color:#3A3F47">Jangan padam app. Sheet ini akan naik sendiri bila ada sambungan.</div></sc-if>
+        <div style="background:#fff;border:1px solid #E2E5E9;border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:6px">
+          <span style="font:700 13px Barlow;letter-spacing:.06em;color:#5B6270">NO RUJUKAN</span>
+          <span style="font:600 32px 'IBM Plex Mono',monospace">{{ lastRef }}</span>
+          <span style="font:500 14px Barlow;color:#5B6270">{{ lastSum }}</span>
+        </div>
+      </div>
+      <div style="flex:none;padding:12px 16px 26px;display:flex;flex-direction:column;gap:10px">
+        <div onClick="{{ newSheet }}" style="height:56px;border-radius:12px;background:#1E4FA3;color:#fff;display:flex;align-items:center;justify-content:center;font:700 18px Barlow;cursor:pointer">+ Tally sheet baru</div>
+        <div onClick="{{ goHome }}" style="height:56px;border-radius:12px;border:1.5px solid #CFD4DA;background:#fff;font:700 17px Barlow;display:flex;align-items:center;justify-content:center;cursor:pointer">Kembali ke senarai</div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ hasToast }}" hint-placeholder-val="{{ false }}"><div style="position:absolute;left:16px;right:16px;bottom:100px;background:#15181D;color:#fff;border-radius:12px;padding:14px 16px;font:600 15px Barlow;box-shadow:0 8px 24px rgba(0,0,0,.3)">{{ toast }}</div></sc-if>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  PRODUCTS = [
+    { n: 'LAM SOON MARGARINE 5KG', sku: '10215', per: 32 },
+    { n: 'LAM SOON SHORTENING 16KG', sku: '20431', per: 40 },
+    { n: 'LAM SOON SHORTENING 2KG', sku: '20412', per: 60 },
+    { n: 'LAM SOON BAKERY SHORTENING 20KG', sku: '20455', per: 36 },
+    { n: 'LAM SOON PALM OLEIN 17KG', sku: '30117', per: 48 },
+    { n: 'LAM SOON CANOLA OIL 5L', sku: '30540', per: 40 },
+    { n: 'LAM SOON GHEE 2KG', sku: '40102', per: 72 }
+  ];
+  MATS = ['Sample', 'Empty CTN', 'PE Bag', 'Wooden Frame', 'Plywood', 'Liner', 'Layer Pad', 'Air Bag', 'Polyfoam'];
+  HDR_A = { contract: 'LS-EXP-2410', container: 'TGHU 1234567', seal: 'ML-889012', si: 'SI-55821', disport: 'PORT KLANG', date: '14/10/26' };
+  HDR_B = { transfer: 'LAM SOON SHAH ALAM DC', do: 'DO-778120', lorry: 'WXY 4521', date: '14/10/26' };
+  blankPick() { return { q: '', name: '', total: '', per: '', mode: 'auto', n: '', t: 'L', c: 'LS-DOM-3318' }; }
+  sheetFields() {
+    const mats = {}; this.MATS.forEach(k => mats[k] = 0);
+    return { form: 'A', header: { ...this.HDR_A }, errs: {}, items: [], cur: -1, pick: this.blankPick(), mats, checks: { 'Sample': { on: false, note: '' }, 'Empty CTN': { on: false, note: '' }, 'Others': { on: false, note: '' } }, remark: '', pltAdj: { L: 0, E: 0, C: 0, O: 0 }, sig: null, hasInk: false, zoom: 1, page: 1, started: false };
+  }
+  seedSheets() {
+    return [
+      { isA: true, no: 'MSKU 7730214', ref: 'LS-EXP-2407', date: '14/10', plt: 20, ctn: 640, st: 'sent' },
+      { isA: false, no: 'BKT 8812', ref: 'DO-778101', date: '14/10', plt: 12, ctn: 410, st: 'printed' },
+      { isA: false, no: 'WTP 3390', ref: 'DO-778095', date: '13/10', plt: 6, ctn: 192, st: 'printed' }
+    ];
+  }
+  state = { screen: 'home', online: true, recent: ['LAM SOON MARGARINE 5KG'], seq: 148, lastRef: '', lastOffline: false, lastSum: '', sheets: this.seedSheets(), toast: '', ...this.sheetFields() };
+
+  go(screen) { this.setState({ screen }); }
+  toastMsg(t) { this.setState({ toast: t }); clearTimeout(this._tt); this._tt = setTimeout(() => this.setState({ toast: '' }), 2200); }
+  psum(p) { return p.lines.reduce((a, l) => a + (parseInt(l.q) || 0), 0); }
+  isum(it) { return it.pallets.reduce((a, p) => a + this.psum(p), 0); }
+  stat(sum, target) {
+    if (!target) return { txt: sum + ' CTN', bg: '#15181D', c: '#15181D', ok: true };
+    if (sum === target) return { txt: sum + ' / ' + target + ' ✓', bg: '#17733E', c: '#17733E', ok: true };
+    if (sum < target) return { txt: sum + ' / ' + target + ' · kurang ' + (target - sum), bg: '#B26A00', c: '#B26A00', ok: false, w: 'kurang ' + (target - sum) };
+    return { txt: sum + ' / ' + target + ' · lebih ' + (sum - target), bg: '#C2332B', c: '#C2332B', ok: false, w: 'lebih ' + (sum - target) };
+  }
+  fmtDate(v) {
+    const s = (v || '').trim(); if (!s) return s;
+    let d, m, y; const parts = s.split(/[\/\-\.\s]+/).filter(Boolean);
+    if (parts.length === 3) [d, m, y] = parts;
+    else { const g = s.replace(/\D/g, ''); if (g.length === 6) { d = g.slice(0, 2); m = g.slice(2, 4); y = g.slice(4); } else if (g.length === 8) { d = g.slice(0, 2); m = g.slice(2, 4); y = g.slice(6); } else return s; }
+    if (!/^\d+$/.test(d + m + y)) return s;
+    const di = parseInt(d, 10), mi = parseInt(m, 10); if (!(di >= 1 && di <= 31 && mi >= 1 && mi <= 12)) return s;
+    return String(di).padStart(2, '0') + '/' + String(mi).padStart(2, '0') + '/' + String(y).slice(-2).padStart(2, '0');
+  }
+  validDate(v) { return /^\d\d\/\d\d\/\d\d$/.test(v); }
+  updCur(fn) { this.setState(s => { const items = JSON.parse(JSON.stringify(s.items)); fn(items[s.cur], items, s.cur); return { items }; }); }
+  prevOf(items, cur, i) { if (i > 0) return items[cur].pallets[i - 1]; for (let k = cur - 1; k >= 0; k--) if (items[k].pallets.length) return items[k].pallets[items[k].pallets.length - 1]; return null; }
+  blankLine() { return { q: '', e: '', p: '', b: '' }; }
+
+  sigRef = el => {
+    if (!el || el === this._cv) return; this._cv = el;
+    const w = el.offsetWidth, h = el.offsetHeight; el.width = w * 2; el.height = h * 2;
+    const ctx = el.getContext('2d'); ctx.scale(2, 2); ctx.lineWidth = 3; ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.strokeStyle = '#1B2A6E';
+    if (this.state.sig) { const img = new Image(); img.onload = () => ctx.drawImage(img, 0, 0, w, h); img.src = this.state.sig; }
+    let down = false;
+    const pos = e => { const b = el.getBoundingClientRect(); return [(e.clientX - b.left) * w / b.width, (e.clientY - b.top) * h / b.height]; };
+    el.addEventListener('pointerdown', e => { down = true; try { el.setPointerCapture(e.pointerId); } catch (x) {} const [x, y] = pos(e); ctx.beginPath(); ctx.moveTo(x, y); });
+    el.addEventListener('pointermove', e => { if (!down) return; const [x, y] = pos(e); ctx.lineTo(x, y); ctx.stroke(); if (!this.state.hasInk) this.setState({ hasInk: true }); });
+    ['pointerup', 'pointercancel', 'pointerleave'].forEach(t => el.addEventListener(t, () => { down = false; }));
+  };
+
+  sampleItems(isA) {
+    const L = (q, b, e, p) => ({ q: String(q), b, e, p });
+    const c = 'LS-DOM-3318';
+    return [
+      { name: 'LAM SOON MARGARINE 5KG', target: 150, pallets: [32, 32, 32, 32, 22].map(q => ({ t: 'L', c, rm: q < 32 ? 'LOOSE' : '', lines: [L(q, 'B240915A', '16/04/27', '16/04/25')] })) },
+      { name: 'LAM SOON SHORTENING 16KG', target: 100, pallets: [
+        { t: 'C', c, rm: '', lines: [L(40, 'B240920C', '20/09/26', '20/09/25')] },
+        { t: 'C', c, rm: '', lines: [L(40, 'B240920C', '20/09/26', '20/09/25')] },
+        { t: 'C', c, rm: 'MIXED', lines: [L(12, 'B240920C', '20/09/26', '20/09/25'), L(8, 'B241002A', '02/10/26', '02/10/25')] }
+      ] }
+    ];
+  }
+
+  renderVals() {
+    const s = this.state, isA = s.form === 'A', isB = !isA, items = s.items, H = s.header;
+    const ranges = []; let n = 0; items.forEach(it => { ranges.push({ start: n + 1, end: n + it.pallets.length }); n += it.pallets.length; });
+    const totPlt = n, totCtn = items.reduce((a, it) => a + this.isum(it), 0);
+    const SCR = ['home', 'type', 'header', 'picker', 'setup', 'pallets', 'items', 'materials', 'review', 'sign', 'preview', 'success'];
+    const scr = {}; SCR.forEach(k => scr[k] = s.screen === k);
+    const stepOf = { header: 0, picker: 1, setup: 1, pallets: 2, items: 2, materials: 3, review: 4, sign: 5, preview: 5 };
+    const step = stepOf[s.screen];
+    const pg = ['Header', 'Item', 'Pallet', 'Bahan', 'Semak', 'Sign'].map((l, i) => ({ l, c: i <= step ? '#1E4FA3' : '#D5D9DF', t: i === step ? '#15181D' : '#7A818C', w: i === step ? 700 : 500 }));
+    const set = patch => this.setState(patch);
+    const sheetNo = isA ? (H.container || 'Container') : (H.lorry || 'Lori');
+    const cur = items[s.cur];
+    const nextStart = totPlt + 1;
+    const names = { home: 'Senarai sheet', type: '2 · Pilih jenis', header: '3 · Header', picker: '4 · Pilih produk', setup: '5 · Pallet setup', pallets: '6 · Pallet details', items: '7 · Senarai item', materials: '8 · Bahan', review: '9 · Semak', sign: '10 · Signature', preview: '11 · Preview', success: '12 · Berjaya' };
+    const bars = {
+      type: ['Tally sheet baru', ''], header: ['Header', isA ? 'Container · Form A' : 'Lori · Form B'],
+      picker: ['Tambah item', 'Item ' + (items.length + 1) + ' · bermula Pallet ' + nextStart],
+      setup: [s.pick.name || 'Item', 'Item ' + (items.length + 1) + ' · Pallet setup'],
+      pallets: [cur ? cur.name : '', cur ? 'Item ' + (s.cur + 1) + ' · Pallet ' + ranges[s.cur].start + (cur.pallets.length > 1 ? '–' + ranges[s.cur].end : '') : ''],
+      items: ['Item', sheetNo], materials: [isA ? 'Bahan pembungkus' : 'Bahan & pallet', sheetNo], review: ['Semak sebelum sign', sheetNo],
+      sign: ['Count & Prepared By', sheetNo], preview: ['Preview tally sheet', sheetNo]
+    };
+    const backMap = { type: 'home', header: 'type', picker: items.length ? 'items' : 'header', setup: 'picker', pallets: 'items', items: 'header', materials: 'items', review: 'materials', sign: 'review', preview: 'sign' };
+    const chip = { sent: ['Dihantar', '#E5F4EA', '#17733E'], sync: ['Menunggu sync', '#FFF1D6', '#8A5200'], printed: ['Dicetak', '#E8EDF6', '#1E4FA3'], syncing: ['Sync…', '#E8EDF6', '#1E4FA3'] };
+    const pending = s.sheets.filter(x => x.st === 'sync').length;
+
+    // header
+    const hk = isA ? [['contract', 'Contract No'], ['container', 'Container No', '4 huruf + 7 nombor'], ['seal', 'Seal No'], ['si', 'SI No'], ['disport', 'Disport'], ['date', 'Date', 'Hari ini']]
+                   : [['transfer', 'Transfer To'], ['do', 'D/O No'], ['lorry', 'Lorry No', 'Papan nombor'], ['date', 'Date', 'Hari ini']];
+    const hdrFields = hk.map(([k, label, hint]) => ({
+      k: label, v: H[k] || '', hint: hint || '', ph: k === 'date' ? '141026' : '',
+      im: k === 'date' ? 'numeric' : 'text', err: s.errs[k] || '', hasErr: !!s.errs[k], chips: k === 'transfer',
+      bd: s.errs[k] ? '2px solid #C2332B' : '1.5px solid #CFD4DA', lc: s.errs[k] ? '#C2332B' : '#3A3F47',
+      on: e => { const v = e.target.value.toUpperCase(); this.setState(st => ({ header: { ...st.header, [k]: v }, errs: { ...st.errs, [k]: '' } })); },
+      blur: k === 'date' ? e => { const v = this.fmtDate(e.target.value); this.setState(st => ({ header: { ...st.header, date: v } })); } : undefined
+    }));
+    const validate = () => {
+      const e = {}, req = isA ? ['contract', 'container', 'seal', 'si', 'disport', 'date'] : ['transfer', 'do', 'lorry', 'date'];
+      req.forEach(k => { if (!(H[k] || '').trim()) e[k] = 'Wajib diisi'; });
+      if (isA && H.container && !/^[A-Z]{4}\s?\d{7}$/.test(H.container.trim())) e.container = 'Perlu 4 huruf + 7 nombor (cth TGHU 1234567)';
+      if (H.date && !this.validDate(H.date)) e.date = 'Format DD/MM/YY';
+      return e;
+    };
+    const errCount = Object.values(s.errs).filter(Boolean).length;
+
+    // picker
+    const q = s.pick.q.trim().toLowerCase();
+    const prodRow = p => ({ n: p.n, meta: 'SKU ' + p.sku + ' · ' + p.per + ' CTN/plt', bg: s.pick.name === p.n ? '#EEF3FB' : '#fff', ring: s.pick.name === p.n ? '#1E4FA3' : '#AEB4BD', dot: s.pick.name === p.n ? '#1E4FA3' : '#fff', on: () => this.setState(st => ({ pick: { ...st.pick, name: p.n, per: String(p.per) } })) });
+    const match = p => !q || p.n.toLowerCase().includes(q);
+    const recentList = s.recent.map(r => this.PRODUCTS.find(p => p.n === r)).filter(Boolean).filter(match).map(prodRow);
+    const prodList = this.PRODUCTS.filter(match).map(prodRow);
+
+    // setup
+    const pk = s.pick, T = parseInt(pk.total) || 0, Pp = parseInt(pk.per) || 0, N = parseInt(pk.n) || 0;
+    let qtys = [];
+    if (pk.mode === 'auto') { if (T > 0 && Pp > 0) { const full = Math.floor(T / Pp), rem = T % Pp; qtys = Array(Math.min(full, 80)).fill(Pp); if (rem) qtys.push(rem); } }
+    else qtys = Array(Math.min(N, 80)).fill('');
+    const typeBtns = (curT, on) => ['L', 'E', 'C', 'O'].map(k => ({ k, bg: curT === k ? '#1E4FA3' : '#fff', fg: curT === k ? '#fff' : '#15181D', bd: curT === k ? 'none' : '1.5px solid #CFD4DA', on: () => on(k) }));
+
+    // pallets
+    const palletCards = cur ? cur.pallets.map((p, i) => {
+      const no = ranges[s.cur].start + i, prev = this.prevOf(items, s.cur, i), prevNo = no - 1, mixed = p.lines.length > 1;
+      const setL = (j, f, v) => this.updCur(it => { it.pallets[i].lines[j][f] = v; });
+      const cpF = (j, f) => () => this.updCur((it, all, c) => { const pv = this.prevOf(all, c, i); if (!pv) return; const src = pv.lines[j] || pv.lines[0]; it.pallets[i].lines[j][f] = src[f]; });
+      const cal = (j, f) => e => { const v = e.target.value; if (!v) return; const [Y, M, D] = v.split('-'); setL(j, f, D + '/' + M + '/' + Y.slice(2)); };
+      const hint = v => { const f = this.fmtDate(v); return v && f !== v && this.validDate(f) ? '→ ' + f : ''; };
+      const bd = v => v ? '1.5px solid #CFD4DA' : '1.5px solid #E7C98A';
+      return {
+        no, mixed, isB, hasPrev: !!prev, copyTxt: '↑ Sama macam atas (Pallet ' + prevNo + ')',
+        title: 'Pallet ' + no + (mixed ? ' · ' + p.lines.length + ' batch' : ''), sum: this.psum(p) || '',
+        bd: mixed ? '2px solid #1E4FA3' : '1px solid #E2E5E9', c: p.c, rm: p.rm,
+        types: typeBtns(p.t, k => this.updCur(it => { it.pallets[i].t = k; })),
+        onC: e => { const v = e.target.value.toUpperCase(); this.updCur(it => { it.pallets[i].c = v; }); },
+        onRm: e => { const v = e.target.value.toUpperCase(); this.updCur(it => { it.pallets[i].rm = v; }); },
+        onRemove: () => this.updCur(it => { it.pallets.splice(i, 1); }),
+        onAddLine: () => this.updCur(it => { it.pallets[i].lines.push(this.blankLine()); }),
+        onCopyAll: () => this.updCur((it, all, c) => { const pv = this.prevOf(all, c, i); if (!pv) return; const me = it.pallets[i]; const keepQ = me.lines.length === 1 && pv.lines.length === 1 ? (me.lines[0].q || pv.lines[0].q) : null; me.lines = pv.lines.map(l => ({ ...l })); if (keepQ !== null) me.lines[0].q = keepQ; me.t = pv.t; me.c = pv.c; }),
+        lines: p.lines.map((l, j) => ({
+          q: l.q, e: l.e, p: l.p, b: l.b, mixed, hasPrev: !!prev, label: 'BARIS ' + 'ABCDEFGH'[j],
+          bt: j > 0 ? '1.5px dashed #CFD4DA' : 'none', pt: j > 0 ? '10px' : '0',
+          bBd: bd(l.b), eBd: bd(l.e), pBd: bd(l.p), eHint: hint(l.e), pHint: hint(l.p),
+          onQ: e => setL(j, 'q', e.target.value.replace(/\D/g, '')),
+          onB: e => setL(j, 'b', e.target.value.toUpperCase()),
+          onE: e => setL(j, 'e', e.target.value), onP: e => setL(j, 'p', e.target.value),
+          blurE: e => setL(j, 'e', this.fmtDate(e.target.value)), blurP: e => setL(j, 'p', this.fmtDate(e.target.value)),
+          calE: cal(j, 'e'), calP: cal(j, 'p'),
+          cpB: cpF(j, 'b'), cpE: cpF(j, 'e'), cpP: cpF(j, 'p'),
+          onRemove: () => this.updCur(it => { it.pallets[i].lines.splice(j, 1); })
+        }))
+      };
+    }) : [];
+    const itemStat = cur ? this.stat(this.isum(cur), cur.target) : { txt: '', bg: '#15181D' };
+
+    // items
+    const itemRows = items.map((it, i) => {
+      const st = this.stat(this.isum(it), it.target), mixedN = it.pallets.filter(p => p.lines.length > 1).length, r = ranges[i];
+      return {
+        n: it.name, r: it.pallets.length ? 'PALLET ' + r.start + (r.end > r.start ? '–' + r.end : '') : 'TIADA PALLET',
+        extra: it.pallets.length + ' pallet' + (mixedN ? ' · ' + mixedN + ' campur' : ''), ctn: st.txt.replace(/^(\d+) \/ (\d+)/, '$1 / $2 CTN'), c: st.c, upOp: i === 0 ? 0.35 : 1,
+        edit: () => set({ cur: i, screen: 'pallets' }),
+        up: () => { if (i === 0) return; this.setState(st2 => { const a = st2.items.slice(); [a[i - 1], a[i]] = [a[i], a[i - 1]]; return { items: a }; }); },
+        del: () => this.setState(st2 => ({ items: st2.items.filter((_, k) => k !== i), cur: -1 }))
+      };
+    });
+
+    // materials
+    const autoPlt = { L: 0, E: 0, C: 0, O: 0 }; items.forEach(it => it.pallets.forEach(p => { autoPlt[p.t || 'L']++; }));
+    const pltVals = {}; ['L', 'E', 'C', 'O'].forEach(k => pltVals[k] = Math.max(0, autoPlt[k] + s.pltAdj[k]));
+    const pltSum = Object.values(pltVals).reduce((a, b) => a + b, 0);
+    const matsA = this.MATS.map(k => { const v = s.mats[k]; return { k, v, c: v ? '#15181D' : '#AEB4BD', minus: v ? '#15181D' : '#CFD4DA', inc: () => this.setState(st => ({ mats: { ...st.mats, [k]: st.mats[k] + 1 } })), dec: () => this.setState(st => ({ mats: { ...st.mats, [k]: Math.max(0, st.mats[k] - 1) } })) }; });
+    const checksB = Object.keys(s.checks).map(k => { const c = s.checks[k]; return { k, note: c.note, x: c.on ? '✓' : '', bg: c.on ? '#1E4FA3' : '#fff', bd: c.on ? 'none' : '2px solid #AEB4BD', toggle: () => this.setState(st => ({ checks: { ...st.checks, [k]: { ...st.checks[k], on: !st.checks[k].on } } })), onNote: e => { const v = e.target.value; this.setState(st => ({ checks: { ...st.checks, [k]: { on: v ? true : st.checks[k].on, note: v } } })); } }; });
+    const pltNames = { L: 'Lam Soon', E: 'ECR', C: 'Loscam', O: 'Others' };
+    const pltRows = ['L', 'E', 'C', 'O'].map(k => ({ code: k, k: pltNames[k], v: pltVals[k], inc: () => this.setState(st => ({ pltAdj: { ...st.pltAdj, [k]: st.pltAdj[k] + 1 } })), dec: () => this.setState(st => ({ pltAdj: { ...st.pltAdj, [k]: Math.max(-autoPlt[k], st.pltAdj[k] - 1) } })) }));
+
+    // review
+    const warnings = [];
+    items.forEach((it, i) => {
+      const st = this.stat(this.isum(it), it.target);
+      if (!st.ok) warnings.push({ t: it.name + ': ' + st.w + ' CTN', bg: st.c === '#C2332B' ? '#FBE5E3' : '#FFF1D6', bd: st.c === '#C2332B' ? '#F0B9B4' : '#F0C877', ic: st.c, fg: st.c === '#C2332B' ? '#8E1F19' : '#6B4000', go: () => set({ cur: i, screen: 'pallets' }) });
+      it.pallets.forEach((p, pi) => {
+        const miss = []; p.lines.forEach(l => { if (!l.q) miss.push('Qty'); if (!l.b) miss.push('Batch'); if (!l.e) miss.push('Expired'); if (!l.p) miss.push('Prod'); });
+        if (miss.length) warnings.push({ t: 'Pallet ' + (ranges[i].start + pi) + ': ' + [...new Set(miss)].join(', ') + ' kosong', bg: '#FFF1D6', bd: '#F0C877', ic: '#B26A00', fg: '#6B4000', go: () => set({ cur: i, screen: 'pallets' }) });
+      });
+    });
+    if (isB && pltSum !== totPlt) warnings.push({ t: 'Total Number of PLT (' + pltSum + ') tidak sama dengan pallet (' + totPlt + ')', bg: '#FFF1D6', bd: '#F0C877', ic: '#B26A00', fg: '#6B4000', go: () => set({ screen: 'materials' }) });
+    const shownW = warnings.slice(0, 6);
+    if (warnings.length > 6) shownW.push({ t: 'dan ' + (warnings.length - 6) + ' amaran lagi', bg: '#FFF1D6', bd: '#F0C877', ic: '#B26A00', fg: '#6B4000', go: () => {} });
+    const rvItems = items.map((it, i) => {
+      const st = this.stat(this.isum(it), it.target), batches = [...new Set(it.pallets.flatMap(p => p.lines.map(l => l.b).filter(Boolean)))];
+      const f = it.pallets[0] && it.pallets[0].lines[0];
+      return { n: it.name, c: st.c, ctn: st.txt.replace(/^(\d+) \/ (\d+)/, '$1 / $2 CTN'), edit: () => set({ cur: i, screen: 'pallets' }),
+        batch: batches.length ? batches.join(', ') + (f && f.e ? ' · Exp ' + f.e : '') : 'Tiada batch',
+        p: it.pallets.map((p, pi) => ({ no: ranges[i].start + pi, q: p.lines.map(l => l.q || '?').join('+'), bg: p.lines.length > 1 ? '#EEF3FB' : (this.psum(p) ? '#fff' : '#FFF1D6') })) };
+    });
+    const rvMats = isA ? (this.MATS.filter(k => s.mats[k]).map(k => k + ' ' + s.mats[k]).join(' · ') || 'Tiada bahan')
+                       : ([...Object.keys(s.checks).filter(k => s.checks[k].on).map(k => k + (s.checks[k].note ? ' (' + s.checks[k].note + ')' : '')), 'PLT ' + ['L', 'E', 'C', 'O'].filter(k => pltVals[k]).map(k => k + ' ' + pltVals[k]).join(' · ')].join(' · '));
+    const rvHead = isA ? { k: 'HEADER · CONTAINER', t: (H.container || '—') + ' · Seal ' + (H.seal || '—'), s: [H.contract, H.si, H.disport, H.date].filter(Boolean).join(' · ') }
+                       : { k: 'HEADER · LORI', t: (H.lorry || '—') + ' · ' + (H.do || '—'), s: [H.transfer, H.date].filter(Boolean).join(' · ') };
+
+    // sheet data for PaperSheet
+    const ref = 'TS-2610-0' + s.seq;
+    const sheetData = {
+      form: s.form, ref,
+      header: isA ? { contract: H.contract, container: H.container, seal: H.seal, si: H.si, disport: H.disport, date: H.date } : { transfer: H.transfer, do: H.do, lorry: H.lorry, date: H.date },
+      pallets: items.flatMap(it => it.pallets.map(p => ({ item: it.name, t: p.t, c: p.c, rm: p.rm, lines: p.lines.map(l => ({ q: l.q, e: l.e, p: l.p, b: l.b })) }))),
+      mats: this.MATS.map(k => ({ k: k.toUpperCase(), v: s.mats[k] })),
+      checks: Object.keys(s.checks).map(k => ({ k: k.toUpperCase(), x: s.checks[k].on ? '✓' : '', note: s.checks[k].note.toUpperCase() })),
+      plt: [['L', 'L - (LAM SOON)'], ['E', 'E - (ECR)'], ['C', 'C - (LOSCAM)'], ['O', 'O - (OTHERS)']].map(([k, label]) => ({ k: label, v: pltVals[k] })),
+      remark: s.remark.toUpperCase(), sigImg: s.sig || '', signedBy: s.sig ? 'MOHD HAFIZ RAHMAN · ' + H.date + ' 15:58' : ''
+    };
+    const pages = Math.max(1, Math.ceil(totPlt / 25)), page = Math.min(s.page, pages);
+    const scale = 0.4408 * s.zoom;
+    const summary = totPlt + ' pallet · ' + totCtn + ' CTN';
+
+    const newSheet = () => this.setState(st => ({ ...this.sheetFields(), screen: 'type', started: true }));
+    return {
+      stepName: names[s.screen],
+      netTxt: s.online ? 'Online' : 'Offline', netBg: s.online ? '#E5F4EA' : '#2B2F36', netFg: s.online ? '#17733E' : '#fff', sigTxt: s.online ? '4G' : '— no signal',
+      toggleOnline: () => {
+        const goingOnline = !s.online;
+        this.setState({ online: goingOnline });
+        if (goingOnline && pending) {
+          this.setState(st => ({ sheets: st.sheets.map(x => x.st === 'sync' ? { ...x, st: 'syncing' } : x) }));
+          setTimeout(() => { this.setState(st => ({ sheets: st.sheets.map(x => x.st === 'syncing' ? { ...x, st: 'sent' } : x) })); this.toastMsg(pending + ' sheet berjaya dihantar ke pejabat'); }, 1400);
+        }
+      },
+      fillSample: () => this.setState(st => {
+        const form = st.screen === 'home' || st.screen === 'type' || !st.started ? st.form : st.form;
+        const fA = form === 'A', mats = { ...this.sheetFields().mats };
+        if (fA) Object.assign(mats, { 'Sample': 2, 'Liner': 1, 'Layer Pad': 16, 'Air Bag': 4 });
+        return { ...this.sheetFields(), form, started: true, header: fA ? { ...this.HDR_A } : { ...this.HDR_B }, items: this.sampleItems(fA), mats,
+          checks: { 'Sample': { on: !fA, note: fA ? '' : '2 CTN for QC' }, 'Empty CTN': { on: false, note: '' }, 'Others': { on: false, note: '' } },
+          remark: fA ? 'Container clean & dry. 2 layer pad/plt.' : 'PLT 8 mixed batch.', screen: 'items', recent: ['LAM SOON SHORTENING 16KG', 'LAM SOON MARGARINE 5KG'] };
+      }),
+      resetAll: () => this.setState({ screen: 'home', online: true, sheets: this.seedSheets(), seq: 148, recent: ['LAM SOON MARGARINE 5KG'], ...this.sheetFields() }),
+      scr, pg, showPg: step !== undefined, showBar: !!bars[s.screen], bar: { t: (bars[s.screen] || [])[0], s: (bars[s.screen] || [])[1] },
+      badgeA: !!bars[s.screen] && s.screen !== 'type' && isA, badgeB: !!bars[s.screen] && s.screen !== 'type' && isB,
+      back: () => set({ screen: backMap[s.screen] || 'home', errs: {} }), isA, isB,
+      // home
+      showNetBar: !s.online || pending > 0, netDot: s.online ? '#6F9CFF' : '#F0B04A',
+      netBarTxt: s.online ? pending + ' sheet menunggu sync' : 'Offline' + (pending ? ' · ' + pending + ' sheet menunggu sync' : ' · kerja tetap disimpan'),
+      hasDraft: s.started && (items.length > 0 || s.screen !== 'home') && s.screen === 'home',
+      draft: { type: isA ? 'CONTAINER' : 'LORI', c: isA ? '#0B6266' : '#5E3AA3', no: sheetNo, meta: [isA ? H.contract : H.do, H.date, totPlt + ' pallet'].filter(Boolean).join(' · ') },
+      resume: () => set({ screen: items.length ? 'items' : 'header' }),
+      sheets: s.sheets.map(x => ({ ...x, isB: !x.isA, status: chip[x.st][0], chipBg: chip[x.st][1], chipFg: chip[x.st][2] })),
+      newSheet,
+      // type
+      chooseA: () => this.setState(st => ({ form: 'A', header: st.form === 'A' ? st.header : { ...this.HDR_A } })),
+      chooseB: () => this.setState(st => ({ form: 'B', header: st.form === 'B' ? st.header : { ...this.HDR_B } })),
+      typeA: { bd: isA ? '2px solid #0F7C80' : '1.5px solid #D5D9DF', sh: isA ? '0 0 0 4px #E1F1F1' : 'none' },
+      typeB: { bd: isB ? '2px solid #7A4FC2' : '1.5px solid #D5D9DF', sh: isB ? '0 0 0 4px #EEE8F8' : 'none' },
+      typeNext: () => set({ screen: 'header' }), typeNextTxt: 'Seterusnya · ' + (isA ? 'Container' : 'Lori'),
+      // header
+      hdrFields, hasHdrErr: errCount > 0, hdrErrTxt: errCount + ' medan perlu dibetulkan',
+      transferChips: ['LAM SOON SHAH ALAM DC', 'LAM SOON PRAI DC', 'LAM SOON SENAI DC'].map(k => ({ k: k.replace('LAM SOON ', ''), on: () => this.setState(st => ({ header: { ...st.header, transfer: k }, errs: { ...st.errs, transfer: '' } })) })),
+      hdrNext: () => { const e = validate(); if (Object.keys(e).length) set({ errs: e }); else set({ errs: {}, screen: items.length ? 'items' : 'picker', pick: this.blankPick() }); },
+      // picker
+      pick: s.pick, onQ: e => { const v = e.target.value; this.setState(st => ({ pick: { ...st.pick, q: v } })); },
+      hasRecent: recentList.length > 0, recentList, prodList, prodHead: q ? 'SENARAI PRODUK · ' + prodList.length + ' PADANAN' : 'SEMUA PRODUK',
+      customSub: q ? '"' + s.pick.q + '" tiada dalam senarai? Guna nama ini.' : 'Taip nama item yang tiada dalam senarai',
+      onCustom: () => this.setState(st => ({ pick: { ...st.pick, name: st.pick.q.toUpperCase(), per: '' } })),
+      onPickName: e => { const v = e.target.value.toUpperCase(); this.setState(st => ({ pick: { ...st.pick, name: v } })); },
+      pickOp: s.pick.name.trim() ? 1 : 0.4, pickNext: () => { if (s.pick.name.trim()) set({ screen: 'setup' }); },
+      // setup
+      modeAuto: pk.mode === 'auto', modeManual: pk.mode !== 'auto',
+      seg: { aBg: pk.mode === 'auto' ? '#fff' : 'transparent', aFg: pk.mode === 'auto' ? '#15181D' : '#5B6270', mBg: pk.mode !== 'auto' ? '#fff' : 'transparent', mFg: pk.mode !== 'auto' ? '#15181D' : '#5B6270' },
+      setAuto: () => this.setState(st => ({ pick: { ...st.pick, mode: 'auto' } })), setManual: () => this.setState(st => ({ pick: { ...st.pick, mode: 'manual' } })),
+      onTotal: e => { const v = e.target.value.replace(/\D/g, ''); this.setState(st => ({ pick: { ...st.pick, total: v } })); },
+      onPer: e => { const v = e.target.value.replace(/\D/g, ''); this.setState(st => ({ pick: { ...st.pick, per: v } })); },
+      onN: e => { const v = e.target.value.replace(/\D/g, ''); this.setState(st => ({ pick: { ...st.pick, n: v } })); },
+      onPickC: e => { const v = e.target.value.toUpperCase(); this.setState(st => ({ pick: { ...st.pick, c: v } })); },
+      setupTypes: typeBtns(pk.t, k => this.setState(st => ({ pick: { ...st.pick, t: k } }))),
+      setupHead: qtys.length ? qtys.length + ' pallet akan dibuat' : 'Isi jumlah untuk lihat pallet',
+      setupRange: qtys.length ? 'Pallet ' + nextStart + (qtys.length > 1 ? '–' + (nextStart + qtys.length - 1) : '') : 'Bermula Pallet ' + nextStart,
+      setupPrev: qtys.slice(0, 12).map((qq, i) => ({ no: nextStart + i, q: qq === '' ? '—' : qq, t: isB ? pk.t : '', note: qq === '' ? 'Isi qty kemudian' : (qq < Pp ? 'Baki · tak penuh' : 'Penuh'), noteC: qq !== '' && qq < Pp ? '#B26A00' : '#5B6270' })),
+      setupHasSum: pk.mode === 'auto' && qtys.length > 0, setupSum: T + ' / ' + T + ' CTN ✓' + (qtys.length > 12 ? ' (' + (qtys.length - 12) + ' lagi)' : ''),
+      setupOp: qtys.length ? 1 : 0.4, setupBtn: qtys.length ? 'Buat ' + qtys.length + ' pallet' : 'Buat pallet',
+      setupGo: () => {
+        if (!qtys.length) return;
+        this.setState(st => {
+          const it = { name: st.pick.name.trim(), target: T || null, pallets: qtys.map(qq => ({ t: st.pick.t, c: st.pick.c, rm: '', lines: [{ q: String(qq), e: '', p: '', b: '' }] })) };
+          return { items: [...st.items, it], cur: st.items.length, screen: 'pallets', recent: [it.name, ...st.recent.filter(r => r !== it.name)].slice(0, 3) };
+        });
+      },
+      // pallets
+      palletCards, itemStat, noPallets: !!cur && cur.pallets.length === 0,
+      addPallet: () => this.updCur(it => { const last = it.pallets[it.pallets.length - 1]; it.pallets.push({ t: last ? last.t : s.pick.t, c: last ? last.c : s.pick.c, rm: '', lines: [this.blankLine()] }); }),
+      saveItem: () => { set({ screen: 'items' }); this.toastMsg('Item disimpan · ' + itemStat.txt); },
+      // items
+      totPlt, totCtn, itemRows, addItem: () => set({ screen: 'picker', pick: this.blankPick() }),
+      nextStartTxt: 'Item seterusnya bermula pada Pallet ' + nextStart,
+      itemsOp: items.length ? 1 : 0.4, itemsDone: () => { if (items.length) set({ screen: 'materials' }); },
+      // materials
+      matsA, checksB, pltRows, remark: s.remark, remarkLabel: isA ? 'Remarks' : 'Remark',
+      onRemark: e => set({ remark: e.target.value }),
+      pltTot: pltSum === totPlt ? { txt: pltSum + ' PLT ✓ sama dengan pallet', c: '#17733E' } : { txt: pltSum + ' PLT · pallet sebenar ' + totPlt, c: '#B26A00' },
+      toReview: () => set({ screen: 'review' }),
+      // review
+      warnings: shownW, noWarn: warnings.length === 0, rvHead, rvItems, rvMats,
+      editHeader: () => set({ screen: 'header' }), editMats: () => set({ screen: 'materials' }),
+      toSign: () => set({ screen: 'sign' }), toSignTxt: warnings.length ? 'Sign juga (' + warnings.length + ' amaran)' : 'Betul · Sign',
+      // sign
+      signTxt: 'Saya sahkan ' + totPlt + ' pallet, ' + totCtn + ' CTN telah dikira untuk ' + sheetNo + '.',
+      sigRef: this.sigRef, noInk: !s.hasInk, signOp: s.hasInk ? 1 : 0.4,
+      clearSig: () => { if (this._cv) { const c = this._cv.getContext('2d'); c.save(); c.setTransform(1, 0, 0, 1, 0, 0); c.clearRect(0, 0, this._cv.width, this._cv.height); c.restore(); } set({ hasInk: false, sig: null }); },
+      confirmSig: () => { if (!s.hasInk || !this._cv) return; set({ sig: this._cv.toDataURL('image/png'), screen: 'preview', zoom: 1, page: 1 }); this._cv = null; },
+      // preview
+      sheetData, page, multiPage: pages > 1, pageTxt: 'Muka ' + page + ' / ' + pages + ' →', flipPage: () => set({ page: page >= pages ? 1 : page + 1 }),
+      scale, pw: Math.round(794 * scale) + 'px', ph: Math.round(1123 * scale) + 'px', zoomTxt: s.zoom === 1 ? 'Cubit untuk zoom' : 'Zoom ' + Math.round(s.zoom * 100) + '%',
+      zoomIn: () => set({ zoom: Math.min(3, s.zoom + 0.5) }), zoomOut: () => set({ zoom: Math.max(1, s.zoom - 0.5) }),
+      previewSum: summary + ' · ditandatangani M. Hafiz',
+      submit: () => this.setState(st => ({
+        ...this.sheetFields(), screen: 'success', started: false, seq: st.seq + 1, lastRef: ref, lastOffline: !st.online,
+        lastSum: (isA ? 'Container ' : 'Lori ') + sheetNo + ' · ' + summary,
+        sheets: [{ isA, no: sheetNo, ref: isA ? H.contract : H.do, date: (H.date || '').slice(0, 5), plt: totPlt, ctn: totCtn, st: st.online ? 'sent' : 'sync' }, ...st.sheets]
+      })),
+      // success
+      lastRef: s.lastRef, lastSum: s.lastSum, lastOffline: s.lastOffline, lastOnline: !s.lastOffline,
+      goHome: () => set({ screen: 'home' }),
+      hasToast: !!s.toast, toast: s.toast
+    };
+  }
+}
+</script>
+</body>
+</html>

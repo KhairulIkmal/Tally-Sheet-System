@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet><link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700;800&family=Barlow+Condensed:wght@600;700;800&family=IBM+Plex+Mono:wght@500;600&family=Mrs+Saint+Delafield&display=swap" rel="stylesheet"><style>html,body{margin:0;background:#F3F4F1;font-family:Barlow,system-ui,sans-serif;font-variant-numeric:tabular-nums}a{color:#1E4FA3}a:hover{color:#163C7E}input::placeholder{color:#7A818C}#print-area{display:none}@media print{@page{size:A4 portrait;margin:0}body{background:#fff}[data-noprint]{display:none!important}#print-area{display:block!important}#print-area>div{break-after:page}}</style></helmet>
+<div data-noprint="1" style="height:100vh;min-width:1100px;display:flex;flex-direction:column;color:#15181D;font-family:Barlow,sans-serif">
+  <div style="height:60px;flex:none;background:#15181D;color:#fff;display:flex;align-items:center;gap:28px;padding:0 28px">
+    <span onClick="{{ toList }}" style="font:800 20px Barlow;cursor:pointer">Tally Sheet</span>
+    <span onClick="{{ toList }}" style="font:600 15px Barlow;height:60px;display:flex;align-items:center;border-bottom:3px solid #6F9CFF;box-sizing:border-box;cursor:pointer">Sheets</span>
+    <span style="font:500 15px Barlow;opacity:.55">Produk</span><span style="font:500 15px Barlow;opacity:.55">Pekerja</span>
+    <span style="flex:1"></span>
+    <a href="Tally Sheet Prototype.dc.html" style="font:600 14px Barlow;color:#9DBBFF">Buka app pekerja →</a>
+    <span style="font:500 14px Barlow;opacity:.8">Nurul Aina · Pejabat Pasir Gudang</span>
+  </div>
+
+  <sc-if value="{{ isList }}" hint-placeholder-val="{{ true }}">
+    <div style="padding:24px 28px 16px;display:flex;align-items:flex-end;gap:16px">
+      <div style="flex:1"><div style="font:800 28px Barlow">Submitted sheets</div><div style="font:500 15px Barlow;color:#5B6270">{{ subline }}</div></div>
+      <input value="{{ q }}" onChange="{{ onQ }}" placeholder="Cari Container, Lorry, Contract, D/O, pekerja…" style="height:44px;width:360px;box-sizing:border-box;border-radius:8px;background:#fff;border:1px solid #CFD4DA;padding:0 14px;font:500 15px Barlow,sans-serif;color:#15181D;outline:none" style-focus="border-color:#1E4FA3;box-shadow:0 0 0 3px #DCE5F5">
+    </div>
+    <div style="padding:0 28px 14px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+      <span style="font:600 13px Barlow;color:#5B6270">Tarikh</span>
+      <span style="height:38px;border-radius:8px;background:#fff;border:1px solid #CFD4DA;display:flex;overflow:hidden;font:600 14px Barlow">
+        <sc-for list="{{ dateOpts }}" as="o" hint-placeholder-count="3"><span onClick="{{ o.on }}" style="padding:0 14px;display:flex;align-items:center;cursor:pointer;background:{{ o.bg }};color:{{ o.fg }};border-left:{{ o.bl }}">{{ o.k }}</span></sc-for>
+      </span>
+      <span style="font:600 13px Barlow;color:#5B6270;margin-left:8px">Borang</span>
+      <span style="height:38px;border-radius:8px;background:#fff;border:1px solid #CFD4DA;display:flex;overflow:hidden;font:600 14px Barlow">
+        <sc-for list="{{ typeOpts }}" as="o" hint-placeholder-count="3"><span onClick="{{ o.on }}" style="padding:0 14px;display:flex;align-items:center;cursor:pointer;background:{{ o.bg }};color:{{ o.fg }};border-left:{{ o.bl }}">{{ o.k }}</span></sc-for>
+      </span>
+      <span style="font:600 13px Barlow;color:#5B6270;margin-left:8px">Status</span>
+      <span style="height:38px;border-radius:8px;background:#fff;border:1px solid #CFD4DA;display:flex;overflow:hidden;font:600 14px Barlow">
+        <sc-for list="{{ statusOpts }}" as="o" hint-placeholder-count="4"><span onClick="{{ o.on }}" style="padding:0 14px;display:flex;align-items:center;cursor:pointer;background:{{ o.bg }};color:{{ o.fg }};border-left:{{ o.bl }}">{{ o.k }}</span></sc-for>
+      </span>
+      <sc-if value="{{ hasFilter }}"><span onClick="{{ clearFilters }}" style="font:700 14px Barlow;color:#1E4FA3;cursor:pointer;padding:8px">Kosongkan</span></sc-if>
+      <span style="flex:1"></span><span style="font:500 14px Barlow;color:#5B6270">{{ countTxt }}</span>
+    </div>
+    <div style="margin:0 28px 20px;background:#fff;border:1px solid #E2E5E9;border-radius:10px;overflow:hidden;flex:1;min-height:0;display:flex;flex-direction:column">
+      <div style="display:grid;grid-template-columns:6px 120px 130px minmax(150px,1fr) minmax(140px,1fr) 80px 100px minmax(170px,1fr) 190px;height:44px;flex:none;align-items:center;background:#F7F8F6;border-bottom:1px solid #E2E5E9;font:700 12px Barlow;letter-spacing:.06em;color:#5B6270">
+        <span></span>
+        <span onClick="{{ sortDate }}" style="padding-left:14px;cursor:pointer">DATE {{ sortArrow }}</span><span>FORM</span><span>CONTAINER / LORRY</span><span>CONTRACT / D/O</span><span style="text-align:right">PALLETS</span><span style="text-align:right">TOTAL CTN</span><span style="padding-left:28px">PREPARED BY</span><span>STATUS</span>
+      </div>
+      <div style="flex:1;min-height:0;overflow-y:auto">
+        <sc-for list="{{ rows }}" as="r" hint-placeholder-count="10">
+          <div onClick="{{ r.open }}" style="display:grid;grid-template-columns:6px 120px 130px minmax(150px,1fr) minmax(140px,1fr) 80px 100px minmax(170px,1fr) 190px;height:50px;align-items:center;border-bottom:1px solid #EEF0F2;font:500 15px Barlow;background:{{ r.bg }};cursor:pointer" style-hover="background:#EEF3FB">
+            <span style="height:100%;background:{{ r.bar }}"></span>
+            <span style="padding-left:14px;color:#3A3F47">{{ r.when }}</span>
+            <span><sc-if value="{{ r.isA }}"><span style="display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 8px;border-radius:6px;background:#E1F1F1;color:#0B6266;font:700 12px Barlow;letter-spacing:.05em"><span style="width:8px;height:8px;background:#0F7C80;border-radius:1px"></span>CONTAINER</span></sc-if><sc-if value="{{ r.isB }}"><span style="display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 8px;border-radius:6px;background:#EEE8F8;color:#5E3AA3;font:700 12px Barlow;letter-spacing:.05em"><span style="width:8px;height:8px;background:#7A4FC2;border-radius:4px"></span>LORI</span></sc-if></span>
+            <span style="font-weight:{{ r.fw }}">{{ r.no }}</span>
+            <span style="color:#3A3F47">{{ r.ref }}</span>
+            <span style="text-align:right;font-weight:600">{{ r.plt }}</span>
+            <span style="text-align:right;font-weight:600">{{ r.ctn }}</span>
+            <span style="padding-left:28px">{{ r.by }}</span>
+            <span style="display:flex;gap:8px;align-items:center"><span style="height:24px;padding:0 10px;border-radius:12px;font:700 12px Barlow;display:flex;align-items:center;background:{{ r.chipBg }};color:{{ r.chipFg }}">{{ r.status }}</span><span style="font:700 11px Barlow;color:#1E4FA3;letter-spacing:.06em">{{ r.newTag }}</span></span>
+          </div>
+        </sc-for>
+        <sc-if value="{{ noRows }}" hint-placeholder-val="{{ false }}"><div style="padding:60px 20px;text-align:center;display:flex;flex-direction:column;gap:6px;align-items:center"><div style="font:700 18px Barlow">Tiada sheet sepadan</div><div style="font:500 15px Barlow;color:#5B6270">Cuba tukar carian atau penapis.</div><span onClick="{{ clearFilters }}" style="font:700 15px Barlow;color:#1E4FA3;cursor:pointer;padding:8px">Kosongkan penapis</span></div></sc-if>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ isDetail }}" hint-placeholder-val="{{ false }}">
+    <div style="flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) 440px">
+      <div style="background:#5B6270;position:relative;display:flex;flex-direction:column;min-height:0">
+        <div style="flex:none;height:52px;display:flex;align-items:center;gap:8px;padding:0 16px;background:#4A5059;color:#fff">
+          <span onClick="{{ toList }}" style="height:36px;padding:0 12px;border-radius:8px;background:rgba(255,255,255,.12);font:600 14px Barlow;display:flex;align-items:center;cursor:pointer">← Senarai</span>
+          <span onClick="{{ prevSheet }}" style="height:36px;width:36px;border-radius:8px;background:rgba(255,255,255,.12);font:600 16px Barlow;display:flex;align-items:center;justify-content:center;cursor:pointer;opacity:{{ prevOp }}">‹</span>
+          <span onClick="{{ nextSheet }}" style="height:36px;width:36px;border-radius:8px;background:rgba(255,255,255,.12);font:600 16px Barlow;display:flex;align-items:center;justify-content:center;cursor:pointer;opacity:{{ nextOp }}">›</span>
+          <span style="font:500 14px Barlow;opacity:.8">{{ posTxt }}</span>
+          <span style="flex:1"></span>
+          <sc-for list="{{ pageBtns }}" as="p"><span onClick="{{ p.on }}" style="height:36px;padding:0 12px;border-radius:8px;font:600 14px Barlow;display:flex;align-items:center;cursor:pointer;background:{{ p.bg }};color:{{ p.fg }}">{{ p.k }}</span></sc-for>
+          <span onClick="{{ zoomOut }}" style="height:36px;width:36px;border-radius:8px;background:rgba(255,255,255,.12);font:600 20px Barlow;display:flex;align-items:center;justify-content:center;cursor:pointer">−</span>
+          <span style="font:600 14px Barlow;width:48px;text-align:center">{{ zoomTxt }}</span>
+          <span onClick="{{ zoomIn }}" style="height:36px;width:36px;border-radius:8px;background:rgba(255,255,255,.12);font:600 20px Barlow;display:flex;align-items:center;justify-content:center;cursor:pointer">+</span>
+        </div>
+        <div style="flex:1;min-height:0;overflow:auto">
+          <div style="width:{{ pw }};height:{{ ph }};position:relative;margin:24px auto">
+            <div style="position:absolute;left:0;top:0;width:794px;height:1123px;transform:scale({{ scale }});transform-origin:0 0;box-shadow:0 8px 30px rgba(0,0,0,.35)"><dc-import name="PaperSheet" data="{{ sheetData }}" page="{{ page }}" hint-size="794px,1123px"></dc-import></div>
+          </div>
+        </div>
+      </div>
+      <div style="background:#fff;border-left:1px solid #E2E5E9;display:flex;flex-direction:column;min-height:0;overflow-y:auto">
+        <div style="padding:24px;border-bottom:1px solid #E2E5E9;display:flex;flex-direction:column;gap:10px">
+          <div style="display:flex;gap:8px;align-items:center">
+            <sc-if value="{{ sel.isA }}"><span style="display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 8px;border-radius:6px;background:#E1F1F1;color:#0B6266;font:700 12px Barlow;letter-spacing:.05em"><span style="width:8px;height:8px;background:#0F7C80;border-radius:1px"></span>CONTAINER</span></sc-if>
+            <sc-if value="{{ sel.isB }}"><span style="display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 8px;border-radius:6px;background:#EEE8F8;color:#5E3AA3;font:700 12px Barlow;letter-spacing:.05em"><span style="width:8px;height:8px;background:#7A4FC2;border-radius:4px"></span>LORI</span></sc-if>
+            <span style="height:24px;padding:0 10px;border-radius:12px;font:700 12px Barlow;display:flex;align-items:center;background:{{ sel.chipBg }};color:{{ sel.chipFg }}">{{ sel.status }}</span>
+          </div>
+          <div style="font:800 28px Barlow">{{ sel.no }}</div>
+          <div style="font:600 15px 'IBM Plex Mono',monospace;color:#5B6270">{{ sel.id }}</div>
+          <div style="display:grid;grid-template-columns:1fr 1.3fr;gap:10px;margin-top:6px">
+            <div onClick="{{ togglePrinted }}" style="height:48px;border-radius:10px;border:{{ markBd }};background:{{ markBg }};color:{{ markFg }};font:700 15px Barlow;display:flex;align-items:center;justify-content:center;cursor:pointer">{{ markTxt }}</div>
+            <div onClick="{{ doPrint }}" style="height:48px;border-radius:10px;background:#1E4FA3;color:#fff;font:700 16px Barlow;display:flex;align-items:center;justify-content:center;cursor:pointer">{{ printTxt }}</div>
+          </div>
+          <sc-if value="{{ showPrintedHint }}" hint-placeholder-val="{{ false }}"><div style="background:#FFF1D6;border:1px solid #F0C877;border-radius:10px;padding:10px 12px;font:600 14px Barlow;color:#6B4000;display:flex;gap:10px;align-items:center"><span style="flex:1">Sudah cetak? Tandakan supaya staf lain tahu.</span><span onClick="{{ togglePrinted }}" style="font:700 14px Barlow;color:#1E4FA3;cursor:pointer">Mark as printed</span></div></sc-if>
+          <sc-if value="{{ sel.isSync }}" hint-placeholder-val="{{ false }}"><div style="background:#FFF1D6;border:1px solid #F0C877;border-radius:10px;padding:10px 12px;font:600 14px Barlow;color:#6B4000">Disimpan di telefon pekerja, belum sync sepenuhnya. Data mungkin dikemas kini.</div></sc-if>
+        </div>
+        <div style="padding:18px 24px;border-bottom:1px solid #E2E5E9;display:grid;grid-template-columns:120px 1fr;gap:8px 12px;font:500 15px Barlow">
+          <sc-for list="{{ meta }}" as="m" hint-placeholder-count="5"><span style="color:#5B6270">{{ m.k }}</span><span>{{ m.v }}</span></sc-for>
+        </div>
+        <div style="padding:18px 24px;display:flex;flex-direction:column;gap:10px">
+          <div style="display:flex;justify-content:space-between;font:700 12px Barlow;letter-spacing:.06em;color:#5B6270"><span>ITEMS</span><span>{{ totTxt }}</span></div>
+          <sc-for list="{{ itemSum }}" as="it" hint-placeholder-count="2">
+            <div style="border:1px solid #E2E5E9;border-radius:10px;padding:12px 14px;display:flex;flex-direction:column;gap:4px">
+              <div style="display:flex;justify-content:space-between;gap:10px"><span style="font:700 16px Barlow">{{ it.n }}</span><span style="font:800 16px Barlow;white-space:nowrap">{{ it.ctn }}</span></div>
+              <div style="font:500 14px Barlow;color:#5B6270">{{ it.d }}</div>
+              <sc-if value="{{ it.hasMix }}"><div style="font:600 13px Barlow;color:#1E4FA3">{{ it.mix }}</div></sc-if>
+            </div>
+          </sc-for>
+          <div style="font:700 12px Barlow;letter-spacing:.06em;color:#5B6270;margin-top:6px">BAHAN</div>
+          <div style="font:500 15px Barlow">{{ matsTxt }}</div>
+          <div style="font:700 12px Barlow;letter-spacing:.06em;color:#5B6270;margin-top:6px">AKTIVITI</div>
+          <sc-for list="{{ log }}" as="l" hint-placeholder-count="3"><div style="display:grid;grid-template-columns:96px 1fr;font:500 14px Barlow"><span style="color:#7A818C">{{ l.t }}</span><span>{{ l.s }}</span></div></sc-for>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ hasToast }}" hint-placeholder-val="{{ false }}"><div style="position:fixed;right:28px;bottom:28px;background:#15181D;color:#fff;border-radius:12px;padding:14px 18px;font:600 15px Barlow;box-shadow:0 8px 24px rgba(0,0,0,.3);display:flex;gap:14px;align-items:center"><span>{{ toast }}</span><sc-if value="{{ toastHasAction }}"><span onClick="{{ toastAction }}" style="color:#9DBBFF;font-weight:700;cursor:pointer">Lihat</span></sc-if></div></sc-if>
+</div>
+<div id="print-area">
+  <sc-for list="{{ printPages }}" as="pp" hint-placeholder-count="0"><div><dc-import name="PaperSheet" data="{{ pp.data }}" page="{{ pp.page }}" hint-size="794px,1123px"></dc-import></div></sc-for>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  PROD = [['LAM SOON MARGARINE 5KG', 32], ['LAM SOON SHORTENING 16KG', 40], ['LAM SOON PALM OLEIN 17KG', 48], ['LAM SOON SHORTENING 2KG', 60], ['LAM SOON CANOLA OIL 5L', 40], ['LAM SOON GHEE 2KG', 72], ['LAM SOON BAKERY SHORTENING 20KG', 36]];
+  MATS = ['SAMPLE', 'EMPTY CTN', 'PE BAG', 'WOODEN FRAME', 'PLYWOOD', 'LINER', 'LAYER PAD', 'AIR BAG', 'POLYFOAM'];
+  rnd(seed) { let x = seed * 9301 + 49297; return () => { x = (x * 9301 + 49297) % 233280; return x / 233280; }; }
+  gen(seed, isA, nPlt) {
+    const r = this.rnd(seed), pallets = [], c = 'LS-DOM-' + (3300 + seed);
+    let left = nPlt, pi = Math.floor(r() * this.PROD.length);
+    while (left > 0) {
+      const [name, per] = this.PROD[pi % this.PROD.length]; pi += 1 + Math.floor(r() * 2);
+      const n = Math.min(left, 2 + Math.floor(r() * 10)); left -= n;
+      const d = String(1 + Math.floor(r() * 27)).padStart(2, '0'), m = String(1 + Math.floor(r() * 12)).padStart(2, '0');
+      const b = 'B24' + m + d + 'ABC'[Math.floor(r() * 3)], t = r() > 0.6 ? 'C' : 'L';
+      for (let i = 0; i < n; i++) {
+        const q = i === n - 1 && r() > 0.5 ? Math.max(4, Math.floor(per * r())) : per;
+        pallets.push({ item: name, t, c, rm: q < per ? 'LOOSE' : '', lines: [{ q, e: d + '/' + m + '/27', p: d + '/' + m + '/25', b }] });
+      }
+    }
+    return pallets;
+  }
+  sample(isA) {
+    const c = 'LS-DOM-3318', P = [];
+    [32, 32, 32, 32, 22].forEach(q => P.push({ item: 'LAM SOON MARGARINE 5KG', t: 'L', c, rm: q < 32 ? 'LOOSE' : '', lines: [{ q, b: 'B240915A', e: '16/04/27', p: '16/04/25' }] }));
+    const s = { b: 'B240920C', e: '20/09/26', p: '20/09/25' };
+    P.push({ item: 'LAM SOON SHORTENING 16KG', t: 'C', c, rm: '', lines: [{ ...s, q: 40 }] });
+    P.push({ item: 'LAM SOON SHORTENING 16KG', t: 'C', c, rm: '', lines: [{ ...s, q: 40 }] });
+    P.push({ item: 'LAM SOON SHORTENING 16KG', t: 'C', c, rm: 'MIXED', lines: [{ ...s, q: 12 }, { b: 'B241002A', e: '02/10/26', p: '02/10/25', q: 8 }] });
+    return P;
+  }
+  seed() {
+    const W = ['Mohd Hafiz Rahman', 'Siti Rohana', 'Ravi Kumar', 'Ahmad Faizal', 'Lim Wei Jie'];
+    const defs = [
+      ['14/10', '16:00', 0, true, 'TGHU 1234567', 'LS-EXP-2410', 0, 'sub', true, 'sample'],
+      ['14/10', '15:20', 0, false, 'WXY 4521', 'DO-778120', 0, 'sub', true, 'sample'],
+      ['14/10', '13:05', 0, true, 'MSKU 7730214', 'LS-EXP-2407', 20, 'sub', true],
+      ['14/10', '11:40', 0, false, 'BKT 8812', 'DO-778101', 12, 'sync', false],
+      ['14/10', '09:12', 0, true, 'CMAU 4410982', 'LS-EXP-2405', 31, 'printed', false],
+      ['13/10', '17:30', 1, false, 'WTP 3390', 'DO-778095', 6, 'printed', false],
+      ['13/10', '15:02', 1, false, 'JRS 6621', 'DO-778090', 10, 'printed', false],
+      ['13/10', '10:44', 1, true, 'TCNU 2087731', 'LS-EXP-2398', 22, 'printed', false],
+      ['12/10', '16:18', 2, false, 'WXY 4521', 'DO-778071', 9, 'printed', false],
+      ['12/10', '11:55', 2, true, 'TGHU 9921430', 'LS-EXP-2391', 18, 'printed', false],
+      ['11/10', '14:30', 3, false, 'BKT 8812', 'DO-778060', 14, 'printed', false],
+      ['11/10', '09:05', 3, true, 'MSKU 5502178', 'LS-EXP-2388', 20, 'printed', false],
+      ['09/10', '15:40', 5, true, 'TCLU 6633018', 'LS-EXP-2380', 24, 'printed', false],
+      ['08/10', '10:20', 6, false, 'JRS 6621', 'DO-778031', 8, 'printed', false],
+      ['02/10', '14:10', 12, true, 'CMAU 1190245', 'LS-EXP-2361', 16, 'printed', false]
+    ];
+    return defs.map((d, i) => { const a = d.slice(0, 9); return this.mk(i, ...a, d[9] || null, W[i % W.length]); });
+  }
+  mk(i, date, time, age, isA, no, ref, nPlt, st, fresh, kind, by) {
+    const pallets = kind === 'sample' ? this.sample(isA) : this.gen(i + 7, isA, nPlt);
+    return { key: 'k' + i, id: 'TS-2610-0' + (147 - i), date, time, age, isA, no, ref, pallets, st, fresh, by: kind === 'sample' ? 'Mohd Hafiz Rahman' : by,
+      device: ['Samsung Galaxy Tab A8 · WH-TAB-03', 'Redmi Note 12 · WH-PH-07', 'Samsung Galaxy A15 · WH-PH-02'][i % 3], printedAt: st === 'printed' ? date + ' ' + time.replace(/^(\d+)/, h => String(Math.min(23, +h + 1)).padStart(2, '0')) : '' };
+  }
+  state = { view: 'list', sel: null, q: '', range: '7', type: 'all', status: 'all', asc: false, zoom: 0.8, page: 1, sheets: this.seed(), justPrinted: false, toast: '', toastKey: null };
+  componentDidMount() {
+    this._arr = setTimeout(() => {
+      const n = this.mk(99, '14/10', '16:24', 0, false, 'WMK 2218', 'DO-778124', 11, 'sub', true, null, 'Lim Wei Jie');
+      n.id = 'TS-2610-0149';
+      this.setState(s => ({ sheets: [n, ...s.sheets] }));
+      this.toastMsg('1 sheet baru diterima · Lori WMK 2218', n.key);
+    }, 9000);
+  }
+  componentWillUnmount() { clearTimeout(this._arr); clearTimeout(this._tt); }
+  toastMsg(t, key) { this.setState({ toast: t, toastKey: key || null }); clearTimeout(this._tt); this._tt = setTimeout(() => this.setState({ toast: '' }), 4500); }
+  sum(p) { return p.lines.reduce((a, l) => a + (Number(l.q) || 0), 0); }
+  data(sh) {
+    if (!sh.by) sh.by = 'Siti Rohana';
+    const plt = { L: 0, E: 0, C: 0, O: 0 }; sh.pallets.forEach(p => plt[p.t]++);
+    const r = this.rnd(sh.key.length + sh.pallets.length);
+    return {
+      form: sh.isA ? 'A' : 'B', ref: sh.id,
+      header: sh.isA ? { contract: sh.ref, container: sh.no, seal: 'ML-' + (889012 - sh.pallets.length * 13), si: 'SI-' + (55821 - sh.pallets.length), disport: 'PORT KLANG', date: sh.date + '/26' } : { transfer: 'LAM SOON SHAH ALAM DC', do: sh.ref, lorry: sh.no, date: sh.date + '/26' },
+      pallets: sh.pallets,
+      mats: this.MATS.map(k => ({ k, v: { 'SAMPLE': 2, 'LINER': sh.isA ? 1 : 0, 'LAYER PAD': sh.isA ? sh.pallets.length * 2 : 0, 'AIR BAG': sh.isA ? 4 : 0 }[k] || 0 })),
+      checks: [{ k: 'SAMPLE', x: '✓', note: '2 CTN FOR QC' }, { k: 'EMPTY CTN', x: '', note: '' }, { k: 'OTHERS', x: '', note: '' }],
+      plt: [['L', 'L - (LAM SOON)'], ['E', 'E - (ECR)'], ['C', 'C - (LOSCAM)'], ['O', 'O - (OTHERS)']].map(([k, l]) => ({ k: l, v: plt[k] })),
+      remark: sh.pallets.some(p => p.lines.length > 1) ? 'PLT ' + (sh.pallets.findIndex(p => p.lines.length > 1) + 1) + ' MIXED BATCH.' : '',
+      sigImg: '', signedBy: sh.by.toUpperCase() + ' · ' + sh.date + '/26 ' + sh.time, sigName: sh.by.split(' ').slice(-1)[0] === 'Rahman' ? 'M. Hafiz' : sh.by.split(' ')[0] + ' ' + (sh.by.split(' ')[1] || '').charAt(0) + '.'
+    };
+  }
+  renderVals() {
+    const s = this.state, set = p => this.setState(p);
+    s.sheets.forEach((x, i) => { if (!x.by) x.by = ['Mohd Hafiz Rahman', 'Siti Rohana', 'Ravi Kumar', 'Ahmad Faizal', 'Lim Wei Jie'][i % 5]; });
+    const CH = { sub: ['Submitted', '#E5F4EA', '#17733E'], printed: ['Printed', '#ECEEF1', '#3A3F47'], sync: ['Menunggu sync', '#FFF1D6', '#8A5200'] };
+    const q = s.q.trim().toLowerCase();
+    let list = s.sheets.filter(x =>
+      (s.range === 'all' || (s.range === 'today' ? x.age === 0 : x.age <= 7)) &&
+      (s.type === 'all' || (s.type === 'A') === x.isA) &&
+      (s.status === 'all' || x.st === s.status) &&
+      (!q || [x.no, x.ref, x.by, x.id].join(' ').toLowerCase().includes(q)));
+    if (s.asc) list = list.slice().reverse();
+    const open = x => () => this.setState(st => ({ view: 'detail', sel: x.key, page: 1, justPrinted: false, sheets: st.sheets.map(y => y.key === x.key ? { ...y, fresh: false } : y) }));
+    const rows = list.map(x => { const ctn = x.pallets.reduce((a, p) => a + this.sum(p), 0); return {
+      ...x, isB: !x.isA, when: x.date + ' ' + x.time, plt: x.pallets.length, ctn, status: CH[x.st][0], chipBg: CH[x.st][1], chipFg: CH[x.st][2],
+      bg: x.fresh ? '#F5F8FE' : '#fff', bar: x.fresh ? '#1E4FA3' : 'transparent', fw: x.fresh ? 700 : 500, newTag: x.fresh ? 'BARU' : '', open: open(x) }; });
+    const seg = (opts, curV, key) => opts.map(([v, k], i) => ({ k, bg: curV === v ? '#15181D' : '#fff', fg: curV === v ? '#fff' : '#15181D', bl: i ? '1px solid #CFD4DA' : 'none', on: () => set({ [key]: v }) }));
+    const freshN = s.sheets.filter(x => x.fresh).length, syncN = s.sheets.filter(x => x.st === 'sync').length;
+
+    const idx = list.findIndex(x => x.key === s.sel);
+    const sh = s.sheets.find(x => x.key === s.sel) || s.sheets[0];
+    const d = this.data(sh), pages = Math.max(1, Math.ceil(sh.pallets.length / 25)), page = Math.min(s.page, pages);
+    const items = []; sh.pallets.forEach((p, i) => { let it = items[items.length - 1]; if (!it || it.n !== p.item) { it = { n: p.item, from: i + 1, to: i + 1, ctn: 0, batches: new Set(), mix: [] }; items.push(it); } it.to = i + 1; it.ctn += this.sum(p); p.lines.forEach(l => it.batches.add(l.b)); if (p.lines.length > 1) it.mix.push('Pallet ' + (i + 1) + ' campur: ' + p.lines.map(l => l.b + ' ' + l.q).join(' + ')); });
+    const totCtn = sh.pallets.reduce((a, p) => a + this.sum(p), 0);
+    const printed = sh.st === 'printed';
+    const togglePrinted = () => { const to = printed ? 'sub' : 'printed'; this.setState(st => ({ justPrinted: false, sheets: st.sheets.map(y => y.key === sh.key ? { ...y, st: to, printedAt: to === 'printed' ? '14/10 16:30' : '' } : y) })); this.toastMsg(to === 'printed' ? sh.no + ' ditanda sebagai printed' : 'Status dikembalikan ke Submitted'); };
+    const log = [{ t: sh.date + ' ' + sh.time, s: 'Dihantar oleh ' + sh.by }, { t: sh.date + ' ' + sh.time, s: 'Ditandatangani · Count & Prepared By' }];
+    if (sh.st === 'sync') log.unshift({ t: '—', s: 'Menunggu sync dari peranti' });
+    if (printed) log.unshift({ t: sh.printedAt, s: 'Ditanda printed oleh Nurul Aina' });
+    const scale = s.zoom;
+    const matsTxt = d.form === 'A' ? d.mats.filter(m => m.v).map(m => m.k[0] + m.k.slice(1).toLowerCase() + ' ' + m.v).join(' · ') : 'Sample ✓ (2 CTN for QC) · PLT ' + d.plt.filter(p => p.v).map(p => p.k[0] + ' ' + p.v).join(' · ');
+
+    return {
+      isList: s.view === 'list', isDetail: s.view === 'detail', toList: () => set({ view: 'list' }),
+      subline: freshN + ' baru sejak anda terakhir buka' + (syncN ? ' · ' + syncN + ' menunggu sync dari telefon' : ''),
+      q: s.q, onQ: e => set({ q: e.target.value }),
+      dateOpts: seg([['today', 'Hari ini'], ['7', '7 hari'], ['all', 'Semua']], s.range, 'range'),
+      typeOpts: seg([['all', 'Semua'], ['A', 'Container'], ['B', 'Lori']], s.type, 'type'),
+      statusOpts: seg([['all', 'Semua'], ['sub', 'Submitted'], ['printed', 'Printed'], ['sync', 'Sync']], s.status, 'status'),
+      hasFilter: !!q || s.range !== '7' || s.type !== 'all' || s.status !== 'all',
+      clearFilters: () => set({ q: '', range: '7', type: 'all', status: 'all' }),
+      countTxt: rows.length + ' sheet', rows, noRows: rows.length === 0,
+      sortDate: () => set({ asc: !s.asc }), sortArrow: s.asc ? '↑' : '↓',
+      // detail
+      sel: { ...sh, isB: !sh.isA, isSync: sh.st === 'sync', status: CH[sh.st][0], chipBg: CH[sh.st][1], chipFg: CH[sh.st][2] },
+      sheetData: d, page, scale, pw: Math.round(794 * scale) + 'px', ph: Math.round(1123 * scale) + 'px', zoomTxt: Math.round(scale * 100) + '%',
+      zoomIn: () => set({ zoom: Math.min(1.6, +(s.zoom + 0.1).toFixed(2)) }), zoomOut: () => set({ zoom: Math.max(0.5, +(s.zoom - 0.1).toFixed(2)) }),
+      pageBtns: pages > 1 ? Array.from({ length: pages }, (_, i) => ({ k: 'Muka ' + (i + 1), bg: page === i + 1 ? '#fff' : 'rgba(255,255,255,.12)', fg: page === i + 1 ? '#15181D' : '#fff', on: () => set({ page: i + 1 }) })) : [],
+      posTxt: idx >= 0 ? (idx + 1) + ' / ' + list.length : '',
+      prevOp: idx > 0 ? 1 : 0.35, nextOp: idx >= 0 && idx < list.length - 1 ? 1 : 0.35,
+      prevSheet: () => { if (idx > 0) open(list[idx - 1])(); }, nextSheet: () => { if (idx >= 0 && idx < list.length - 1) open(list[idx + 1])(); },
+      markTxt: printed ? '✓ Printed' : 'Mark as printed', markBg: printed ? '#ECEEF1' : '#fff', markFg: printed ? '#3A3F47' : '#15181D', markBd: printed ? '1.5px solid #ECEEF1' : '1.5px solid #CFD4DA',
+      togglePrinted, showPrintedHint: s.justPrinted && !printed,
+      printTxt: pages > 1 ? 'Print (A4 · ' + pages + ' muka)' : 'Print (A4)',
+      doPrint: () => { set({ justPrinted: true }); setTimeout(() => window.print(), 150); },
+      printPages: s.view === 'detail' ? Array.from({ length: pages }, (_, i) => ({ data: d, page: i + 1 })) : [],
+      meta: [
+        { k: 'Submitted', v: sh.date + '/26 · ' + sh.time + (sh.st === 'sync' ? ' (belum sync)' : '') },
+        { k: 'Worker', v: sh.by }, { k: 'Device', v: sh.device },
+        ...(sh.isA ? [{ k: 'Contract / SI', v: d.header.contract + ' · ' + d.header.si }, { k: 'Seal / Disport', v: d.header.seal + ' · Port Klang' }]
+                   : [{ k: 'D/O No', v: d.header.do }, { k: 'Transfer To', v: 'Lam Soon Shah Alam DC' }])
+      ],
+      totTxt: sh.pallets.length + ' PLT · ' + totCtn + ' CTN',
+      itemSum: items.map(it => ({ n: it.n, ctn: it.ctn + ' CTN', d: 'Pallet ' + it.from + (it.to > it.from ? '–' + it.to : '') + ' · ' + [...it.batches].join(', '), hasMix: it.mix.length > 0, mix: it.mix.join(' · ') })),
+      matsTxt, log,
+      hasToast: !!s.toast, toast: s.toast, toastHasAction: !!s.toastKey,
+      toastAction: () => { const x = s.sheets.find(y => y.key === s.toastKey); if (x) open(x)(); set({ toast: '' }); }
+    };
+  }
+}
+</script>
+</body>
+</html>

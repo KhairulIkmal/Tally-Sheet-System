@@ -1,0 +1,156 @@
+"use client";
+
+import { Check, Minus, Plus } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { CHECKS, MATERIALS, PLT_TYPE_NAMES, PLT_TYPES, materialLabel, type CheckKey, type MaterialKey, type PltType } from "@/lib/tally/constants";
+import { autoPltCounts, pltCounts, totals, type Draft } from "@/lib/tally/draft";
+import { BottomBar, Button, Scroll, TextField } from "../ui";
+
+
+function Stepper({ value, onDec, onInc, label }: { value: number; onDec: () => void; onInc: () => void; label: string }) {
+  return (
+    <>
+      <button
+        type="button"
+        aria-label={`Less ${label}`}
+        onClick={onDec}
+        disabled={value === 0}
+        className="grid h-12 w-[52px] place-items-center rounded-[10px] border-[1.5px] border-field bg-surface disabled:opacity-40"
+      >
+        <Minus className="size-6" />
+      </button>
+      <span className={cn("w-14 text-center text-2xl font-extrabold", value ? "text-ink" : "text-placeholder")} aria-live="polite">
+        {value}
+      </span>
+      <button type="button" aria-label={`More ${label}`} onClick={onInc} className="grid h-12 w-[52px] place-items-center rounded-[10px] bg-primary text-white dark:text-[#0e1115]">
+        <Plus className="size-6" />
+      </button>
+    </>
+  );
+}
+
+export function MaterialsScreen({
+  draft,
+  onMaterial,
+  onCheck,
+  onPltAdjust,
+  onRemark,
+  onNext,
+}: {
+  draft: Draft;
+  onMaterial: (k: MaterialKey, delta: number) => void;
+  onCheck: (k: CheckKey, patch: Partial<{ on: boolean; note: string }>) => void;
+  onPltAdjust: (k: PltType, delta: number) => void;
+  onRemark: (v: string) => void;
+  onNext: () => void;
+}) {
+  const isContainer = draft.form === "container";
+  const counts = pltCounts(draft);
+  const auto = autoPltCounts(draft.items);
+  const pltSum = Object.values(counts).reduce((a, b) => a + b, 0);
+  const pallets = totals(draft.items).pallets;
+
+  return (
+    <>
+      <Scroll className="gap-2.5 px-4 pt-2.5 pb-4">
+        {isContainer ? (
+          <div className="flex flex-col">
+            {MATERIALS.map((k) => (
+              <div key={k} className="flex h-[60px] items-center gap-2 border-b border-line">
+                <span className="flex-1 text-[17px] font-bold">{materialLabel(k)}</span>
+                <Stepper value={draft.materials[k] ?? 0} label={materialLabel(k)} onDec={() => onMaterial(k, -1)} onInc={() => onMaterial(k, 1)} />
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="rounded-[14px] border border-line bg-surface px-3 py-1">
+            {CHECKS.map((k) => {
+              const c = draft.checks[k];
+              return (
+                <div key={k} className="flex min-h-[60px] items-center gap-3 border-b border-line-soft last:border-b-0">
+                  <button
+                    type="button"
+                    role="checkbox"
+                    aria-checked={c.on}
+                    aria-label={materialLabel(k)}
+                    onClick={() => onCheck(k, { on: !c.on })}
+                    className={cn(
+                      "grid size-10 flex-none place-items-center rounded-lg",
+                      c.on ? "bg-primary text-white dark:text-[#0e1115]" : "border-2 border-placeholder bg-surface",
+                    )}
+                  >
+                    {c.on ? <Check className="size-6" strokeWidth={3} /> : null}
+                  </button>
+                  <span className="w-[92px] text-[17px] font-bold" onClick={() => onCheck(k, { on: !c.on })}>
+                    {materialLabel(k)}
+                  </span>
+                  <input
+                    value={c.note}
+                    placeholder="Note"
+                    aria-label={`${materialLabel(k)} note`}
+                    onChange={(e) => onCheck(k, { note: e.target.value.slice(0, 60), ...(e.target.value ? { on: true } : {}) })}
+                    className="h-11 min-w-0 flex-1 rounded-lg border-[1.5px] border-line bg-canvas px-2.5 text-[15px] font-semibold text-ink outline-none focus:border-primary focus:bg-surface"
+                  />
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        <label className="mt-1 flex flex-col gap-1.5">
+          <span className="text-sm font-bold text-body">{isContainer ? "Remarks" : "Remark"}</span>
+          <TextField value={draft.remark} onChange={(e) => onRemark(e.target.value.slice(0, 300))} placeholder="Optional" className="h-[52px] text-base" />
+        </label>
+
+        {!isContainer ? (
+          <>
+            <div className="mt-1.5 flex items-baseline justify-between">
+              <span className="text-sm font-bold tracking-[.04em] text-body">TOTAL NUMBER OF PLT</span>
+              <span className="text-[13px] font-semibold text-primary">Counted from the pallets</span>
+            </div>
+            <div className="rounded-[14px] border border-line bg-surface px-3">
+              {PLT_TYPES.map((k) => (
+                <div key={k} className="flex h-[58px] items-center gap-2 border-b border-line-soft">
+                  <span className="grid size-9 place-items-center rounded-lg bg-chip text-lg font-extrabold">{k}</span>
+                  <span className="flex-1 text-base font-semibold">{PLT_TYPE_NAMES[k]}</span>
+                  <button
+                    type="button"
+                    aria-label={`Less ${PLT_TYPE_NAMES[k]}`}
+                    onClick={() => onPltAdjust(k, -1)}
+                    disabled={counts[k] === 0}
+                    className="grid h-11 w-12 place-items-center rounded-[9px] border-[1.5px] border-field disabled:opacity-40"
+                  >
+                    <Minus className="size-5" />
+                  </button>
+                  <span className="w-11 text-center text-[22px] font-extrabold">{counts[k]}</span>
+                  <button
+                    type="button"
+                    aria-label={`More ${PLT_TYPE_NAMES[k]}`}
+                    onClick={() => onPltAdjust(k, 1)}
+                    className="grid h-11 w-12 place-items-center rounded-[9px] border-[1.5px] border-field"
+                  >
+                    <Plus className="size-5" />
+                  </button>
+                </div>
+              ))}
+              <div className={cn("flex min-h-12 items-center justify-between text-base font-extrabold", pltSum === pallets ? "text-success" : "text-warning")}>
+                <span>Total</span>
+                <span>{pltSum === pallets ? `${pltSum} PLT ✓ matches the pallets` : `${pltSum} PLT · actual pallets ${pallets}`}</span>
+              </div>
+              {PLT_TYPES.some((k) => counts[k] !== auto[k]) ? (
+                <div className="pb-2.5 text-[13px] font-medium text-muted">
+                  Counted: {PLT_TYPES.map((k) => `${k} ${auto[k]}`).join(" · ")}. You changed the totals by hand.
+                </div>
+              ) : null}
+            </div>
+          </>
+        ) : null}
+      </Scroll>
+      <BottomBar>
+        <Button className="w-full" onClick={onNext}>
+          Next · Review
+        </Button>
+      </BottomBar>
+    </>
+  );
+}

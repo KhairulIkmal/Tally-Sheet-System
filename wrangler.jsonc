@@ -1,0 +1,25 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "main": ".open-next/worker.js",
+  "name": "tally-sheet-system",
+  "compatibility_date": "2026-10-01",
+  "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+  "assets": {
+    "directory": ".open-next/assets",
+    "binding": "ASSETS"
+  },
+  "vars": {
+    "NEXT_PUBLIC_SUPABASE_URL": "https://oiarenbddetzamlbkdxr.supabase.co",
+    "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY": "sb_publishable_lipcYsjPXj0q119wylKthQ_eUIUy-uz",
+    "NEXT_PUBLIC_SUPABASE_COOKIE_DOMAIN": ".lamsoonpsg.org"
+  },
+  "services": [
+    {
+      "binding": "WORKER_SELF_REFERENCE",
+      "service": "tally-sheet-system"
+    }
+  ],
+  "observability": {
+    "enabled": true
+  }
+}
