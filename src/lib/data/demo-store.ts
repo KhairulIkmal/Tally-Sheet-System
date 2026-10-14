@@ -36,9 +36,9 @@ const PRODUCTS: [string, string, number][] = [
   ["DEMO GHEE 2KG", "40102", 72],
 ];
 
-// A tiny signature-shaped PNG so seeded sheets print with something signed.
+// A small transparent PNG with a pen squiggle, so seeded sheets print signed.
 const SEED_SIGNATURE =
-  "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=";
+  "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAHgAAAAoCAYAAAA16j4lAAABEUlEQVR4nO3VQQ7CMAxE0d6DG3A47r+DVSVUCZQ4HnsC/0ldkjozaTgOAAAAAAAAAPgNt/vjeT7dsyDJe6mfnu4ZETRSrmPRjjPZmS23M1Dn2SyNBOQS4i6H8KptntlQOgOM3jLuB7F8iMjvZENOzupQss0hXHlJZYCRQDpKXrlh0udbXbwqwJX3VJY8W5q06KwF1eFlbL6iZMUhXJoxczFVeJmbVpactXbqjNkbVYSXvaai5Ow1JQVHh5ENt8GtIPvvFHx8aZTXqXrOmXcoy7W3uumq0KIF/XW5p+jmq4ObKYtiL2aD6AruW3EjT8WMtkZCcQiPcoN2+zKcZ7O1S7lXjjNZ26VYJKBUAAAAAIDAC0OKkfT1ADKQAAAAAElFTkSuQmCC";
 
 function seed(): DemoState {
   const products = PRODUCTS.map(([name, sku, per], i) => ({

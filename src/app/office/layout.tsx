@@ -6,7 +6,7 @@ import { OfficeNav } from "@/components/office/office-nav";
 export default async function OfficeLayout({ children }: { children: React.ReactNode }) {
   const user = await requireOffice();
   return (
-    <div className="flex h-dvh min-w-[1024px] flex-col bg-canvas text-ink">
+    <div className="flex h-dvh min-w-[1024px] flex-col bg-canvas text-ink print:block print:h-auto print:min-w-0 print:bg-white">
       <header data-noprint className="flex h-[60px] flex-none items-center gap-7 bg-[#15181d] px-7 text-white">
         <Link href="/office" className="text-xl font-extrabold">
           Tally Sheet

@@ -344,7 +344,9 @@ export function PaperPages({ data }: { data: PaperData }) {
   return (
     <>
       {Array.from({ length: pages }, (_, i) => (
-        <div key={i}>
+        // Exactly one A4 sheet per page: 794×1123 px is 210×297 mm at 96 dpi,
+        // and the clip stops sub-pixel rounding from spilling onto a blank page.
+        <div key={i} style={{ width: "210mm", height: "297mm", overflow: "hidden", breakAfter: "page" }}>
           <PaperSheet data={data} page={i + 1} />
         </div>
       ))}
