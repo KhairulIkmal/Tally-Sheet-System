@@ -45,8 +45,8 @@ export function SheetDetailView({ sheet }: { sheet: SheetDetail }) {
     ? MATERIALS.filter((k) => sheet.materials[k]).map((k) => `${materialLabel(k)} ${sheet.materials[k]}`).join(" · ") || "None"
     : [
         ...Object.entries(sheet.checks)
-          .filter(([, c]) => c.on)
-          .map(([k, c]) => `${materialLabel(k)} ✓${c.note ? ` (${c.note})` : ""}`),
+          .filter(([, c]) => c.qty || c.note)
+          .map(([k, c]) => `${materialLabel(k)} ${c.qty ?? 0}${c.note ? ` (${c.note})` : ""}`),
         `PLT ${PLT_TYPES.filter((k) => sheet.pltCounts[k]).map((k) => `${k} ${sheet.pltCounts[k]}`).join(" · ") || "0"}`,
       ].join(" · ");
 

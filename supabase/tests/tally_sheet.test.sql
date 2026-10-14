@@ -61,7 +61,7 @@ create function pg_temp.sheet(p_client uuid) returns jsonb language sql as $$
       jsonb_build_object('name', 'ghee 2kg', 'productId', null, 'targetCtn', null, 'pallets', jsonb_build_array(
         jsonb_build_object('pltType', 'L', 'contractNo', '', 'remark', '', 'lines', jsonb_build_array(
           jsonb_build_object('qty', 72, 'batch', '', 'expired', null, 'prod', null)))))),
-    'checks', jsonb_build_object('SAMPLE', jsonb_build_object('on', true, 'note', '2 ctn')),
+    'checks', jsonb_build_object('SAMPLE', jsonb_build_object('qty', 2, 'note', 'for qc'), 'OTHERS', jsonb_build_object('qty', '3', 'note', '')),
     'pltCounts', jsonb_build_object('L', 2, 'C', 1, 'X', 99),
     'remark', 'ok', 'signature', 'data:image/png;base64,AAAA', 'signedAt', '2026-10-14T07:00:00Z', 'device', 'pgtap'
   );
@@ -155,7 +155,7 @@ select is(
   jsonb_build_object(
     'form', 'lorry', 'sheet_date', '2026-10-14', 'contract_no', null, 'container_no', null, 'seal_no', null, 'si_no', null, 'disport', null,
     'transfer_to', 'SHAH ALAM DC', 'do_no', 'DO-1', 'lorry_no', 'WXY 1', 'remark', 'OK', 'materials', '{}'::jsonb,
-    'checks', '{"SAMPLE": {"on": true, "note": "2 CTN"}, "EMPTY CTN": {"on": false, "note": ""}, "OTHERS": {"on": false, "note": ""}}'::jsonb,
+    'checks', '{"SAMPLE": {"qty": 2, "note": "FOR QC"}, "EMPTY CTN": {"qty": 0, "note": ""}, "OTHERS": {"qty": 3, "note": ""}}'::jsonb,
     'plt_counts', '{"L": 2, "E": 0, "C": 1, "O": 0}'::jsonb, 'total_pallets', 3, 'total_ctn', 124,
     'prepared_by_name', 'Tally Tester 1', 'device', 'pgtap', 'status', 'printed', 'printed_by_name', 'Tally Tester 2'
   ),

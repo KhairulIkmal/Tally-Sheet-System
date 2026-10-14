@@ -15,7 +15,7 @@ function lorryDraft() {
     { qty: "8", batch: "b2", expired: "02/10/26", prod: "" },
   ];
   d.items = [{ id: "i", name: "shortening 16kg", productId: null, targetCtn: 60, pallets }];
-  d.checks.SAMPLE = { on: true, note: "2 ctn for qc" };
+  d.checks.SAMPLE = { qty: 2, note: "for qc" };
   d.signature = SIG;
   d.signedAt = "2026-10-14T07:58:00.000Z";
   return d;
@@ -30,7 +30,7 @@ describe("draftToPayload", () => {
     expect(p.items[0].name).toBe("SHORTENING 16KG");
     expect(p.items[0].pallets[1].lines[1]).toEqual({ qty: 8, batch: "B2", expired: "2026-10-02", prod: null });
     expect(p.pltCounts).toEqual({ L: 0, E: 0, C: 2, O: 0 });
-    expect(p.checks.SAMPLE).toEqual({ on: true, note: "2 CTN FOR QC" });
+    expect(p.checks.SAMPLE).toEqual({ qty: 2, note: "FOR QC" });
     expect(p.materials).toEqual({});
   });
 

@@ -5,7 +5,7 @@ const nextConfig: NextConfig = {
     serverActions: {
       // Lets Server Actions work when the app is opened from a phone over
       // the LAN IP during local testing, not just localhost.
-      allowedOrigins: ["localhost:3200", "*.trycloudflare.com"],
+      allowedOrigins: ["localhost:3200", "172.16.30.119:3200", "*.trycloudflare.com"],
     },
   },
 };

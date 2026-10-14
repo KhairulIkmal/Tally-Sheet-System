@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, Minus, Plus } from "lucide-react";
+import { Minus, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { CHECKS, MATERIALS, PLT_TYPE_NAMES, PLT_TYPES, materialLabel, type CheckKey, type MaterialKey, type PltType } from "@/lib/tally/constants";
 import { autoPltCounts, pltCounts, totals, type Draft } from "@/lib/tally/draft";
@@ -39,7 +39,7 @@ export function MaterialsScreen({
 }: {
   draft: Draft;
   onMaterial: (k: MaterialKey, delta: number) => void;
-  onCheck: (k: CheckKey, patch: Partial<{ on: boolean; note: string }>) => void;
+  onCheck: (k: CheckKey, patch: Partial<{ qty: number; note: string }>) => void;
   onPltAdjust: (k: PltType, delta: number) => void;
   onRemark: (v: string) => void;
   onNext: () => void;
@@ -64,31 +64,32 @@ export function MaterialsScreen({
           </div>
         ) : (
           <div className="rounded-[14px] border border-line bg-surface px-3 py-1">
+            <div className="flex gap-3 pt-2 text-xs font-bold tracking-[.04em] text-muted">
+              <span className="w-[92px]" />
+              <span className="w-[72px] text-center">CTN</span>
+              <span>NOTE</span>
+            </div>
             {CHECKS.map((k) => {
               const c = draft.checks[k];
               return (
-                <div key={k} className="flex min-h-[60px] items-center gap-3 border-b border-line-soft last:border-b-0">
-                  <button
-                    type="button"
-                    role="checkbox"
-                    aria-checked={c.on}
-                    aria-label={materialLabel(k)}
-                    onClick={() => onCheck(k, { on: !c.on })}
+                <div key={k} className="flex min-h-[64px] items-center gap-3 border-b border-line-soft last:border-b-0">
+                  <span className="w-[92px] flex-none text-[17px] font-bold">{materialLabel(k)}</span>
+                  <input
+                    value={c.qty ? String(c.qty) : ""}
+                    inputMode="numeric"
+                    placeholder="0"
+                    aria-label={`${materialLabel(k)} CTN`}
+                    onChange={(e) => onCheck(k, { qty: Math.min(9999, parseInt(e.target.value.replace(/\D/g, ""), 10) || 0) })}
                     className={cn(
-                      "grid size-10 flex-none place-items-center rounded-lg",
-                      c.on ? "bg-primary text-white dark:text-[#0e1115]" : "border-2 border-placeholder bg-surface",
+                      "h-12 w-[72px] flex-none rounded-lg border-[1.5px] bg-surface text-center text-[22px] font-extrabold text-ink outline-none focus:border-2 focus:border-primary",
+                      c.qty ? "border-primary" : "border-field",
                     )}
-                  >
-                    {c.on ? <Check className="size-6" strokeWidth={3} /> : null}
-                  </button>
-                  <span className="w-[92px] text-[17px] font-bold" onClick={() => onCheck(k, { on: !c.on })}>
-                    {materialLabel(k)}
-                  </span>
+                  />
                   <input
                     value={c.note}
-                    placeholder="Note"
+                    placeholder={k === "SAMPLE" ? "e.g. for QA/QC" : "Note"}
                     aria-label={`${materialLabel(k)} note`}
-                    onChange={(e) => onCheck(k, { note: e.target.value.slice(0, 60), ...(e.target.value ? { on: true } : {}) })}
+                    onChange={(e) => onCheck(k, { note: e.target.value.slice(0, 60) })}
                     className="h-11 min-w-0 flex-1 rounded-lg border-[1.5px] border-line bg-canvas px-2.5 text-[15px] font-semibold text-ink outline-none focus:border-primary focus:bg-surface"
                   />
                 </div>

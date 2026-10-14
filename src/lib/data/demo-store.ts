@@ -93,7 +93,7 @@ function seedSheet(n: number, form: "container" | "lorry", at: number, status: "
     },
     remark: "",
     materials: isLorry ? {} : { SAMPLE: 2, "LAYER PAD": 8 },
-    checks: isLorry ? { SAMPLE: { on: true, note: "2 CTN FOR QC" } } : {},
+    checks: isLorry ? { SAMPLE: { qty: 2, note: "FOR QC" } } : {},
     pltCounts: isLorry ? { L: 3, E: 0, C: 1, O: 0 } : {},
     signature: SEED_SIGNATURE,
     signedAt: iso,

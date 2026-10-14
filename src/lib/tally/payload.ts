@@ -52,7 +52,7 @@ export const submitPayloadSchema = z
     }),
     items: z.array(itemSchema).min(1).max(MAX_ITEMS),
     materials: z.record(z.string(), z.number().int().min(0).max(9999)),
-    checks: z.record(z.string(), z.object({ on: z.boolean(), note: text(60) })),
+    checks: z.record(z.string(), z.object({ qty: z.number().int().min(0).max(9999), note: text(60) })),
     pltCounts: z.record(z.string(), z.number().int().min(0).max(MAX_PALLETS)),
     remark: text(300),
     signature: z
@@ -122,7 +122,7 @@ export function draftToPayload(draft: Draft, device: string): SubmitPayload {
     })),
     materials: isLorry ? {} : Object.fromEntries(MATERIALS.map((k) => [k, draft.materials[k] ?? 0])),
     checks: isLorry
-      ? Object.fromEntries(CHECKS.map((k) => [k, { on: draft.checks[k].on, note: up(draft.checks[k].note) }]))
+      ? Object.fromEntries(CHECKS.map((k) => [k, { qty: draft.checks[k].qty ?? 0, note: up(draft.checks[k].note) }]))
       : {},
     pltCounts: isLorry ? pltCounts(draft) : {},
     remark: up(draft.remark),

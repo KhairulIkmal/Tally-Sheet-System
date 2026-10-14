@@ -33,8 +33,8 @@ export function ReviewScreen({
     ? MATERIALS.filter((k) => draft.materials[k]).map((k) => `${materialLabel(k)} ${draft.materials[k]}`).join(" · ") || "No materials"
     : [
         ...Object.entries(draft.checks)
-          .filter(([, c]) => c.on)
-          .map(([k, c]) => `${materialLabel(k)}${c.note ? ` (${c.note})` : ""}`),
+          .filter(([, c]) => c.qty || c.note)
+          .map(([k, c]) => `${materialLabel(k)} ${c.qty}${c.note ? ` (${c.note})` : ""}`),
         `PLT ${PLT_TYPES.filter((k) => counts[k]).map((k) => `${k} ${counts[k]}`).join(" · ") || "0"}`,
       ].join(" · ");
 

@@ -61,7 +61,7 @@ export interface Draft {
   header: DraftHeader;
   items: DraftItem[];
   materials: Record<MaterialKey, number>;
-  checks: Record<CheckKey, { on: boolean; note: string }>;
+  checks: Record<CheckKey, { qty: number; note: string }>;
   /** Manual corrections on top of the PLT-type counts worked out from the pallets. */
   pltAdjust: Record<PltType, number>;
   remark: string;
@@ -102,9 +102,9 @@ export function newDraft(form: SheetForm, now: Date = new Date()): Draft {
     },
     items: [],
     materials: Object.fromEntries(MATERIALS.map((k) => [k, 0])) as Record<MaterialKey, number>,
-    checks: Object.fromEntries(CHECKS.map((k) => [k, { on: false, note: "" }])) as Record<
+    checks: Object.fromEntries(CHECKS.map((k) => [k, { qty: 0, note: "" }])) as Record<
       CheckKey,
-      { on: boolean; note: string }
+      { qty: number; note: string }
     >,
     pltAdjust: { L: 0, E: 0, C: 0, O: 0 },
     remark: "",

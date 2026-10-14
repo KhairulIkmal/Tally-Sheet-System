@@ -65,7 +65,7 @@ export interface SheetDetail extends SheetSummary {
   };
   remark: string;
   materials: Record<string, number>;
-  checks: Record<string, { on: boolean; note: string }>;
+  checks: Record<string, { qty: number; note: string }>;
   pltCounts: Record<string, number>;
   signature: string;
   signedAt: string;
@@ -112,7 +112,7 @@ export interface PaperData {
   };
   rows: PaperRow[];
   materials: { label: string; value: string }[];
-  checks: { label: string; ticked: boolean; note: string }[];
+  checks: { label: string; value: string; note: string }[];
   plt: { label: string; value: string }[];
   remark: string;
   signature: string | null;
@@ -131,12 +131,12 @@ const PLT_LABELS: Record<PltType, string> = {
 function footer(
   form: SheetForm,
   materials: Record<string, number>,
-  checks: Record<string, { on: boolean; note: string }>,
+  checks: Record<string, { qty: number; note: string }>,
   plt: Record<string, number>,
 ) {
   return {
     materials: MATERIALS.map((k) => ({ label: k, value: form === "container" ? String(materials[k] ?? 0) : "" })),
-    checks: CHECKS.map((k) => ({ label: k, ticked: !!checks[k]?.on, note: checks[k]?.note ?? "" })),
+    checks: CHECKS.map((k) => ({ label: k, value: form === "lorry" && checks[k]?.qty ? String(checks[k].qty) : "", note: checks[k]?.note ?? "" })),
     plt: PLT_TYPES.map((k) => ({ label: PLT_LABELS[k], value: form === "lorry" ? String(plt[k] ?? 0) : "" })),
   };
 }
@@ -208,7 +208,7 @@ export function paperFromDraft(draft: Draft, signerName: string, ref = "NOT SUBM
     ...footer(
       draft.form,
       draft.materials,
-      Object.fromEntries(CHECKS.map((k) => [k, { on: draft.checks[k].on, note: up(draft.checks[k].note) }])),
+      Object.fromEntries(CHECKS.map((k) => [k, { qty: draft.checks[k].qty ?? 0, note: up(draft.checks[k].note) }])),
       pltCounts(draft),
     ),
     remark: up(draft.remark),

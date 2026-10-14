@@ -377,9 +377,14 @@ begin
       v_materials := v_materials || jsonb_build_object(v_key, v_qty);
     end loop;
   else
+    -- Sample (e.g. CTN taken for QA/QC), Empty CTN, Others: a CTN count and a note.
     foreach v_key in array array['SAMPLE', 'EMPTY CTN', 'OTHERS'] loop
+      v_qty := coalesce(tally.json_int(p -> 'checks' -> v_key -> 'qty'), 0);
+      if v_qty < 0 or v_qty > 9999 then
+        raise exception '% is out of range.', v_key using errcode = 'invalid_parameter_value';
+      end if;
       v_checks := v_checks || jsonb_build_object(v_key, jsonb_build_object(
-        'on', coalesce((p -> 'checks' -> v_key ->> 'on')::boolean, false),
+        'qty', v_qty,
         'note', coalesce(tally.clean_text(p -> 'checks' -> v_key ->> 'note', 60), '')
       ));
     end loop;

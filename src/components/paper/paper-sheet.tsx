@@ -272,7 +272,7 @@ export function PaperSheet({ data, page = 1, highlightMixed = false }: { data: P
                       fontSize: 11,
                     }}
                   >
-                    {c.ticked ? "✓" : ""}
+                    {c.value}
                   </span>
                   <span style={{ borderBottom: line, font: `500 10px ${mono}`, padding: "0 4px 1px", height: 14, marginLeft: 8, overflow: "hidden" }}>
                     {c.note}

@@ -1,3 +1,4 @@
+import { CHECKS } from "@/lib/tally/constants";
 import type { Draft } from "@/lib/tally/draft";
 import type { SubmitPayload } from "@/lib/tally/payload";
 
@@ -46,7 +47,13 @@ function write(key: string, value: unknown): boolean {
 
 export function loadDraft(userId: string): Draft | null {
   const d = read<Draft>(draftKey(userId));
-  return d && typeof d === "object" && Array.isArray(d.items) && d.header ? d : null;
+  if (!(d && typeof d === "object" && Array.isArray(d.items) && d.header)) return null;
+  // Drafts saved before the lorry boxes took a CTN count stored { on, note }.
+  for (const k of CHECKS) {
+    const c = (d.checks?.[k] ?? {}) as Partial<{ qty: number; note: string }>;
+    d.checks = { ...d.checks, [k]: { qty: Number(c.qty) || 0, note: typeof c.note === "string" ? c.note : "" } };
+  }
+  return d;
 }
 
 export function saveDraft(userId: string, draft: Draft | null): boolean {
