@@ -1,4 +1,4 @@
--- pgTAP: Tally Sheet schema (20261014000000_tally_sheet_schema).
+-- pgTAP: Tally Sheet schema (20261015000000_tally_sheet_schema).
 -- Roles, submit_sheet (numbering, idempotency, validation), RLS reads,
 -- printed flag and item history. Runs inside a transaction and rolls back.
 

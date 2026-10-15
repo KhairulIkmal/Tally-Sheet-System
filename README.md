@@ -42,7 +42,7 @@ QTY is counted in each item's unit (CTN, TIN, or a typed unit). Totals are kept 
 
 ## Database
 
-[`supabase/migrations/20261014000000_tally_sheet_schema.sql`](supabase/migrations/20261014000000_tally_sheet_schema.sql) creates the `tally` schema and registers the system:
+[`supabase/migrations/20261015000000_tally_sheet_schema.sql`](supabase/migrations/20261015000000_tally_sheet_schema.sql) creates the `tally` schema and registers the system:
 
 - System `tally_sheet` (admin-managed, launch mode `sso`, starts as **coming-soon**) with roles `worker` and `office`.
 - Tables `item_history`, `sheets`, `sheet_items`, `sheet_pallets`, `pallet_lines`, `sheet_events`. Clients can only `select` under RLS: a worker reads their own sheets, the office reads all.
