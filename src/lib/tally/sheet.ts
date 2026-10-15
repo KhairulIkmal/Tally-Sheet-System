@@ -1,6 +1,6 @@
-import { CHECKS, MATERIALS, PLT_TYPES, ROWS_PER_PAGE, type PltType, type SheetForm } from "./constants";
+import { CHECKS, MATERIALS, PLT_TYPES, ROWS_PER_PAGE, normalizeUnit, type PltType, type SheetForm } from "./constants";
 import { formatDateTime, isoToPaperDate } from "./dates";
-import { pltCounts, totals, type Draft } from "./draft";
+import { pltCounts, totals, type Draft, type QtyByUnit } from "./draft";
 
 export type SheetStatus = "submitted" | "printed";
 
@@ -16,7 +16,8 @@ export interface SheetSummary {
   /** Contract no (container) or D/O no (lorry). */
   docNo: string;
   totalPallets: number;
-  totalCtn: number;
+  /** Quantity per unit, e.g. { CTN: 150, TIN: 40 }. */
+  qtyByUnit: QtyByUnit;
   preparedBy: string;
   preparedByName: string;
   submittedAt: string;
@@ -43,7 +44,8 @@ export interface SheetPallet {
 export interface SheetItem {
   itemNo: number;
   name: string;
-  targetCtn: number | null;
+  unit: string;
+  targetQty: number | null;
 }
 
 export interface SheetEvent {
@@ -118,7 +120,7 @@ export interface PaperData {
   signature: string | null;
   signedBy: string;
   totalPallets: number;
-  totalCtn: number;
+  qtyByUnit: QtyByUnit;
 }
 
 const PLT_LABELS: Record<PltType, string> = {
@@ -144,6 +146,7 @@ function footer(
 /** Paper layout data for a submitted sheet. */
 export function paperFromSheet(sheet: SheetDetail): PaperData {
   const itemName = new Map(sheet.items.map((it) => [it.itemNo, it.name]));
+  const itemUnit = new Map(sheet.items.map((it) => [it.itemNo, it.unit]));
   return {
     form: sheet.form,
     ref: sheet.ref,
@@ -155,7 +158,7 @@ export function paperFromSheet(sheet: SheetDetail): PaperData {
       contractNo: p.contractNo,
       remark: p.remark,
       lines: p.lines.map((l) => ({
-        qty: l.qty === null ? "" : String(l.qty),
+        qty: l.qty === null ? "" : paperQty(String(l.qty), itemUnit.get(p.itemNo)),
         expired: isoToPaperDate(l.expired),
         prod: isoToPaperDate(l.prod),
         batch: l.batch,
@@ -166,7 +169,7 @@ export function paperFromSheet(sheet: SheetDetail): PaperData {
     signature: sheet.signature || null,
     signedBy: `${sheet.preparedByName.toUpperCase()} · ${formatDateTime(sheet.signedAt)}`,
     totalPallets: sheet.totalPallets,
-    totalCtn: sheet.totalCtn,
+    qtyByUnit: sheet.qtyByUnit,
   };
 }
 
@@ -184,7 +187,7 @@ export function paperFromDraft(draft: Draft, signerName: string, ref = "NOT SUBM
         pltType: draft.form === "lorry" ? p.pltType : "",
         contractNo: draft.form === "lorry" ? up(p.contractNo) : "",
         remark: up(p.remark),
-        lines: p.lines.map((l) => ({ qty: l.qty.trim(), expired: l.expired.trim(), prod: l.prod.trim(), batch: up(l.batch) })),
+        lines: p.lines.map((l) => ({ qty: paperQty(l.qty.trim(), normalizeUnit(it.unit)), expired: l.expired.trim(), prod: l.prod.trim(), batch: up(l.batch) })),
       });
     }
   }
@@ -215,8 +218,17 @@ export function paperFromDraft(draft: Draft, signerName: string, ref = "NOT SUBM
     signature: draft.signature,
     signedBy: draft.signedAt ? `${signerName.toUpperCase()} · ${formatDateTime(draft.signedAt)}` : "",
     totalPallets: t.pallets,
-    totalCtn: t.ctn,
+    qtyByUnit: t.qty,
   };
+}
+
+/**
+ * The QTY cell: just the number for CTN (the usual case, as on paper),
+ * the number and unit for anything else ("40 TIN").
+ */
+export function paperQty(qty: string, unit: string | undefined): string {
+  if (!qty) return "";
+  return !unit || unit === "CTN" ? qty : `${qty} ${unit}`;
 }
 
 export function pageCount(rowCount: number): number {
@@ -236,13 +248,13 @@ export function pageRows(rows: PaperRow[], page: number): PaperRow[] {
 export function itemSummaries(sheet: Pick<SheetDetail, "items" | "pallets">) {
   return sheet.items.map((it) => {
     const pallets = sheet.pallets.filter((p) => p.itemNo === it.itemNo);
-    const ctn = pallets.reduce((s, p) => s + p.lines.reduce((a, l) => a + (l.qty ?? 0), 0), 0);
+    const qty = pallets.reduce((s, p) => s + p.lines.reduce((a, l) => a + (l.qty ?? 0), 0), 0);
     const batches = [...new Set(pallets.flatMap((p) => p.lines.map((l) => l.batch).filter(Boolean)))];
     const mixed = pallets
       .filter((p) => p.lines.length > 1)
       .map((p) => `Pallet ${p.palletNo} mixed: ${p.lines.map((l) => `${l.batch || "?"} ${l.qty ?? "?"}`).join(" + ")}`);
     const first = pallets[0]?.palletNo ?? 0;
     const last = pallets[pallets.length - 1]?.palletNo ?? 0;
-    return { ...it, ctn, batches, mixed, first, last, palletCount: pallets.length };
+    return { ...it, qty, batches, mixed, first, last, palletCount: pallets.length };
   });
 }

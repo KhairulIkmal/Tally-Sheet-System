@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { hasRole, requireUser, storeFor } from "@/lib/auth/dal";
+import { normalizeUnit } from "@/lib/tally/constants";
 import { submitPayloadSchema } from "@/lib/tally/payload";
 import { StoreError, type SubmitResult } from "./types";
 
@@ -54,25 +55,26 @@ export async function setPrintedAction(sheetId: string, printed: boolean): Promi
   }
 }
 
-const productSchema = z.object({
-  id: z.string().uuid().nullable(),
-  name: z.string().trim().min(1, "Product name is required.").max(80),
-  sku: z.string().trim().max(30).nullable(),
-  ctnPerPallet: z.number().int().min(1).max(999).nullable(),
+const historyItemSchema = z.object({
+  id: z.string().uuid(),
+  name: z.string().trim().min(1, "Item name is required.").max(80),
+  unit: z.string().trim().regex(/^[A-Za-z0-9 .]{1,10}$/, "Unit: up to 10 letters or digits."),
+  qtyPerPallet: z.number().int().min(1).max(99999).nullable(),
   isActive: z.boolean(),
 });
 
-export async function saveProductAction(input: unknown): Promise<ActionResult<string>> {
+/** Office: correct or hide an entry in the item history workers get suggestions from. */
+export async function saveHistoryItemAction(input: unknown): Promise<ActionResult> {
   const user = await requireUser();
-  if (!hasRole(user, "office")) return { ok: false, error: "Only the office can manage products." };
-  const parsed = productSchema.safeParse(input);
-  if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Check the product details." };
+  if (!hasRole(user, "office")) return { ok: false, error: "Only the office can edit the item history." };
+  const parsed = historyItemSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Check the item details." };
   try {
-    const id = await storeFor(user).saveProduct({ ...parsed.data, sku: parsed.data.sku || null });
-    revalidatePath("/office/products");
+    await storeFor(user).saveHistoryItem({ ...parsed.data, unit: normalizeUnit(parsed.data.unit) });
+    revalidatePath("/office/items");
     revalidatePath("/worker");
-    return { ok: true, data: id };
+    return { ok: true, data: undefined };
   } catch (e) {
-    return errorResult(e, "Couldn't save the product. Please try again.");
+    return errorResult(e, "Couldn't save the item. Please try again.");
   }
 }

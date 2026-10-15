@@ -2,7 +2,7 @@
 
 import { ArrowUp, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { countStatus, formatRange, itemCtn, palletRanges, totals, type DraftItem } from "@/lib/tally/draft";
+import { countStatus, formatQty, formatRange, itemQty, palletRanges, totals, type DraftItem } from "@/lib/tally/draft";
 import { BottomBar, Button, Scroll } from "../ui";
 
 const STATUS_TEXT = { none: "text-ink", ok: "text-success", short: "text-warning", over: "text-danger" } as const;
@@ -33,12 +33,12 @@ export function ItemListScreen({
             <div className="text-[32px] font-extrabold">{t.pallets}</div>
           </div>
           <div className="rounded-xl border border-line bg-surface px-3.5 py-3">
-            <div className="text-[13px] font-semibold text-muted">Total CTN</div>
-            <div className="text-[32px] font-extrabold">{t.ctn}</div>
+            <div className="text-[13px] font-semibold text-muted">Total qty</div>
+            <div className="truncate text-[32px] font-extrabold">{formatQty(t.qty)}</div>
           </div>
         </div>
         {items.map((it, i) => {
-          const status = countStatus(itemCtn(it), it.targetCtn);
+          const status = countStatus(itemQty(it), it.targetQty, it.unit);
           const mixed = it.pallets.filter((p) => p.lines.length > 1).length;
           return (
             <div key={it.id} className="flex flex-none flex-col gap-2 rounded-[14px] border border-line bg-surface p-3">
@@ -52,7 +52,7 @@ export function ItemListScreen({
                   {mixed ? ` · ${mixed} mixed` : ""}
                 </span>
               </div>
-              <div className={cn("text-lg font-extrabold", STATUS_TEXT[status.state])}>{status.label.replace(/^(\d+) \/ (\d+)/, "$1 / $2 CTN")}</div>
+              <div className={cn("text-lg font-extrabold", STATUS_TEXT[status.state])}>{status.label}</div>
               <div className="grid grid-cols-[1fr_56px_56px] gap-1.5">
                 <Button variant="soft" className="h-12 text-[15px]" onClick={() => onEdit(i)}>
                   Edit pallets

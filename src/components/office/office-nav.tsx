@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 
 const LINKS = [
   { href: "/office", label: "Sheets", match: (p: string) => p === "/office" || p.startsWith("/office/sheets") },
-  { href: "/office/products", label: "Products", match: (p: string) => p.startsWith("/office/products") },
+  { href: "/office/items", label: "Item history", match: (p: string) => p.startsWith("/office/items") },
 ];
 
 export function OfficeNav() {

@@ -4,11 +4,12 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { signOut } from "@/lib/auth/actions";
 import { submitSheetAction } from "@/lib/data/actions";
-import type { SheetForm } from "@/lib/tally/constants";
+import { normalizeUnit, type SheetForm } from "@/lib/tally/constants";
 import { formatDateTime } from "@/lib/tally/dates";
 import {
   buildPallets,
-  itemCtn,
+  formatQty,
+  itemQty,
   newDraft,
   palletRanges,
   reviewWarnings,
@@ -24,13 +25,15 @@ import {
 import { draftToPayload } from "@/lib/tally/payload";
 import { paperFromDraft, type SheetSummary } from "@/lib/tally/sheet";
 import { newId } from "@/lib/tally/draft";
-import { blankPick, type PickState, type ProductOption } from "./pick";
+import { blankPick, type ItemSuggestion, type PickState } from "./pick";
 import {
   describeDevice,
   loadDraft,
   loadOutbox,
   loadRecent,
+  loadRecentItems,
   remember,
+  rememberItem,
   saveDraft,
   saveOutbox,
   type OutboxEntry,
@@ -40,7 +43,7 @@ import { Progress, Toast, TopBar } from "./ui";
 import { HomeScreen } from "./screens/home";
 import { ChooseTypeScreen } from "./screens/choose-type";
 import { HeaderFormScreen } from "./screens/header-form";
-import { ProductPickerScreen } from "./screens/product-picker";
+import { ItemNameScreen } from "./screens/item-name";
 import { PalletSetupScreen } from "./screens/pallet-setup";
 import { PalletDetailsScreen } from "./screens/pallet-details";
 import { ItemListScreen } from "./screens/item-list";
@@ -90,7 +93,7 @@ export interface WorkerUser {
  * The draft is saved to the device on every change; a signed sheet goes
  * into an outbox that is sent now, or later when the phone is back online.
  */
-export function WorkerApp({ user, products, sheets }: { user: WorkerUser; products: ProductOption[]; sheets: SheetSummary[] }) {
+export function WorkerApp({ user, history, sheets }: { user: WorkerUser; history: ItemSuggestion[]; sheets: SheetSummary[] }) {
   const router = useRouter();
   const online = useOnline();
   const [hydrated, setHydrated] = useState(false);
@@ -104,7 +107,7 @@ export function WorkerApp({ user, products, sheets }: { user: WorkerUser; produc
   const [sending, setSending] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
-  const [recentProducts, setRecentProducts] = useState<string[]>([]);
+  const [recentItems, setRecentItems] = useState<ItemSuggestion[]>([]);
   const [recentTransfers, setRecentTransfers] = useState<string[]>([]);
   const [result, setResult] = useState<{ offline: boolean; reference: string; summary: string } | null>(null);
   const [toast, setToast] = useState("");
@@ -118,7 +121,7 @@ export function WorkerApp({ user, products, sheets }: { user: WorkerUser; produc
     setDraft(d);
     if (d) setForm(d.form);
     setOutbox(loadOutbox(user.id));
-    setRecentProducts(loadRecent(user.id, "products"));
+    setRecentItems(loadRecentItems(user.id));
     setRecentTransfers(loadRecent(user.id, "transfer"));
     setHydrated(true);
     /* eslint-enable react-hooks/set-state-in-effect */
@@ -220,6 +223,12 @@ export function WorkerApp({ user, products, sheets }: { user: WorkerUser; produc
   const sheetNo = draft ? vehicleNo(draft) || (draft.form === "container" ? "Container" : "Lorry") : "";
   const warnings = useMemo(() => (draft ? reviewWarnings(draft) : []), [draft]);
 
+  // Shared history first (most recent), plus anything this phone used that the server hasn't seen yet.
+  const suggestionPool = useMemo(() => {
+    const seen = new Set(history.map((h) => h.name));
+    return [...recentItems.filter((r) => !seen.has(r.name)), ...history];
+  }, [history, recentItems]);
+
   const setupQtys = useMemo((): (number | "")[] => {
     if (pick.mode === "auto") return splitIntoPallets(parseInt(pick.total, 10) || 0, parseInt(pick.per, 10) || 0);
     const n = Math.min(parseInt(pick.count, 10) || 0, 200);
@@ -293,29 +302,30 @@ export function WorkerApp({ user, products, sheets }: { user: WorkerUser; produc
     const item: DraftItem = {
       id: newId(),
       name,
-      productId: pick.productId,
-      targetCtn: total > 0 ? total : null,
+      unit: normalizeUnit(pick.unit),
+      targetQty: total > 0 ? total : null,
+      qtyPerPallet: pick.mode === "auto" ? parseInt(pick.per, 10) || null : null,
       pallets: buildPallets(setupQtys, { pltType: pick.pltType, contractNo: pick.contractNo.trim().toUpperCase() }),
     };
     update((d) => {
       d.items.push(item);
     });
     setCur(items.length);
-    setRecentProducts(remember(user.id, "products", name));
+    setRecentItems(rememberItem(user.id, { name, unit: item.unit, qtyPerPallet: item.qtyPerPallet, useCount: 1 }));
     go("pallets");
   }
 
   async function submit() {
     if (!draft || !draft.signature) return;
     const payload = draftToPayload(draft, describeDevice());
-    const summary = `${draft.form === "container" ? "Container" : "Lorry"} ${sheetNo} · ${t.pallets} pallets · ${t.ctn} CTN`;
+    const summary = `${draft.form === "container" ? "Container" : "Lorry"} ${sheetNo} · ${t.pallets} pallets · ${formatQty(t.qty)}`;
     const entry: OutboxEntry = {
       clientId: draft.clientId,
       payload,
       vehicleNo: sheetNo,
       docNo: draft.form === "container" ? draft.header.contractNo : draft.header.doNo,
       pallets: t.pallets,
-      ctn: t.ctn,
+      qty: formatQty(t.qty),
       queuedAt: new Date().toISOString(),
       state: "pending",
     };
@@ -453,15 +463,14 @@ export function WorkerApp({ user, products, sheets }: { user: WorkerUser; produc
       );
     } else if (screen === "picker") {
       body = (
-        <ProductPickerScreen
+        <ItemNameScreen
           pick={pick}
-          products={products}
-          recent={recentProducts}
-          onSearch={(q) => setPick((p) => ({ ...p, q }))}
-          onPick={(p) => setPick((s) => ({ ...s, name: p.name, productId: p.id, per: p.ctnPerPallet ? String(p.ctnPerPallet) : s.per }))}
-          onCustom={() => setPick((s) => ({ ...s, name: s.q.trim().toUpperCase(), productId: null }))}
-          // Editing the text of a picked product keeps the link to it (e.g. adding a variant note).
-          onName={(name) => setPick((s) => ({ ...s, name, productId: name.trim() ? s.productId : null }))}
+          history={suggestionPool}
+          onName={(name) => setPick((p) => ({ ...p, name }))}
+          onUnit={(unit) => setPick((p) => ({ ...p, unit }))}
+          onSuggestion={(h) =>
+            setPick((p) => ({ ...p, name: h.name, unit: h.unit, per: h.qtyPerPallet ? String(h.qtyPerPallet) : p.per }))
+          }
           onNext={() => pick.name.trim() && go("setup")}
         />
       );
@@ -491,7 +500,7 @@ export function WorkerApp({ user, products, sheets }: { user: WorkerUser; produc
           onSave={() => {
             go("items");
             const it = items[cur];
-            showToast(`Item saved · ${itemCtn(it)} CTN on ${it.pallets.length} pallet${it.pallets.length === 1 ? "" : "s"}`);
+            showToast(`Item saved · ${itemQty(it)} ${it.unit} on ${it.pallets.length} pallet${it.pallets.length === 1 ? "" : "s"}`);
           }}
         />
       );
@@ -562,7 +571,7 @@ export function WorkerApp({ user, products, sheets }: { user: WorkerUser; produc
     } else if (screen === "sign") {
       body = (
         <SignatureScreen
-          summary={`I confirm ${t.pallets} pallets, ${t.ctn} CTN were counted for ${sheetNo}.`}
+          summary={`I confirm ${t.pallets} pallets, ${formatQty(t.qty)} were counted for ${sheetNo}.`}
           signerName={user.name}
           timeLabel={formatDateTime(new Date().toISOString())}
           initial={draft.signature}
@@ -582,7 +591,7 @@ export function WorkerApp({ user, products, sheets }: { user: WorkerUser; produc
       body = (
         <PreviewScreen
           paper={paperFromDraft(draft, user.name)}
-          summary={`${t.pallets} pallets · ${t.ctn} CTN · signed by ${user.name}`}
+          summary={`${t.pallets} pallets · ${formatQty(t.qty)} · signed by ${user.name}`}
           submitting={submitting}
           error={submitError}
           onSubmit={submit}

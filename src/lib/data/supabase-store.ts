@@ -5,10 +5,10 @@ import type { SubmitPayload } from "@/lib/tally/payload";
 import type { SheetDetail, SheetSummary } from "@/lib/tally/sheet";
 import type { PltType, SheetForm } from "@/lib/tally/constants";
 import { rangeStart, safeSearch } from "./filters";
-import { StoreError, type Product, type ProductInput, type SheetFilter, type SubmitResult, type TallyStore } from "./types";
+import { StoreError, type HistoryItem, type HistoryItemInput, type SheetFilter, type SubmitResult, type TallyStore } from "./types";
 
 const SUMMARY_COLUMNS =
-  "id, ref, form, sheet_date, container_no, lorry_no, contract_no, do_no, total_pallets, total_ctn, prepared_by, prepared_by_name, submitted_at, status";
+  "id, ref, form, sheet_date, container_no, lorry_no, contract_no, do_no, total_pallets, qty_by_unit, prepared_by, prepared_by_name, submitted_at, status";
 
 interface SummaryRow {
   id: string;
@@ -20,7 +20,7 @@ interface SummaryRow {
   contract_no: string | null;
   do_no: string | null;
   total_pallets: number;
-  total_ctn: number;
+  qty_by_unit: Record<string, number> | null;
   prepared_by: string;
   prepared_by_name: string;
   submitted_at: string;
@@ -36,7 +36,7 @@ function toSummary(r: SummaryRow): SheetSummary {
     vehicleNo: (r.form === "container" ? r.container_no : r.lorry_no) ?? "",
     docNo: (r.form === "container" ? r.contract_no : r.do_no) ?? "",
     totalPallets: r.total_pallets,
-    totalCtn: r.total_ctn,
+    qtyByUnit: r.qty_by_unit ?? {},
     preparedBy: r.prepared_by,
     preparedByName: r.prepared_by_name,
     submittedAt: r.submitted_at,
@@ -58,14 +58,26 @@ function fail(error: { message?: string; code?: string } | null, fallback: strin
 
 export function supabaseStore(): TallyStore {
   return {
-    async listProducts(includeInactive) {
+    async listItemHistory(includeHidden) {
       const supabase = await createClient();
-      let query = supabase.from("products").select("id, name, sku, ctn_per_pallet, is_active").order("name");
-      if (!includeInactive) query = query.eq("is_active", true);
+      let query = supabase
+        .from("item_history")
+        .select("id, name, unit, qty_per_pallet, use_count, last_used_at, is_active")
+        .order("last_used_at", { ascending: false, nullsFirst: false })
+        .limit(2000);
+      if (!includeHidden) query = query.eq("is_active", true);
       const { data, error } = await query;
-      if (error) fail(error, "Couldn't load the product list.");
+      if (error) fail(error, "Couldn't load the item history.");
       return (data ?? []).map(
-        (p): Product => ({ id: p.id, name: p.name, sku: p.sku, ctnPerPallet: p.ctn_per_pallet, isActive: p.is_active }),
+        (p): HistoryItem => ({
+          id: p.id,
+          name: p.name,
+          unit: p.unit,
+          qtyPerPallet: p.qty_per_pallet,
+          useCount: p.use_count,
+          lastUsedAt: p.last_used_at,
+          isActive: p.is_active,
+        }),
       );
     },
 
@@ -108,7 +120,7 @@ export function supabaseStore(): TallyStore {
       if (!s) return null;
 
       const [items, pallets, lines, events] = await Promise.all([
-        supabase.from("sheet_items").select("item_no, name, target_ctn").eq("sheet_id", id).order("item_no"),
+        supabase.from("sheet_items").select("item_no, name, unit, target_qty").eq("sheet_id", id).order("item_no"),
         supabase.from("sheet_pallets").select("pallet_no, item_no, plt_type, contract_no, remark").eq("sheet_id", id).order("pallet_no"),
         supabase.from("pallet_lines").select("pallet_no, line_no, qty, batch, expired, prod").eq("sheet_id", id).order("pallet_no").order("line_no"),
         // Office only (RLS); a worker gets an empty list.
@@ -144,7 +156,7 @@ export function supabaseStore(): TallyStore {
         device: s.device ?? "",
         printedAt: s.printed_at,
         printedByName: s.printed_by_name,
-        items: (items.data ?? []).map((it) => ({ itemNo: it.item_no, name: it.name, targetCtn: it.target_ctn })),
+        items: (items.data ?? []).map((it) => ({ itemNo: it.item_no, name: it.name, unit: it.unit, targetQty: it.target_qty })),
         pallets: (pallets.data ?? []).map((p) => ({
           palletNo: p.pallet_no,
           itemNo: p.item_no,
@@ -170,20 +182,19 @@ export function supabaseStore(): TallyStore {
       if (error) fail(error, "Couldn't update the sheet.");
     },
 
-    async saveProduct(input: ProductInput) {
+    async saveHistoryItem(input: HistoryItemInput) {
       const supabase = await createClient();
-      const { data, error } = await supabase.rpc("save_product", {
+      const { error } = await supabase.rpc("save_history_item", {
         p_id: input.id,
         p_name: input.name,
-        p_sku: input.sku,
-        p_ctn_per_pallet: input.ctnPerPallet,
+        p_unit: input.unit,
+        p_qty_per_pallet: input.qtyPerPallet,
         p_is_active: input.isActive,
       });
       if (error) {
-        if (error.code === "23505") throw new StoreError("A product with that name already exists.");
-        fail(error, "Couldn't save the product.");
+        if (error.code === "23505") throw new StoreError("Another item already has that name.");
+        fail(error, "Couldn't save the item.");
       }
-      return data as string;
     },
   };
 }

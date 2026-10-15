@@ -3,7 +3,8 @@ import {
   buildPallets,
   copyPalletFrom,
   countStatus,
-  itemCtn,
+  formatQty,
+  itemQty,
   newDraft,
   palletRanges,
   pltCounts,
@@ -16,12 +17,13 @@ import {
   type DraftItem,
 } from "./draft";
 
-function item(name: string, qtys: number[], target: number | null = null): DraftItem {
+function item(name: string, qtys: number[], target: number | null = null, unit = "CTN"): DraftItem {
   return {
     id: name,
     name,
-    productId: null,
-    targetCtn: target,
+    unit,
+    targetQty: target,
+    qtyPerPallet: null,
     pallets: buildPallets(qtys, { pltType: "L", contractNo: "LS-1" }).map((p) => ({
       ...p,
       lines: p.lines.map((l) => ({ ...l, batch: "B1", expired: "16/04/27", prod: "16/04/25" })),
@@ -56,9 +58,16 @@ describe("numbering and totals", () => {
     ]);
   });
 
-  it("totals pallets and cartons", () => {
-    expect(totals(items)).toEqual({ pallets: 7, ctn: 230 });
-    expect(itemCtn(items[0])).toBe(150);
+  it("totals pallets, and quantities per unit", () => {
+    expect(totals(items)).toEqual({ pallets: 7, qty: { CTN: 230 } });
+    expect(itemQty(items[0])).toBe(150);
+  });
+
+  it("never adds different units together", () => {
+    const mixed = [item("A", [32, 22]), item("B", [40], null, "TIN"), item("C", [8], null, "CTN")];
+    expect(totals(mixed).qty).toEqual({ CTN: 62, TIN: 40 });
+    expect(formatQty(totals(mixed).qty)).toBe("62 CTN · 40 TIN");
+    expect(formatQty({})).toBe("0");
   });
 
   it("finds the pallet above, across items", () => {
@@ -69,10 +78,10 @@ describe("numbering and totals", () => {
 
 describe("countStatus", () => {
   it("labels exact, short, over and no target", () => {
-    expect(countStatus(150, 150)).toMatchObject({ state: "ok", label: "150 / 150 ✓" });
-    expect(countStatus(148, 150)).toMatchObject({ state: "short", label: "148 / 150 · short 2", diff: 2 });
-    expect(countStatus(152, 150)).toMatchObject({ state: "over", label: "152 / 150 · over 2" });
-    expect(countStatus(90, null)).toMatchObject({ state: "none", label: "90 CTN" });
+    expect(countStatus(150, 150)).toMatchObject({ state: "ok", label: "150 / 150 CTN ✓" });
+    expect(countStatus(148, 150)).toMatchObject({ state: "short", label: "148 / 150 CTN · short 2", diff: 2 });
+    expect(countStatus(152, 150, "TIN")).toMatchObject({ state: "over", label: "152 / 150 TIN · over 2" });
+    expect(countStatus(90, null, "TIN")).toMatchObject({ state: "none", label: "90 TIN" });
   });
 });
 

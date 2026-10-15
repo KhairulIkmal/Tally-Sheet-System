@@ -51,3 +51,13 @@ export function materialLabel(key: string): string {
     .map((w, i) => (w === "CTN" || w === "PE" ? w : i === 0 ? w.charAt(0) + w.slice(1).toLowerCase() : w.toLowerCase()))
     .join(" ");
 }
+
+/** Quick choices for an item's unit; workers can also type their own. */
+export const QUICK_UNITS = ["CTN", "TIN"] as const;
+export const DEFAULT_UNIT = "CTN";
+
+/** "tin " → "TIN"; empty → CTN. Max 10 characters, letters/digits/space/dot only. */
+export function normalizeUnit(value: string | null | undefined): string {
+  const u = (value ?? "").toUpperCase().replace(/[^A-Z0-9 .]/g, "").trim().slice(0, 10);
+  return u || DEFAULT_UNIT;
+}

@@ -54,6 +54,7 @@ export function PalletSetupScreen({
   onCreate: () => void;
 }) {
   const per = parseInt(pick.per, 10) || 0;
+  const unit = pick.unit || "CTN";
   const total = parseInt(pick.total, 10) || 0;
   const count = qtys.length;
   const range = count ? `Pallet ${nextStart}${count > 1 ? `–${nextStart + count - 1}` : ""}` : `Starts at Pallet ${nextStart}`;
@@ -64,7 +65,7 @@ export function PalletSetupScreen({
         <div className="grid grid-cols-2 gap-1 rounded-xl bg-line p-1" role="tablist">
           {(
             [
-              ["auto", "From total CTN"],
+              ["auto", "From total qty"],
               ["manual", "Number of pallets"],
             ] as const
           ).map(([mode, label]) => (
@@ -83,14 +84,14 @@ export function PalletSetupScreen({
 
         {pick.mode === "auto" ? (
           <div className="grid grid-cols-2 gap-2.5">
-            <NumberBox label="Total CTN" value={pick.total} placeholder="150" onChange={(v) => onChange({ total: v })} />
-            <NumberBox label="CTN per pallet" value={pick.per} placeholder="32" onChange={(v) => onChange({ per: v })} />
+            <NumberBox label={`Total ${unit}`} value={pick.total} placeholder="150" onChange={(v) => onChange({ total: v })} />
+            <NumberBox label={`${unit} per pallet`} value={pick.per} placeholder="32" onChange={(v) => onChange({ per: v })} />
           </div>
         ) : (
           <>
             <div className="grid grid-cols-2 gap-2.5">
               <NumberBox label="Number of pallets" value={pick.count} placeholder="5" onChange={(v) => onChange({ count: v.slice(0, 3) })} />
-              <NumberBox label="Total CTN (optional)" value={pick.total} placeholder="—" onChange={(v) => onChange({ total: v })} />
+              <NumberBox label={`Total ${unit} (optional)`} value={pick.total} placeholder="—" onChange={(v) => onChange({ total: v })} />
             </div>
             <div className="text-sm font-medium text-muted">You fill in the qty for each pallet.</div>
           </>
@@ -131,7 +132,7 @@ export function PalletSetupScreen({
             <div className="flex justify-between bg-success-bg px-3.5 py-2.5 text-base font-bold text-success">
               <span>Total</span>
               <span>
-                {total} / {total} CTN ✓{count > 12 ? ` (${count - 12} more)` : ""}
+                {total} / {total} {unit} ✓{count > 12 ? ` (${count - 12} more)` : ""}
               </span>
             </div>
           ) : null}

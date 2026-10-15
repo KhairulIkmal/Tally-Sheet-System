@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 import { setPrintedAction } from "@/lib/data/actions";
 import { MATERIALS, PLT_TYPES, materialLabel } from "@/lib/tally/constants";
 import { formatDateTime, isoToPaperDate } from "@/lib/tally/dates";
+import { formatQty } from "@/lib/tally/draft";
 import { itemSummaries, pageCount, paperFromSheet, type SheetDetail } from "@/lib/tally/sheet";
 import { PaperPages } from "@/components/paper/paper-sheet";
 import { PaperViewer } from "@/components/paper/paper-viewer";
@@ -137,7 +138,7 @@ export function SheetDetailView({ sheet }: { sheet: SheetDetail }) {
             <div className="flex justify-between text-xs font-bold tracking-[.06em] text-muted">
               <span>ITEMS</span>
               <span>
-                {sheet.totalPallets} PLT · {sheet.totalCtn} CTN
+                {sheet.totalPallets} PLT · {formatQty(sheet.qtyByUnit)}
               </span>
             </div>
             {items.map((it) => (
@@ -145,8 +146,8 @@ export function SheetDetailView({ sheet }: { sheet: SheetDetail }) {
                 <div className="flex justify-between gap-2.5">
                   <span className="text-base font-bold">{it.name}</span>
                   <span className="text-base font-extrabold whitespace-nowrap">
-                    {it.ctn}
-                    {it.targetCtn ? ` / ${it.targetCtn}` : ""} CTN
+                    {it.qty}
+                    {it.targetQty ? ` / ${it.targetQty}` : ""} {it.unit}
                   </span>
                 </div>
                 <div className="text-sm font-medium text-muted">

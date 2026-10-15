@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { CHECKS, MATERIALS, MAX_ITEMS, MAX_LINES_PER_PALLET, MAX_PALLETS, PLT_TYPES } from "./constants";
+import { CHECKS, MATERIALS, MAX_ITEMS, MAX_LINES_PER_PALLET, MAX_PALLETS, PLT_TYPES, normalizeUnit } from "./constants";
 import { paperDateToIso } from "./dates";
 import { pltCounts, toQty, type Draft } from "./draft";
 
@@ -26,8 +26,9 @@ const palletSchema = z.object({
 
 const itemSchema = z.object({
   name: z.string().trim().min(1).max(80),
-  productId: z.string().uuid().nullable(),
-  targetCtn: z.number().int().min(1).max(99999).nullable(),
+  unit: z.string().regex(/^[A-Z0-9 .]{1,10}$/),
+  targetQty: z.number().int().min(1).max(99999).nullable(),
+  qtyPerPallet: z.number().int().min(1).max(99999).nullable(),
   pallets: z.array(palletSchema).min(1),
 });
 
@@ -106,8 +107,9 @@ export function draftToPayload(draft: Draft, device: string): SubmitPayload {
     },
     items: draft.items.map((it) => ({
       name: up(it.name),
-      productId: it.productId,
-      targetCtn: it.targetCtn && it.targetCtn > 0 ? it.targetCtn : null,
+      unit: normalizeUnit(it.unit),
+      targetQty: it.targetQty && it.targetQty > 0 ? it.targetQty : null,
+      qtyPerPallet: it.qtyPerPallet && it.qtyPerPallet > 0 ? it.qtyPerPallet : null,
       pallets: it.pallets.map((p) => ({
         pltType: isLorry ? p.pltType : null,
         contractNo: isLorry ? up(p.contractNo) : "",

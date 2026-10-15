@@ -4,7 +4,7 @@ import type { PltType } from "@/lib/tally/constants";
 import { submitPayloadSchema, type SubmitPayload } from "@/lib/tally/payload";
 import type { SheetDetail, SheetSummary } from "@/lib/tally/sheet";
 import { rangeStart } from "./filters";
-import { StoreError, type Product, type TallyStore } from "./types";
+import { StoreError, type HistoryItem, type TallyStore } from "./types";
 
 /**
  * In-memory store for local development (TALLY_DEMO=1). Data lives on
@@ -19,21 +19,20 @@ export const DEMO_USERS = {
 } as const;
 
 interface DemoState {
-  products: Product[];
+  history: HistoryItem[];
   sheets: SheetDetail[];
   counter: Record<string, number>;
 }
 
-const g = globalThis as unknown as { __tallyDemo?: DemoState };
+// Versioned so a hot reload after a shape change starts from a fresh seed.
+const g = globalThis as unknown as { __tallyDemoV2?: DemoState };
 
-const PRODUCTS: [string, string, number][] = [
-  ["DEMO MARGARINE 5KG", "10215", 32],
-  ["DEMO SHORTENING 16KG", "20431", 40],
-  ["DEMO SHORTENING 2KG", "20412", 60],
-  ["DEMO BAKERY SHORTENING 20KG", "20455", 36],
-  ["DEMO PALM OLEIN 17KG", "30117", 48],
-  ["DEMO CANOLA OIL 5L", "30540", 40],
-  ["DEMO GHEE 2KG", "40102", 72],
+// Item names "already used" so the worker sees suggestions while typing.
+const HISTORY: [string, string, number][] = [
+  ["DEMO MARGARINE 5KG", "CTN", 32],
+  ["DEMO SHORTENING 16KG", "TIN", 40],
+  ["DEMO PALM OLEIN 17KG", "TIN", 48],
+  ["DEMO GHEE 2KG", "CTN", 72],
 ];
 
 // A small transparent PNG with a pen squiggle, so seeded sheets print signed.
@@ -41,11 +40,14 @@ const SEED_SIGNATURE =
   "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAHgAAAAoCAYAAAA16j4lAAABEUlEQVR4nO3VQQ7CMAxE0d6DG3A47r+DVSVUCZQ4HnsC/0ldkjozaTgOAAAAAAAAAPgNt/vjeT7dsyDJe6mfnu4ZETRSrmPRjjPZmS23M1Dn2SyNBOQS4i6H8KptntlQOgOM3jLuB7F8iMjvZENOzupQss0hXHlJZYCRQDpKXrlh0udbXbwqwJX3VJY8W5q06KwF1eFlbL6iZMUhXJoxczFVeJmbVpactXbqjNkbVYSXvaai5Ow1JQVHh5ENt8GtIPvvFHx8aZTXqXrOmXcoy7W3uumq0KIF/XW5p+jmq4ObKYtiL2aD6AruW3EjT8WMtkZCcQiPcoN2+zKcZ7O1S7lXjjNZ26VYJKBUAAAAAIDAC0OKkfT1ADKQAAAAAElFTkSuQmCC";
 
 function seed(): DemoState {
-  const products = PRODUCTS.map(([name, sku, per], i) => ({
+  const now0 = Date.now();
+  const history = HISTORY.map(([name, unit, per], i): HistoryItem => ({
     id: `10000000-0000-4000-8000-${String(i + 1).padStart(12, "0")}`,
     name,
-    sku,
-    ctnPerPallet: per,
+    unit,
+    qtyPerPallet: per,
+    useCount: HISTORY.length - i,
+    lastUsedAt: new Date(now0 - i * 86_400_000).toISOString(),
     isActive: true,
   }));
   const now = Date.now();
@@ -53,7 +55,7 @@ function seed(): DemoState {
     seedSheet(1, "lorry", now - 3 * 3600_000, "printed"),
     seedSheet(2, "container", now - 26 * 3600_000, "submitted"),
   ];
-  return { products, sheets, counter: { [period(new Date())]: 2 } };
+  return { history, sheets, counter: { [period(new Date())]: 2 } };
 }
 
 function seedSheet(n: number, form: "container" | "lorry", at: number, status: "submitted" | "printed"): SheetDetail {
@@ -76,7 +78,7 @@ function seedSheet(n: number, form: "container" | "lorry", at: number, status: "
     vehicleNo: isLorry ? "WXY 4521" : "TGHU 1234567",
     docNo: isLorry ? "DO-778101" : "LS-EXP-2407",
     totalPallets: 4,
-    totalCtn: 118,
+    qtyByUnit: { CTN: 118 },
     preparedBy: DEMO_USERS.worker.id,
     preparedByName: DEMO_USERS.worker.name,
     submittedAt: iso,
@@ -100,7 +102,7 @@ function seedSheet(n: number, form: "container" | "lorry", at: number, status: "
     device: "Demo device",
     printedAt: status === "printed" ? iso : null,
     printedByName: status === "printed" ? DEMO_USERS.office.name : null,
-    items: [{ itemNo: 1, name: "DEMO MARGARINE 5KG", targetCtn: 118 }],
+    items: [{ itemNo: 1, name: "DEMO MARGARINE 5KG", unit: "CTN", targetQty: 118 }],
     pallets,
     events: [
       { event: "submitted", at: iso, actorName: DEMO_USERS.worker.name },
@@ -115,13 +117,13 @@ function period(d: Date): string {
 }
 
 function state(): DemoState {
-  g.__tallyDemo ??= seed();
-  return g.__tallyDemo;
+  g.__tallyDemoV2 ??= seed();
+  return g.__tallyDemoV2;
 }
 
 function summary(s: SheetDetail): SheetSummary {
-  const { id, ref, form, date, vehicleNo, docNo, totalPallets, totalCtn, preparedBy, preparedByName, submittedAt, status } = s;
-  return { id, ref, form, date, vehicleNo, docNo, totalPallets, totalCtn, preparedBy, preparedByName, submittedAt, status };
+  const { id, ref, form, date, vehicleNo, docNo, totalPallets, qtyByUnit, preparedBy, preparedByName, submittedAt, status } = s;
+  return { id, ref, form, date, vehicleNo, docNo, totalPallets, qtyByUnit, preparedBy, preparedByName, submittedAt, status };
 }
 
 export function demoStore(actor: { id: string; name: string; roles: string[] }): TallyStore {
@@ -130,10 +132,10 @@ export function demoStore(actor: { id: string; name: string; roles: string[] }):
   const visible = (s: SheetDetail) => isOffice || (isWorker && s.preparedBy === actor.id);
 
   return {
-    async listProducts(includeInactive) {
+    async listItemHistory(includeHidden) {
       return state()
-        .products.filter((p) => includeInactive || p.isActive)
-        .sort((a, b) => a.name.localeCompare(b.name));
+        .history.filter((h) => includeHidden || h.isActive)
+        .sort((a, b) => (b.lastUsedAt ?? "").localeCompare(a.lastUsedAt ?? ""));
     },
 
     async listMySheets(userId, limit) {
@@ -186,8 +188,18 @@ export function demoStore(actor: { id: string; name: string; roles: string[] }):
           lines: pl.lines.map((l) => ({ qty: l.qty, batch: l.batch, expired: l.expired, prod: l.prod })),
         })),
       );
-      const totalCtn = pallets.reduce((a, pl) => a + pl.lines.reduce((b, l) => b + (l.qty ?? 0), 0), 0);
+      const qtyByUnit: Record<string, number> = {};
+      p.items.forEach((it, i) => {
+        const q = pallets.filter((pl) => pl.itemNo === i + 1).reduce((a, pl) => a + pl.lines.reduce((b, l) => b + (l.qty ?? 0), 0), 0);
+        qtyByUnit[it.unit] = (qtyByUnit[it.unit] ?? 0) + q;
+      });
       const now = new Date().toISOString();
+      // Same as tally.submit_sheet(): every item name goes into the shared history.
+      for (const it of p.items) {
+        const h = st.history.find((x) => x.name === it.name.trim().toUpperCase());
+        if (h) Object.assign(h, { unit: it.unit, qtyPerPallet: it.qtyPerPallet ?? h.qtyPerPallet, useCount: h.useCount + 1, lastUsedAt: now });
+        else st.history.push({ id: crypto.randomUUID(), name: it.name.trim().toUpperCase(), unit: it.unit, qtyPerPallet: it.qtyPerPallet, useCount: 1, lastUsedAt: now, isActive: true });
+      }
       const sheet: SheetDetail = {
         // The demo store uses the client id as the sheet id, so a retried submit is a duplicate.
         id: p.clientId,
@@ -197,7 +209,7 @@ export function demoStore(actor: { id: string; name: string; roles: string[] }):
         vehicleNo: isLorry ? p.header.lorryNo : p.header.containerNo,
         docNo: isLorry ? p.header.doNo : p.header.contractNo,
         totalPallets: n,
-        totalCtn,
+        qtyByUnit,
         preparedBy: actor.id,
         preparedByName: actor.name,
         submittedAt: now,
@@ -212,7 +224,7 @@ export function demoStore(actor: { id: string; name: string; roles: string[] }):
         device: p.device,
         printedAt: null,
         printedByName: null,
-        items: p.items.map((it, i) => ({ itemNo: i + 1, name: it.name, targetCtn: it.targetCtn })),
+        items: p.items.map((it, i) => ({ itemNo: i + 1, name: it.name, unit: it.unit, targetQty: it.targetQty })),
         pallets,
         events: [{ event: "submitted", at: now, actorName: actor.name }],
       };
@@ -234,23 +246,15 @@ export function demoStore(actor: { id: string; name: string; roles: string[] }):
       }
     },
 
-    async saveProduct(input) {
+    async saveHistoryItem(input) {
       if (!isOffice) throw new StoreError("You don't have permission to do that.");
       const st = state();
       const name = input.name.trim().toUpperCase();
-      if (!name) throw new StoreError("Product name is required.");
-      if (st.products.some((p) => p.name === name && p.id !== input.id)) {
-        throw new StoreError("A product with that name already exists.");
-      }
-      if (input.id) {
-        const p = st.products.find((x) => x.id === input.id);
-        if (!p) throw new StoreError("Product not found.");
-        Object.assign(p, { name, sku: input.sku?.trim().toUpperCase() || null, ctnPerPallet: input.ctnPerPallet, isActive: input.isActive });
-        return p.id;
-      }
-      const id = crypto.randomUUID();
-      st.products.push({ id, name, sku: input.sku?.trim().toUpperCase() || null, ctnPerPallet: input.ctnPerPallet, isActive: input.isActive });
-      return id;
+      if (!name) throw new StoreError("Item name is required.");
+      if (st.history.some((h) => h.name === name && h.id !== input.id)) throw new StoreError("Another item already has that name.");
+      const h = st.history.find((x) => x.id === input.id);
+      if (!h) throw new StoreError("Item not found.");
+      Object.assign(h, { name, unit: input.unit, qtyPerPallet: input.qtyPerPallet, isActive: input.isActive });
     },
   };
 }

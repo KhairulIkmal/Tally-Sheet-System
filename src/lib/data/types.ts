@@ -1,19 +1,25 @@
 import type { SubmitPayload } from "@/lib/tally/payload";
 import type { SheetDetail, SheetSummary } from "@/lib/tally/sheet";
 
-export interface Product {
+/**
+ * An item name that has been used on a submitted sheet. Saved
+ * automatically on submit and suggested while a worker types.
+ */
+export interface HistoryItem {
   id: string;
   name: string;
-  sku: string | null;
-  ctnPerPallet: number | null;
+  unit: string;
+  qtyPerPallet: number | null;
+  useCount: number;
+  lastUsedAt: string | null;
   isActive: boolean;
 }
 
-export interface ProductInput {
-  id: string | null;
+export interface HistoryItemInput {
+  id: string;
   name: string;
-  sku: string | null;
-  ctnPerPallet: number | null;
+  unit: string;
+  qtyPerPallet: number | null;
   isActive: boolean;
 }
 
@@ -40,7 +46,8 @@ export interface SubmitResult {
  * and an in-memory demo store for local development.
  */
 export interface TallyStore {
-  listProducts(includeInactive: boolean): Promise<Product[]>;
+  /** Item history, most recently used first. Hidden items only when includeHidden. */
+  listItemHistory(includeHidden: boolean): Promise<HistoryItem[]>;
   /** The caller's own sheets (worker home). */
   listMySheets(userId: string, limit: number): Promise<SheetSummary[]>;
   /** Every sheet the caller may see, filtered (office list). */
@@ -48,7 +55,8 @@ export interface TallyStore {
   getSheet(id: string): Promise<SheetDetail | null>;
   submitSheet(payload: SubmitPayload): Promise<SubmitResult>;
   setPrinted(id: string, printed: boolean): Promise<void>;
-  saveProduct(input: ProductInput): Promise<string>;
+  /** Office: rename, change unit / qty per pallet, or hide an item history entry. */
+  saveHistoryItem(input: HistoryItemInput): Promise<void>;
 }
 
 /** An error whose message is safe to show the user. */

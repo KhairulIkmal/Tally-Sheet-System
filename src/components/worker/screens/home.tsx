@@ -3,7 +3,7 @@
 import { LogOut, Plus, RefreshCw } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { isoToPaperDate } from "@/lib/tally/dates";
-import { totals, vehicleNo, type Draft } from "@/lib/tally/draft";
+import { formatQty, totals, vehicleNo, type Draft } from "@/lib/tally/draft";
 import type { SheetSummary } from "@/lib/tally/sheet";
 import type { OutboxEntry } from "../storage";
 import { BottomBar, Button, FormBadge, Scroll, SectionLabel } from "../ui";
@@ -145,7 +145,7 @@ export function HomeScreen({
                 <div className="col-span-2 flex gap-3 text-sm font-medium text-muted">
                   <span>{o.docNo}</span>
                   <span>{o.pallets} pallets</span>
-                  <span>{o.ctn} CTN</span>
+                  <span>{o.qty}</span>
                 </div>
                 {o.state === "failed" ? (
                   <div className="col-span-2 mt-1 flex flex-col gap-2">
@@ -178,7 +178,7 @@ export function HomeScreen({
                   <span>{s.docNo}</span>
                   <span>{isoToPaperDate(s.date)}</span>
                   <span>{s.totalPallets} pallets</span>
-                  <span>{s.totalCtn} CTN</span>
+                  <span>{formatQty(s.qtyByUnit)}</span>
                 </div>
               </div>
             );

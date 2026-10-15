@@ -33,9 +33,12 @@ export interface DraftPallet {
 export interface DraftItem {
   id: string;
   name: string;
-  productId: string | null;
-  /** The CTN total the order asked for, when known. Drives the short/over check. */
-  targetCtn: number | null;
+  /** What QTY counts for this item: CTN, TIN, … */
+  unit: string;
+  /** The total the order asked for, when known. Drives the short/over check. */
+  targetQty: number | null;
+  /** Qty on a full pallet, from setup. Saved to the item history. */
+  qtyPerPallet: number | null;
   pallets: DraftPallet[];
 }
 
@@ -122,19 +125,29 @@ export function toQty(value: string | number | null | undefined): number {
   return Number.isFinite(n) && n > 0 ? n : 0;
 }
 
-export function palletCtn(pallet: Pick<DraftPallet, "lines">): number {
+export function palletQty(pallet: Pick<DraftPallet, "lines">): number {
   return pallet.lines.reduce((sum, l) => sum + toQty(l.qty), 0);
 }
 
-export function itemCtn(item: Pick<DraftItem, "pallets">): number {
-  return item.pallets.reduce((sum, p) => sum + palletCtn(p), 0);
+export function itemQty(item: Pick<DraftItem, "pallets">): number {
+  return item.pallets.reduce((sum, p) => sum + palletQty(p), 0);
 }
 
-export function totals(items: DraftItem[]): { pallets: number; ctn: number } {
-  return {
-    pallets: items.reduce((sum, it) => sum + it.pallets.length, 0),
-    ctn: items.reduce((sum, it) => sum + itemCtn(it), 0),
-  };
+/** Quantities per unit, e.g. { CTN: 150, TIN: 40 }. Units are never added together. */
+export type QtyByUnit = Record<string, number>;
+
+export function totals(items: Pick<DraftItem, "pallets" | "unit">[]): { pallets: number; qty: QtyByUnit } {
+  const qty: QtyByUnit = {};
+  for (const it of items) qty[it.unit] = (qty[it.unit] ?? 0) + itemQty(it);
+  return { pallets: items.reduce((sum, it) => sum + it.pallets.length, 0), qty };
+}
+
+/** "150 CTN · 40 TIN", or "0" when nothing is counted. */
+export function formatQty(qty: QtyByUnit): string {
+  const parts = Object.entries(qty)
+    .filter(([, n]) => n > 0)
+    .map(([unit, n]) => `${n} ${unit}`);
+  return parts.length ? parts.join(" · ") : "0";
 }
 
 /** First and last pallet (sticker) number of each item, numbered 1..n across the sheet. */
@@ -158,30 +171,30 @@ export interface CountStatus {
   state: CountState;
   counted: number;
   target: number | null;
-  /** "150 / 150 ✓", "148 / 150 · short 2", or "148 CTN" with no target. */
+  /** "150 / 150 CTN ✓", "148 / 150 CTN · short 2", or "148 CTN" with no target. */
   label: string;
   diff: number;
 }
 
-export function countStatus(counted: number, target: number | null): CountStatus {
-  if (!target) return { state: "none", counted, target: null, label: `${counted} CTN`, diff: 0 };
-  if (counted === target) return { state: "ok", counted, target, label: `${counted} / ${target} ✓`, diff: 0 };
+export function countStatus(counted: number, target: number | null, unit = "CTN"): CountStatus {
+  if (!target) return { state: "none", counted, target: null, label: `${counted} ${unit}`, diff: 0 };
+  if (counted === target) return { state: "ok", counted, target, label: `${counted} / ${target} ${unit} ✓`, diff: 0 };
   if (counted < target) {
-    return { state: "short", counted, target, label: `${counted} / ${target} · short ${target - counted}`, diff: target - counted };
+    return { state: "short", counted, target, label: `${counted} / ${target} ${unit} · short ${target - counted}`, diff: target - counted };
   }
-  return { state: "over", counted, target, label: `${counted} / ${target} · over ${counted - target}`, diff: counted - target };
+  return { state: "over", counted, target, label: `${counted} / ${target} ${unit} · over ${counted - target}`, diff: counted - target };
 }
 
 // ── pallet setup ────────────────────────────────────────────────────────
 
 /**
  * Splits a requested total into full pallets plus a remainder:
- * 150 CTN at 32 per pallet → [32, 32, 32, 32, 22].
+ * 150 at 32 per pallet → [32, 32, 32, 32, 22].
  */
-export function splitIntoPallets(totalCtn: number, perPallet: number, max = 200): number[] {
-  if (!(totalCtn > 0) || !(perPallet > 0)) return [];
-  const full = Math.floor(totalCtn / perPallet);
-  const rest = totalCtn % perPallet;
+export function splitIntoPallets(total: number, perPallet: number, max = 200): number[] {
+  if (!(total > 0) || !(perPallet > 0)) return [];
+  const full = Math.floor(total / perPallet);
+  const rest = total % perPallet;
   const qtys = Array.from({ length: Math.min(full, max) }, () => perPallet);
   if (rest && qtys.length < max) qtys.push(rest);
   return qtys;
@@ -286,12 +299,12 @@ export function reviewWarnings(draft: Draft): Warning[] {
       warnings.push({ kind: "missing", severity: "error", message: `${it.name}: no pallets`, itemIndex: i });
       return;
     }
-    const status = countStatus(itemCtn(it), it.targetCtn);
+    const status = countStatus(itemQty(it), it.targetQty, it.unit);
     if (status.state === "short" || status.state === "over") {
       warnings.push({
         kind: "count",
         severity: "warn",
-        message: `${it.name}: ${status.state} ${status.diff} CTN`,
+        message: `${it.name}: ${status.state} ${status.diff} ${it.unit}`,
         itemIndex: i,
       });
     }

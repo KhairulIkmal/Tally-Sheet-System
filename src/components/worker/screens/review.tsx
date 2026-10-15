@@ -2,7 +2,7 @@
 
 import { cn } from "@/lib/utils";
 import { MATERIALS, PLT_TYPES, materialLabel } from "@/lib/tally/constants";
-import { countStatus, itemCtn, palletCtn, palletRanges, pltCounts, totals, type Draft, type Warning } from "@/lib/tally/draft";
+import { countStatus, formatQty, itemQty, palletQty, palletRanges, pltCounts, totals, type Draft, type Warning } from "@/lib/tally/draft";
 import { BottomBar, Button, Scroll } from "../ui";
 
 const STATUS_TEXT = { none: "text-ink", ok: "text-success", short: "text-warning", over: "text-danger" } as const;
@@ -47,8 +47,8 @@ export function ReviewScreen({
             <div className="text-[34px]/[1.1] font-extrabold">{t.pallets}</div>
           </div>
           <div className="rounded-xl bg-solid px-3.5 py-2.5 text-on-solid">
-            <div className="text-[13px] font-semibold opacity-75">Total CTN</div>
-            <div className="text-[34px]/[1.1] font-extrabold">{t.ctn}</div>
+            <div className="text-[13px] font-semibold opacity-75">Total qty</div>
+            <div className="truncate text-[34px]/[1.1] font-extrabold">{formatQty(t.qty)}</div>
           </div>
         </div>
 
@@ -90,7 +90,7 @@ export function ReviewScreen({
         </div>
 
         {draft.items.map((it, i) => {
-          const status = countStatus(itemCtn(it), it.targetCtn);
+          const status = countStatus(itemQty(it), it.targetQty, it.unit);
           const batches = [...new Set(it.pallets.flatMap((p) => p.lines.map((l) => l.batch).filter(Boolean)))];
           const firstExp = it.pallets[0]?.lines[0]?.expired;
           return (
@@ -109,7 +109,7 @@ export function ReviewScreen({
                       key={p.id}
                       className={cn(
                         "flex h-10 min-w-10 flex-col items-center justify-center rounded-[7px] border border-field px-1",
-                        p.lines.length > 1 ? "bg-primary-soft" : palletCtn(p) ? "bg-surface" : "bg-warning-bg",
+                        p.lines.length > 1 ? "bg-primary-soft" : palletQty(p) ? "bg-surface" : "bg-warning-bg",
                       )}
                     >
                       <span className="font-condensed text-[15px]/none font-extrabold">{ranges[i].start + pi}</span>
@@ -119,7 +119,7 @@ export function ReviewScreen({
                 })}
               </div>
               <div className="text-sm font-semibold text-muted">{batches.length ? `${batches.join(", ")}${firstExp ? ` · Exp ${firstExp}` : ""}` : "No batch"}</div>
-              <div className={cn("text-[15px] font-extrabold", STATUS_TEXT[status.state])}>{status.label.replace(/^(\d+) \/ (\d+)/, "$1 / $2 CTN")}</div>
+              <div className={cn("text-[15px] font-extrabold", STATUS_TEXT[status.state])}>{status.label}</div>
             </div>
           );
         })}

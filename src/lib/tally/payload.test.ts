@@ -14,7 +14,7 @@ function lorryDraft() {
     { qty: "12", batch: "b1", expired: "20/09/26", prod: "20/09/25" },
     { qty: "8", batch: "b2", expired: "02/10/26", prod: "" },
   ];
-  d.items = [{ id: "i", name: "shortening 16kg", productId: null, targetCtn: 60, pallets }];
+  d.items = [{ id: "i", name: "shortening 16kg", unit: "tin", targetQty: 60, qtyPerPallet: 40, pallets }];
   d.checks.SAMPLE = { qty: 2, note: "for qc" };
   d.signature = SIG;
   d.signedAt = "2026-10-14T07:58:00.000Z";
@@ -27,7 +27,7 @@ describe("draftToPayload", () => {
     expect(submitPayloadSchema.safeParse(p).success).toBe(true);
     expect(p.date).toBe("2026-10-14");
     expect(p.header.doNo).toBe("DO-778120");
-    expect(p.items[0].name).toBe("SHORTENING 16KG");
+    expect(p.items[0]).toMatchObject({ name: "SHORTENING 16KG", unit: "TIN", targetQty: 60, qtyPerPallet: 40 });
     expect(p.items[0].pallets[1].lines[1]).toEqual({ qty: 8, batch: "B2", expired: "2026-10-02", prod: null });
     expect(p.pltCounts).toEqual({ L: 0, E: 0, C: 2, O: 0 });
     expect(p.checks.SAMPLE).toEqual({ qty: 2, note: "FOR QC" });
@@ -61,6 +61,8 @@ describe("paper layout", () => {
     const paper = paperFromDraft(lorryDraft(), "Mohd Hafiz");
     expect(paper.rows).toHaveLength(2);
     expect(paper.rows[1].lines.map((l) => l.batch)).toEqual(["B1", "B2"]);
+    // Not CTN, so the QTY cell names the unit.
+    expect(paper.rows[1].lines.map((l) => l.qty)).toEqual(["12 TIN", "8 TIN"]);
     expect(paper.plt.find((x) => x.label.startsWith("C"))?.value).toBe("2");
     expect(paper.signedBy).toBe("MOHD HAFIZ · 14/10/26 15:58");
   });

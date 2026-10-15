@@ -1,3 +1,4 @@
+import { formatQty } from "@/lib/tally/draft";
 import { pageCount, pageRows, type PaperData, type PaperRow } from "@/lib/tally/sheet";
 
 /**
@@ -328,7 +329,7 @@ export function PaperSheet({ data, page = 1, highlightMixed = false }: { data: P
         }}
       >
         <span>
-          {data.ref} · {data.totalPallets} PLT · {data.totalCtn} CTN
+          {data.ref} · {data.totalPallets} PLT · {formatQty(data.qtyByUnit)}
         </span>
         <span>
           PAGE {page} OF {pages}

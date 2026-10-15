@@ -6,6 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatDateTime } from "@/lib/tally/dates";
+import { formatQty } from "@/lib/tally/draft";
 import type { SheetSummary } from "@/lib/tally/sheet";
 import type { SheetFilter } from "@/lib/data/types";
 import { FormBadge } from "@/components/worker/ui";
@@ -182,7 +183,7 @@ export function SheetsList({ sheets, filter }: { sheets: SheetSummary[]; filter:
           <span>CONTAINER / LORRY</span>
           <span>CONTRACT / D/O</span>
           <span className="text-right">PALLETS</span>
-          <span className="text-right">TOTAL CTN</span>
+          <span className="text-right">TOTAL QTY</span>
           <span className="pl-7">PREPARED BY</span>
           <span>STATUS</span>
         </div>
@@ -205,7 +206,7 @@ export function SheetsList({ sheets, filter }: { sheets: SheetSummary[]; filter:
                 <span className={cn("truncate pr-2", fresh ? "font-bold" : "font-medium")}>{s.vehicleNo}</span>
                 <span className="truncate pr-2 text-body">{s.docNo}</span>
                 <span className="text-right font-semibold">{s.totalPallets}</span>
-                <span className="text-right font-semibold">{s.totalCtn}</span>
+                <span className="truncate text-right font-semibold">{formatQty(s.qtyByUnit)}</span>
                 <span className="truncate pl-7">{s.preparedByName}</span>
                 <span className="flex items-center gap-2">
                   <span className={cn("flex h-6 items-center rounded-full px-2.5 text-xs font-bold", chip.className)}>{chip.label}</span>

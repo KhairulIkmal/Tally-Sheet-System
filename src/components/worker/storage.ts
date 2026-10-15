@@ -1,5 +1,6 @@
 import { CHECKS } from "@/lib/tally/constants";
 import type { Draft } from "@/lib/tally/draft";
+import type { ItemSuggestion } from "./pick";
 import type { SubmitPayload } from "@/lib/tally/payload";
 
 /**
@@ -15,7 +16,8 @@ export interface OutboxEntry {
   vehicleNo: string;
   docNo: string;
   pallets: number;
-  ctn: number;
+  /** "150 CTN · 40 TIN" */
+  qty: string;
   queuedAt: string;
   state: "pending" | "failed";
   error?: string;
@@ -23,7 +25,7 @@ export interface OutboxEntry {
 
 const draftKey = (userId: string) => `tally:draft:${userId}`;
 const outboxKey = (userId: string) => `tally:outbox:${userId}`;
-type RecentKind = "products" | "transfer";
+type RecentKind = "transfer";
 const recentKey = (userId: string, kind: RecentKind) => `tally:recent-${kind}:${userId}`;
 
 function read<T>(key: string): T | null {
@@ -53,6 +55,16 @@ export function loadDraft(userId: string): Draft | null {
     const c = (d.checks?.[k] ?? {}) as Partial<{ qty: number; note: string }>;
     d.checks = { ...d.checks, [k]: { qty: Number(c.qty) || 0, note: typeof c.note === "string" ? c.note : "" } };
   }
+  // Drafts saved before items had a unit.
+  d.items = d.items.map((it) => {
+    const old = it as typeof it & { targetCtn?: number | null };
+    return {
+      ...it,
+      unit: it.unit || "CTN",
+      targetQty: it.targetQty ?? old.targetCtn ?? null,
+      qtyPerPallet: it.qtyPerPallet ?? null,
+    };
+  });
   return d;
 }
 
@@ -80,6 +92,23 @@ export function remember(userId: string, kind: RecentKind, value: string): strin
   if (!v) return loadRecent(userId, kind);
   const list = [v, ...loadRecent(userId, kind).filter((n) => n !== v)].slice(0, 5);
   write(recentKey(userId, kind), list);
+  return list;
+}
+
+const recentItemsKey = (userId: string) => `tally:recent-items:${userId}`;
+
+/**
+ * Items this phone used recently, so suggestions work offline and include
+ * items on sheets still waiting to sync. Merged with the shared history.
+ */
+export function loadRecentItems(userId: string): ItemSuggestion[] {
+  const list = read<ItemSuggestion[]>(recentItemsKey(userId));
+  return Array.isArray(list) ? list.filter((x) => x && typeof x.name === "string").slice(0, 30) : [];
+}
+
+export function rememberItem(userId: string, item: ItemSuggestion): ItemSuggestion[] {
+  const list = [item, ...loadRecentItems(userId).filter((x) => x.name !== item.name)].slice(0, 30);
+  write(recentItemsKey(userId), list);
   return list;
 }
 

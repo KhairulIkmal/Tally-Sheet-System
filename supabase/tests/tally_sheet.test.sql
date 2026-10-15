@@ -1,12 +1,12 @@
 -- pgTAP: Tally Sheet schema (20261014000000_tally_sheet_schema).
 -- Roles, submit_sheet (numbering, idempotency, validation), RLS reads,
--- printed flag and products. Runs inside a transaction and rolls back.
+-- printed flag and item history. Runs inside a transaction and rolls back.
 
 begin;
 
 create extension if not exists pgtap with schema extensions;
 
-select plan(30);
+select plan(33);
 
 create temp table r (k text primary key, v jsonb);
 grant all on r to public;
@@ -52,13 +52,13 @@ create function pg_temp.sheet(p_client uuid) returns jsonb language sql as $$
     'clientId', p_client, 'form', 'lorry', 'date', '2026-10-14',
     'header', jsonb_build_object('transferTo', 'shah alam dc', 'doNo', 'do-1', 'lorryNo', 'wxy 1'),
     'items', jsonb_build_array(
-      jsonb_build_object('name', 'margarine 5kg', 'productId', null, 'targetCtn', 52, 'pallets', jsonb_build_array(
+      jsonb_build_object('name', 'margarine 5kg', 'unit', 'ctn', 'targetQty', 52, 'qtyPerPallet', 32, 'pallets', jsonb_build_array(
         jsonb_build_object('pltType', 'L', 'contractNo', 'ls-1', 'remark', '', 'lines', jsonb_build_array(
           jsonb_build_object('qty', 32, 'batch', 'b1', 'expired', '2027-04-16', 'prod', '2025-04-16'))),
         jsonb_build_object('pltType', 'C', 'contractNo', 'ls-1', 'remark', 'mixed', 'lines', jsonb_build_array(
           jsonb_build_object('qty', 12, 'batch', 'b1', 'expired', '2027-04-16', 'prod', null),
           jsonb_build_object('qty', 8, 'batch', 'b2', 'expired', null, 'prod', null))))),
-      jsonb_build_object('name', 'ghee 2kg', 'productId', null, 'targetCtn', null, 'pallets', jsonb_build_array(
+      jsonb_build_object('name', 'ghee 2kg', 'unit', 'tin', 'targetQty', null, 'qtyPerPallet', null, 'pallets', jsonb_build_array(
         jsonb_build_object('pltType', 'L', 'contractNo', '', 'remark', '', 'lines', jsonb_build_array(
           jsonb_build_object('qty', 72, 'batch', '', 'expired', null, 'prod', null)))))),
     'checks', jsonb_build_object('SAMPLE', jsonb_build_object('qty', 2, 'note', 'for qc'), 'OTHERS', jsonb_build_object('qty', '3', 'note', '')),
@@ -90,9 +90,13 @@ select pg_temp.keep('w_sees', to_jsonb((select count(*) from tally.sheets)));
 select pg_temp.keep('w_lines', to_jsonb((select count(*) from tally.pallet_lines)));
 select pg_temp.keep('w_events', to_jsonb((select count(*) from tally.sheet_events)));
 select pg_temp.keep('w_print', to_jsonb(pg_temp.try(format('select tally.set_sheet_printed(%L, true)', pg_temp.got('s1') ->> 'id'))));
-select pg_temp.keep('w_product', to_jsonb(pg_temp.try($$ select tally.save_product(null, 'x', null, 10, true) $$)));
-select pg_temp.keep('w_insert', to_jsonb(pg_temp.try($$ insert into tally.products (name) values ('direct') $$)));
-select pg_temp.keep('w_update', to_jsonb(pg_temp.try($$ update tally.sheets set total_ctn = 1 $$)));
+select pg_temp.keep('w_history', (select jsonb_agg(jsonb_build_array(name, unit, qty_per_pallet, use_count) order by name) from tally.item_history));
+select pg_temp.keep('w_product', to_jsonb(pg_temp.try($$
+  select tally.save_history_item((select id from tally.item_history where name = 'GHEE 2KG'), 'x', 'CTN', 10, true) $$)));
+select pg_temp.keep('w_insert', to_jsonb(pg_temp.try($$ insert into tally.item_history (name) values ('DIRECT') $$)));
+select pg_temp.keep('w_update', to_jsonb(pg_temp.try($$ update tally.sheets set total_pallets = 1 $$)));
+select pg_temp.keep('bad_unit', to_jsonb(pg_temp.try($$
+  select tally.submit_sheet(jsonb_set(pg_temp.sheet('33333333-3333-4333-8333-333333333333'), '{items,0,unit}', '"<script>"')) $$)));
 
 -- ═══ Worker t3 cannot see t1's sheets ═══
 select pg_temp.login('00000000-0000-0000-0000-0000000007a3');
@@ -114,8 +118,11 @@ select pg_temp.keep('o_submit', to_jsonb(pg_temp.try($$ select tally.submit_shee
 select tally.set_sheet_printed((pg_temp.got('s1') ->> 'id')::uuid, true);
 select tally.set_sheet_printed((pg_temp.got('s1') ->> 'id')::uuid, true);
 select pg_temp.keep('o_events', to_jsonb((select array_agg(event order by id) from tally.sheet_events where sheet_id = (pg_temp.got('s1') ->> 'id')::uuid)));
-select pg_temp.keep('o_product', to_jsonb(tally.save_product(null, ' ghee 2kg ', 'g1', 72, true)));
-select pg_temp.keep('o_product_dup', to_jsonb(pg_temp.try($$ select tally.save_product(null, 'GHEE 2KG', null, null, true) $$)));
+select tally.save_history_item((select id from tally.item_history where name = 'GHEE 2KG'), ' ghee 2kg tin ', 'tin', 24, false);
+select pg_temp.keep('o_history', (select to_jsonb(h) - array['id', 'created_at', 'updated_at', 'last_used_at', 'updated_by']
+                                  from tally.item_history h where name = 'GHEE 2KG TIN'));
+select pg_temp.keep('o_product_dup', to_jsonb(pg_temp.try($$
+  select tally.save_history_item((select id from tally.item_history where name = 'GHEE 2KG TIN'), 'margarine 5kg', 'CTN', null, true) $$)));
 select pg_temp.keep('s1_row', (select to_jsonb(s) from tally.sheets s where id = (pg_temp.got('s1') ->> 'id')::uuid));
 select pg_temp.keep('s1_pallets', (select jsonb_agg(jsonb_build_array(pallet_no, item_no, plt_type, contract_no) order by pallet_no)
                                    from tally.sheet_pallets where sheet_id = (pg_temp.got('s1') ->> 'id')::uuid));
@@ -137,7 +144,9 @@ select is(pg_temp.got('w_sees'), '2'::jsonb, 'worker sees their own 2 sheets (du
 select is(pg_temp.got('w_lines'), '8'::jsonb, 'worker reads the lines of their sheets');
 select is(pg_temp.got('w_events'), '0'::jsonb, 'worker cannot read the activity log');
 select is(pg_temp.got('w_print') #>> '{}', '42501', 'worker cannot mark printed');
-select is(pg_temp.got('w_product') #>> '{}', '42501', 'worker cannot manage products');
+select is(pg_temp.got('w_history'), '[["GHEE 2KG", "TIN", null, 2], ["MARGARINE 5KG", "CTN", 32, 2]]'::jsonb, 'submitting saves item names, unit and qty per pallet to the history');
+select is(pg_temp.got('bad_unit') #>> '{}', '22023', 'an invalid unit is rejected');
+select is(pg_temp.got('w_product') #>> '{}', '42501', 'worker cannot edit the item history');
 select is(pg_temp.got('w_insert') #>> '{}', '42501', 'no direct table inserts');
 select is(pg_temp.got('w_update') #>> '{}', '42501', 'no direct table updates');
 select is(pg_temp.got('w3_sees'), '0'::jsonb, 'another worker sees none of them');
@@ -149,14 +158,15 @@ select is(pg_temp.got('noaccess_sees'), '0'::jsonb, 'no access sees nothing');
 select is(pg_temp.got('o_sees'), '2'::jsonb, 'office sees every sheet');
 select is(pg_temp.got('o_submit') #>> '{}', '42501', 'office-only user cannot submit');
 select is(pg_temp.got('o_events'), '["submitted", "printed"]'::jsonb, 'printing twice logs one printed event');
-select is(pg_temp.got('o_product_dup') #>> '{}', '23505', 'product names are unique ignoring case and spaces');
+select is(pg_temp.got('o_history'), '{"name": "GHEE 2KG TIN", "unit": "TIN", "qty_per_pallet": 24, "use_count": 2, "is_active": false}'::jsonb, 'office renames and hides a history item');
+select is(pg_temp.got('o_product_dup') #>> '{}', '23505', 'two history items cannot share a name');
 select is(
   pg_temp.got('s1_row') - array['id', 'client_id', 'ref', 'signature', 'prepared_by', 'signed_at', 'submitted_at', 'printed_at', 'printed_by'],
   jsonb_build_object(
     'form', 'lorry', 'sheet_date', '2026-10-14', 'contract_no', null, 'container_no', null, 'seal_no', null, 'si_no', null, 'disport', null,
     'transfer_to', 'SHAH ALAM DC', 'do_no', 'DO-1', 'lorry_no', 'WXY 1', 'remark', 'OK', 'materials', '{}'::jsonb,
     'checks', '{"SAMPLE": {"qty": 2, "note": "FOR QC"}, "EMPTY CTN": {"qty": 0, "note": ""}, "OTHERS": {"qty": 3, "note": ""}}'::jsonb,
-    'plt_counts', '{"L": 2, "E": 0, "C": 1, "O": 0}'::jsonb, 'total_pallets', 3, 'total_ctn', 124,
+    'plt_counts', '{"L": 2, "E": 0, "C": 1, "O": 0}'::jsonb, 'total_pallets', 3, 'qty_by_unit', '{"CTN": 52, "TIN": 72}'::jsonb,
     'prepared_by_name', 'Tally Tester 1', 'device', 'pgtap', 'status', 'printed', 'printed_by_name', 'Tally Tester 2'
   ),
   'stored sheet: upper-cased text, fixed keys only, totals computed, printed'

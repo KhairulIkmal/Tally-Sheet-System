@@ -9,8 +9,8 @@ import {
   newId,
   copyPalletFrom,
   countStatus,
-  itemCtn,
-  palletCtn,
+  itemQty,
+  palletQty,
   previousPallet,
   type DraftItem,
   type DraftLine,
@@ -101,6 +101,7 @@ function DateField({
 function LineFields({
   line,
   index,
+  unit,
   mixed,
   hasPrev,
   onSet,
@@ -109,6 +110,7 @@ function LineFields({
 }: {
   line: DraftLine;
   index: number;
+  unit: string;
   mixed: boolean;
   hasPrev: boolean;
   onSet: (field: keyof DraftLine, value: string) => void;
@@ -127,7 +129,7 @@ function LineFields({
       ) : null}
       <div className="grid grid-cols-[0.8fr_1.2fr] gap-2">
         <label className="flex min-w-0 flex-col gap-1">
-          <span className="flex h-[18px] items-center text-xs font-bold text-muted">QTY (CTN)</span>
+          <span className="flex h-[18px] items-center text-xs font-bold text-muted">QTY ({unit})</span>
           <input
             value={line.qty}
             inputMode="numeric"
@@ -178,7 +180,7 @@ export function PalletDetailsScreen({
   onSave: () => void;
 }) {
   const item = items[itemIndex];
-  const status = countStatus(itemCtn(item), item.targetCtn);
+  const status = countStatus(itemQty(item), item.targetQty, item.unit);
 
   const setPallet = (i: number, fn: (p: DraftPallet, all: DraftItem[]) => void) =>
     onUpdate((it, all) => {
@@ -212,13 +214,13 @@ export function PalletDetailsScreen({
                     <span className="self-start rounded-[5px] bg-solid px-2 py-0.5 text-[11px] font-bold tracking-[.06em] text-on-solid">MIXED PALLET</span>
                   ) : null}
                 </div>
-                <span className="text-2xl font-extrabold">{palletCtn(p) || ""}</span>
+                <span className="text-2xl font-extrabold">{palletQty(p) || ""}</span>
                 <button
                   type="button"
                   aria-label={`Remove pallet ${no}`}
                   title="Remove pallet"
                   onClick={() => {
-                    if (palletCtn(p) === 0 || window.confirm(`Remove pallet ${no}? Pallets after it are renumbered.`)) {
+                    if (palletQty(p) === 0 || window.confirm(`Remove pallet ${no}? Pallets after it are renumbered.`)) {
                       onUpdate((it) => {
                         it.pallets.splice(i, 1);
                       });
@@ -271,6 +273,7 @@ export function PalletDetailsScreen({
                   key={j}
                   line={l}
                   index={j}
+                  unit={item.unit}
                   mixed={mixed}
                   hasPrev={!!prev}
                   onSet={(field, value) => setPallet(i, (pl) => void (pl.lines[j][field] = value))}

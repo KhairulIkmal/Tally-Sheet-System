@@ -2,7 +2,7 @@ import { demoSignIn } from "@/lib/auth/actions";
 
 const PERSONAS = [
   { key: "worker", title: "Warehouse worker", body: "Mohd Hafiz · counts pallets, signs and submits on the phone" },
-  { key: "office", title: "Office", body: "Nurul Aina · views, prints and marks sheets printed, manages products" },
+  { key: "office", title: "Office", body: "Nurul Aina · views, prints and marks sheets printed, tidies the item history" },
   { key: "both", title: "Worker + office", body: "Both roles, to try the whole flow in one browser" },
 ] as const;
 

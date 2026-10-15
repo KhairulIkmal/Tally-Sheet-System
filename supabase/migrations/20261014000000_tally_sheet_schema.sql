@@ -11,9 +11,14 @@
 --   launch_mode 'sso', and starts as 'coming-soon' with no address. An
 --   admin sets the address and switches it online after the app deploys.
 -- - Roles: `worker` (counts pallets, signs and submits sheets, sees their
---   own) and `office` (sees every sheet, prints, marks printed, manages
---   the product list). Both need an explicit grant; neither implies the
+--   own) and `office` (sees every sheet, prints, marks printed, tidies
+--   the item history). Both need an explicit grant; neither implies the
 --   other.
+-- - Items are typed by the worker, not picked from a master list. Every
+--   submitted item name lands in tally.item_history (with its unit and qty
+--   per pallet) and is suggested while typing on the next sheet.
+-- - QTY is counted in the item's own unit (CTN, TIN, …). Totals are kept
+--   per unit and never added across units.
 -- - A sheet is written once, signed, by the worker who counted it. The
 --   only later change is the office's printed flag. Drafts live on the
 --   worker's device, never here.
@@ -120,21 +125,25 @@ $$;
 create type tally.sheet_form as enum ('container', 'lorry');
 create type tally.sheet_status as enum ('submitted', 'printed');
 
-create table tally.products (
+-- Names are stored trimmed and upper-cased (tally.clean_text), so the
+-- plain unique constraint also catches "ghee 2kg" vs "GHEE 2KG".
+create table tally.item_history (
   id              uuid primary key default gen_random_uuid(),
-  name            text not null check (length(btrim(name)) between 1 and 80),
-  sku             text check (sku is null or length(btrim(sku)) between 1 and 30),
-  ctn_per_pallet  int check (ctn_per_pallet is null or ctn_per_pallet between 1 and 999),
+  name            text not null unique check (length(name) between 1 and 80 and name = upper(btrim(name))),
+  unit            text not null default 'CTN' check (unit ~ '^[A-Z0-9 .]{1,10}$'),
+  qty_per_pallet  int check (qty_per_pallet is null or qty_per_pallet between 1 and 99999),
+  use_count       int not null default 0 check (use_count >= 0),
+  last_used_at    timestamptz,
   is_active       boolean not null default true,
   created_at      timestamptz not null default now(),
   updated_at      timestamptz not null default now(),
   updated_by      uuid references public.profiles (id) on delete set null
 );
 
-create unique index products_name_key on tally.products (upper(btrim(name)));
+create index item_history_recent_idx on tally.item_history (last_used_at desc nulls last);
 
-comment on table tally.products is
-  'Product master for the worker''s item picker. Workers may still type a name that is not listed.';
+comment on table tally.item_history is
+  'Every item name used on a submitted sheet, suggested while workers type. Filled by submit_sheet(); office can rename or hide entries.';
 
 create table tally.reference_counter (
   period       text primary key check (period ~ '^\d{4}$'),
@@ -160,7 +169,7 @@ create table tally.sheets (
   checks            jsonb not null default '{}'::jsonb,
   plt_counts        jsonb not null default '{}'::jsonb,
   total_pallets     int not null check (total_pallets between 1 and 200),
-  total_ctn         int not null check (total_ctn >= 0),
+  qty_by_unit       jsonb not null default '{}'::jsonb,
   signature         text not null check (signature like 'data:image/png;base64,%' and length(signature) <= 300000),
   prepared_by       uuid not null references public.profiles (id),
   prepared_by_name  text not null,
@@ -194,8 +203,8 @@ create table tally.sheet_items (
   sheet_id    uuid not null references tally.sheets (id) on delete cascade,
   item_no     int not null check (item_no between 1 and 50),
   name        text not null check (length(btrim(name)) between 1 and 80),
-  product_id  uuid references tally.products (id) on delete set null,
-  target_ctn  int check (target_ctn is null or target_ctn between 1 and 99999),
+  unit        text not null default 'CTN' check (unit ~ '^[A-Z0-9 .]{1,10}$'),
+  target_qty  int check (target_qty is null or target_qty between 1 and 99999),
   primary key (sheet_id, item_no)
 );
 
@@ -318,7 +327,10 @@ declare
   v_pallet     record;
   v_line       record;
   v_pallet_no  int := 0;
-  v_total_ctn  int := 0;
+  v_unit       text;
+  v_item_qty   int;
+  v_per        int;
+  v_qty_units  jsonb := '{}'::jsonb;
   v_qty        int;
   v_lines      int;
   v_header     jsonb := coalesce(p -> 'header', '{}'::jsonb);
@@ -326,7 +338,6 @@ declare
   v_checks     jsonb := '{}'::jsonb;
   v_plt        jsonb := '{}'::jsonb;
   v_key        text;
-  v_product    uuid;
 begin
   if not tally.is_worker() then
     raise exception 'Only a Tally Sheet worker can submit a sheet.' using errcode = 'insufficient_privilege';
@@ -409,7 +420,7 @@ begin
     client_id, ref, form, sheet_date,
     contract_no, container_no, seal_no, si_no, disport,
     transfer_to, do_no, lorry_no, remark,
-    materials, checks, plt_counts, total_pallets, total_ctn,
+    materials, checks, plt_counts, total_pallets,
     signature, prepared_by, prepared_by_name, signed_at, device
   )
   values (
@@ -423,7 +434,7 @@ begin
     case when v_form = 'lorry' then tally.clean_text(v_header ->> 'doNo', 60) end,
     case when v_form = 'lorry' then tally.clean_text(v_header ->> 'lorryNo', 30) end,
     tally.clean_text(p ->> 'remark', 300),
-    v_materials, v_checks, v_plt, 1, 0,
+    v_materials, v_checks, v_plt, 1,
     p ->> 'signature', v_uid, coalesce(v_name, ''),
     coalesce((p ->> 'signedAt')::timestamptz, now()),
     nullif(left(btrim(coalesce(p ->> 'device', '')), 160), '')
@@ -434,25 +445,31 @@ begin
     select value as it, ordinality::int as item_no
     from jsonb_array_elements(p -> 'items') with ordinality
   loop
-    v_product := null;
-    if nullif(v_item.it ->> 'productId', '') is not null then
-      begin
-        v_product := (v_item.it ->> 'productId')::uuid;
-      exception when others then
-        v_product := null;
-      end;
-      if v_product is not null and not exists (select 1 from tally.products where id = v_product) then
-        v_product := null;
-      end if;
-    end if;
-
     if tally.clean_text(v_item.it ->> 'name', 80) is null then
       raise exception 'Item % has no name.', v_item.item_no using errcode = 'invalid_parameter_value';
     end if;
 
-    insert into tally.sheet_items (sheet_id, item_no, name, product_id, target_ctn)
-    values (v_sheet_id, v_item.item_no, tally.clean_text(v_item.it ->> 'name', 80), v_product,
-            nullif(tally.json_int(v_item.it -> 'targetCtn'), 0));
+    v_unit := upper(btrim(coalesce(v_item.it ->> 'unit', '')));
+    if v_unit = '' then v_unit := 'CTN'; end if;
+    if v_unit !~ '^[A-Z0-9 .]{1,10}$' then
+      raise exception 'Item % has an invalid unit.', v_item.item_no using errcode = 'invalid_parameter_value';
+    end if;
+    v_per := nullif(tally.json_int(v_item.it -> 'qtyPerPallet'), 0);
+    v_item_qty := 0;
+
+    insert into tally.sheet_items (sheet_id, item_no, name, unit, target_qty)
+    values (v_sheet_id, v_item.item_no, tally.clean_text(v_item.it ->> 'name', 80), v_unit,
+            nullif(tally.json_int(v_item.it -> 'targetQty'), 0));
+
+    -- The shared item history workers get suggestions from.
+    insert into tally.item_history (name, unit, qty_per_pallet, use_count, last_used_at)
+    values (tally.clean_text(v_item.it ->> 'name', 80), v_unit, v_per, 1, now())
+    on conflict (name) do update
+      set unit = excluded.unit,
+          qty_per_pallet = coalesce(excluded.qty_per_pallet, tally.item_history.qty_per_pallet),
+          use_count = tally.item_history.use_count + 1,
+          last_used_at = excluded.last_used_at,
+          updated_at = now();
 
     if jsonb_typeof(v_item.it -> 'pallets') is distinct from 'array' or jsonb_array_length(v_item.it -> 'pallets') = 0 then
       raise exception 'Item % has no pallets.', v_item.item_no using errcode = 'invalid_parameter_value';
@@ -495,12 +512,14 @@ begin
           tally.json_date(v_line.ln -> 'expired'),
           tally.json_date(v_line.ln -> 'prod')
         );
-        v_total_ctn := v_total_ctn + coalesce(v_qty, 0);
+        v_item_qty := v_item_qty + coalesce(v_qty, 0);
       end loop;
     end loop;
+
+    v_qty_units := jsonb_set(v_qty_units, array[v_unit], to_jsonb(coalesce((v_qty_units ->> v_unit)::int, 0) + v_item_qty));
   end loop;
 
-  update tally.sheets set total_pallets = v_pallet_no, total_ctn = v_total_ctn where id = v_sheet_id;
+  update tally.sheets set total_pallets = v_pallet_no, qty_by_unit = v_qty_units where id = v_sheet_id;
 
   insert into tally.sheet_events (sheet_id, event, actor_id, actor_name) values (v_sheet_id, 'submitted', v_uid, v_name);
 
@@ -545,51 +564,45 @@ begin
 end;
 $$;
 
--- Office adds or edits a product (p_id null = add).
-create or replace function tally.save_product(
+-- Office corrects or hides an item history entry. New entries only come
+-- from submitted sheets, so there is no "add".
+create or replace function tally.save_history_item(
   p_id uuid,
   p_name text,
-  p_sku text,
-  p_ctn_per_pallet int,
+  p_unit text,
+  p_qty_per_pallet int,
   p_is_active boolean
 )
-returns uuid
+returns void
 language plpgsql
 volatile
 security definer
 set search_path = ''
 as $$
 declare
-  v_id uuid;
+  v_unit text := upper(btrim(coalesce(p_unit, '')));
 begin
   if not tally.is_office() then
-    raise exception 'Only the office can manage products.' using errcode = 'insufficient_privilege';
+    raise exception 'Only the office can edit the item history.' using errcode = 'insufficient_privilege';
   end if;
 
   if tally.clean_text(p_name, 80) is null then
-    raise exception 'Product name is required.' using errcode = 'invalid_parameter_value';
+    raise exception 'Item name is required.' using errcode = 'invalid_parameter_value';
   end if;
+  if v_unit = '' then v_unit := 'CTN'; end if;
 
-  if p_id is null then
-    insert into tally.products (name, sku, ctn_per_pallet, is_active, updated_by)
-    values (tally.clean_text(p_name, 80), tally.clean_text(p_sku, 30), p_ctn_per_pallet, coalesce(p_is_active, true), auth.uid())
-    returning id into v_id;
-  else
-    update tally.products
-    set name = tally.clean_text(p_name, 80),
-        sku = tally.clean_text(p_sku, 30),
-        ctn_per_pallet = p_ctn_per_pallet,
-        is_active = coalesce(p_is_active, is_active),
-        updated_at = now(),
-        updated_by = auth.uid()
-    where id = p_id
-    returning id into v_id;
-    if v_id is null then
-      raise exception 'Product not found.' using errcode = 'no_data_found';
-    end if;
+  update tally.item_history
+  set name = tally.clean_text(p_name, 80),
+      unit = v_unit,
+      qty_per_pallet = p_qty_per_pallet,
+      is_active = coalesce(p_is_active, is_active),
+      updated_at = now(),
+      updated_by = auth.uid()
+  where id = p_id;
+
+  if not found then
+    raise exception 'Item not found.' using errcode = 'no_data_found';
   end if;
-
-  return v_id;
 end;
 $$;
 
@@ -597,7 +610,7 @@ $$;
 -- RLS (reads only; every write goes through the RPCs above)
 -- =====================================================================
 
-alter table tally.products enable row level security;
+alter table tally.item_history enable row level security;
 alter table tally.reference_counter enable row level security;
 alter table tally.sheets enable row level security;
 alter table tally.sheet_items enable row level security;
@@ -605,7 +618,7 @@ alter table tally.sheet_pallets enable row level security;
 alter table tally.pallet_lines enable row level security;
 alter table tally.sheet_events enable row level security;
 
-create policy products_select on tally.products for select using (tally.is_worker() or tally.is_office());
+create policy item_history_select on tally.item_history for select using (tally.is_worker() or tally.is_office());
 create policy sheets_select on tally.sheets for select using (
   tally.is_office() or (tally.is_worker() and prepared_by = auth.uid())
 );
@@ -623,7 +636,7 @@ revoke all on schema tally from public;
 grant usage on schema tally to authenticated;
 
 revoke all on all tables in schema tally from public, anon, authenticated;
-grant select on tally.products, tally.sheets, tally.sheet_items, tally.sheet_pallets,
+grant select on tally.item_history, tally.sheets, tally.sheet_items, tally.sheet_pallets,
   tally.pallet_lines, tally.sheet_events to authenticated;
 
 revoke all on all functions in schema tally from public, anon, authenticated;
@@ -632,7 +645,7 @@ grant execute on function
   tally.current_access_active(), tally.has_role(text), tally.is_worker(), tally.is_office(),
   tally.current_roles(), tally.can_read_sheet(uuid), tally.me(),
   tally.submit_sheet(jsonb), tally.set_sheet_printed(uuid, boolean),
-  tally.save_product(uuid, text, text, int, boolean)
+  tally.save_history_item(uuid, text, text, int, boolean)
 to authenticated;
 
 alter default privileges in schema tally revoke execute on functions from public;
