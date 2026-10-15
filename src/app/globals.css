@@ -2,9 +2,10 @@
 
 /*
  * Tally Sheet design tokens, from the Claude Design prototype (design/).
- * Light is the default; dark (for dim warehouses) follows the device
- * setting.
+ * Always the light design, whatever the device setting. The dark palette
+ * (for dim warehouses) is kept but only applies with data-theme="dark".
  */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
 @theme {
   --color-primary: #1e4fa3;
   --color-primary-hover: #163c7e;
@@ -50,48 +51,47 @@
   --font-mono: var(--font-plex-mono), ui-monospace, Menlo, Consolas, monospace;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --color-primary: #6f9cff;
-    --color-primary-hover: #8fb2ff;
-    --color-primary-soft: #1b2740;
-    --color-primary-ring: #24365a;
-    --color-ink: #eef1f4;
-    --color-body: #c4cad1;
-    --color-muted: #9aa3ad;
-    --color-faint: #7a828c;
-    --color-placeholder: #5d6570;
-    --color-line: #2a3039;
-    --color-line-soft: #222831;
-    --color-field: #3a414c;
-    --color-canvas: #0e1115;
-    --color-surface: #161a20;
-    --color-surface-sunken: #181c22;
-    --color-chip: #232932;
-    --color-solid: #eef1f4;
-    --color-on-solid: #0e1115;
-    --color-success: #7be0a3;
-    --color-success-bg: #123d25;
-    --color-success-border: #1f5c39;
-    --color-warning: #f0b04a;
-    --color-warning-ink: #f6cf8a;
-    --color-warning-bg: #3a2a0c;
-    --color-warning-border: #6b4f17;
-    --color-danger: #ff8a80;
-    --color-danger-ink: #ffb4ad;
-    --color-danger-bg: #3d1614;
-    --color-danger-border: #6e2a25;
-    --color-container: #6fd0d3;
-    --color-container-mark: #2aa3a8;
-    --color-container-bg: #10302f;
-    --color-lorry: #c3a6f5;
-    --color-lorry-mark: #9a72e0;
-    --color-lorry-bg: #261c3a;
-  }
+:root[data-theme="dark"] {
+  --color-primary: #6f9cff;
+  --color-primary-hover: #8fb2ff;
+  --color-primary-soft: #1b2740;
+  --color-primary-ring: #24365a;
+  --color-ink: #eef1f4;
+  --color-body: #c4cad1;
+  --color-muted: #9aa3ad;
+  --color-faint: #7a828c;
+  --color-placeholder: #5d6570;
+  --color-line: #2a3039;
+  --color-line-soft: #222831;
+  --color-field: #3a414c;
+  --color-canvas: #0e1115;
+  --color-surface: #161a20;
+  --color-surface-sunken: #181c22;
+  --color-chip: #232932;
+  --color-solid: #eef1f4;
+  --color-on-solid: #0e1115;
+  --color-success: #7be0a3;
+  --color-success-bg: #123d25;
+  --color-success-border: #1f5c39;
+  --color-warning: #f0b04a;
+  --color-warning-ink: #f6cf8a;
+  --color-warning-bg: #3a2a0c;
+  --color-warning-border: #6b4f17;
+  --color-danger: #ff8a80;
+  --color-danger-ink: #ffb4ad;
+  --color-danger-bg: #3d1614;
+  --color-danger-border: #6e2a25;
+  --color-container: #6fd0d3;
+  --color-container-mark: #2aa3a8;
+  --color-container-bg: #10302f;
+  --color-lorry: #c3a6f5;
+  --color-lorry-mark: #9a72e0;
+  --color-lorry-bg: #261c3a;
 }
 
 html {
   font-variant-numeric: tabular-nums;
+  color-scheme: light;
   -webkit-tap-highlight-color: transparent;
 }
 
