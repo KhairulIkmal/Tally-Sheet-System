@@ -13,8 +13,8 @@
     "test:watch": "vitest",
     "verify": "npm run lint && npm run typecheck && npm run test && npm run build",
     "preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
-    "deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy",
-    "upload": "opennextjs-cloudflare build && opennextjs-cloudflare upload",
+    "deploy": "cross-env NEXT_PUBLIC_SUPABASE_COOKIE_NAME=lspsg-auth NEXT_PUBLIC_SUPABASE_COOKIE_DOMAIN=.lamsoonpsg.org opennextjs-cloudflare build && opennextjs-cloudflare deploy",
+    "upload": "cross-env NEXT_PUBLIC_SUPABASE_COOKIE_NAME=lspsg-auth NEXT_PUBLIC_SUPABASE_COOKIE_DOMAIN=.lamsoonpsg.org opennextjs-cloudflare build && opennextjs-cloudflare upload",
     "cf-typegen": "wrangler types --env-interface CloudflareEnv cloudflare-env.d.ts"
   },
   "dependencies": {

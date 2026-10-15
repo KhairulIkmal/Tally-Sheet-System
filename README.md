@@ -55,7 +55,7 @@ pgTAP suite: [`supabase/tests/tally_sheet.test.sql`](supabase/tests/tally_sheet.
 1. **Migration.** Copy the migration into `Lam Soon PSG Portal/supabase/migrations/`. Run `npx supabase migration list --linked` and renumber if `20261014000000` is taken. Dry-run, then apply with `db push` (move aside unapplied files such as `20261008000100_portal_email_enable.sql`; never `--include-all`).
 2. **Expose the schema.** Supabase Dashboard → Project Settings → API → *Exposed schemas*: add `tally`.
 3. **Item history** starts empty and fills itself as workers submit sheets. The office can tidy it on **Office → Item history**.
-4. **Deploy.** Create a GitHub repo and push, then `npm run deploy` (or Workers Builds). `wrangler.jsonc` already sets the shared Supabase URL and publishable key and `NEXT_PUBLIC_SUPABASE_COOKIE_DOMAIN=.lamsoonpsg.org`. Add a custom domain such as `tally.lamsoonpsg.org`.
+4. **Deploy.** `npm run deploy` builds with the shared Portal cookie (`lspsg-auth` on `.lamsoonpsg.org`, baked in at build time by the script) and deploys the `tally-sheet-system` Worker to https://tally.lamsoonpsg.org (custom domain in `wrangler.jsonc`). There is no Workers Builds trigger: pushing `main` does not deploy.
 5. **Portal.** Admin → Systems → *Tally Sheet*: set the address to the custom domain and switch the card to **online**. Approve people's access requests with the **Worker** or **Office** role.
 
 Rollback: remove the custom domain / set the card back to coming-soon. The migration is additive; the `tally` schema can stay.
