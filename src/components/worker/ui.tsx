@@ -87,7 +87,8 @@ export function BottomBar({ children, className }: { children: React.ReactNode; 
 }
 
 export function Scroll({ children, className }: { children: React.ReactNode; className?: string }) {
-  return <div className={cn("flex min-h-0 flex-1 flex-col overflow-y-auto", className)}>{children}</div>;
+  // Children keep their height (no flex shrink), so long content scrolls instead of being squeezed and clipped.
+  return <div className={cn("flex min-h-0 flex-1 flex-col overflow-y-auto *:shrink-0", className)}>{children}</div>;
 }
 
 type ButtonProps = React.ButtonHTMLAttributes<HTMLButtonElement> & {
