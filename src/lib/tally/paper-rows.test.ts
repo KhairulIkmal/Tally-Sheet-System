@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { buildPallets, type DraftItem } from "./draft";
-import { addRow, dittoField, dittoItem, fromRows, removeRow, renameRow, setRowUnit, toRows, unnamedRows, updateRowPallet } from "./paper-rows";
+import { addRow, appendItem, dittoField, dittoItem, fromRows, removeRow, renameRow, setRowUnit, toRows, unnamedRows, updateRowPallet } from "./paper-rows";
 
 function item(name: string, qtys: number[], extra: Partial<DraftItem> = {}): DraftItem {
   return {
@@ -66,5 +66,13 @@ describe("paper rows", () => {
   it("unit changes the whole item", () => {
     const out = setRowUnit([item("A", [1, 2]), item("B", [3])], 1, "TIN");
     expect(out.map((it) => it.unit)).toEqual(["TIN", "CTN"]);
+  });
+
+  it("auto-fill appends the item after the last filled row, reusing empty rows", () => {
+    const start = addRow(addRow([item("A", [32])])); // A + 2 empty rows
+    const out = appendItem(start, item("B", [32, 32, 22], { targetQty: 86 }));
+    expect(names(out)).toEqual(["A×1", "B×3"]);
+    expect(out[1]).toMatchObject({ id: "id-B", targetQty: 86 });
+    expect(out[1].pallets.map((p) => p.lines[0].qty)).toEqual(["32", "32", "22"]);
   });
 });

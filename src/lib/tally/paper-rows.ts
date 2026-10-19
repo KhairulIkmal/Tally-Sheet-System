@@ -120,3 +120,18 @@ export function updateRowPallet(items: DraftItem[], i: number, fn: (p: DraftPall
 export function unnamedRows(items: DraftItem[]): number[] {
   return toRows(items).flatMap((r, i) => (key(r.name) ? [] : [i + 1]));
 }
+
+function isEmptyRow(r: PaperRow): boolean {
+  return !key(r.name) && !r.pallet.remark && r.pallet.lines.every((l) => !l.qty && !l.batch && !l.expired && !l.prod);
+}
+
+/**
+ * Auto-fill on the paper: adds an item's generated pallets as rows after
+ * the last filled row (empty rows at the bottom are reused). The item keeps
+ * its target and qty per pallet, so the count check works as in step by step.
+ */
+export function appendItem(items: DraftItem[], item: DraftItem): DraftItem[] {
+  const rows = toRows(items);
+  while (rows.length && isEmptyRow(rows[rows.length - 1])) rows.pop();
+  return fromRows([...rows, ...toRows([item])], [...items, item]);
+}

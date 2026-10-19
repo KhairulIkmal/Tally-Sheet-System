@@ -1,12 +1,26 @@
 "use client";
 
-import { Plus, Trash2 } from "lucide-react";
+import { useState } from "react";
+import { Calculator, Plus, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { PLT_TYPES, normalizeUnit, type SheetForm } from "@/lib/tally/constants";
 import { isValidPaperDate, normalizeDate } from "@/lib/tally/dates";
-import { blankLine, formatQty, totals, type Draft, type DraftHeader, type DraftItem, type DraftLine, type HeaderErrors } from "@/lib/tally/draft";
+import {
+  blankLine,
+  countStatus,
+  formatQty,
+  itemQty,
+  palletRanges,
+  totals,
+  type Draft,
+  type DraftHeader,
+  type DraftItem,
+  type DraftLine,
+  type HeaderErrors,
+} from "@/lib/tally/draft";
 import {
   addRow,
+  appendItem,
   dittoField,
   dittoItem,
   dittoSource,
@@ -19,6 +33,7 @@ import {
 import type { ItemSuggestion } from "../pick";
 import { BottomBar, Button } from "../ui";
 import { PaperFooter } from "./paper-footer";
+import { AutoFillPanel } from "./paper-autofill";
 
 /** Header boxes in the printed order: two columns, left then right. */
 const HEADER: Record<SheetForm, { key: keyof DraftHeader; label: string; numeric?: boolean }[]> = {
@@ -97,7 +112,18 @@ export function PaperScreen({
   onItems: (fn: (items: DraftItem[]) => DraftItem[]) => void;
   onNext: () => void;
 }) {
+  const [autoFill, setAutoFill] = useState(false);
   const rows = toRows(items);
+  // Auto-fill starts after the last row with anything on it.
+  let filled = rows.length;
+  while (
+    filled > 0 &&
+    !rows[filled - 1].name.trim() &&
+    rows[filled - 1].pallet.lines.every((l) => !l.qty && !l.batch && !l.expired && !l.prod)
+  )
+    filled--;
+  const lastFilled = filled > 0 ? rows[filled - 1].pallet : null;
+  const ranges = palletRanges(items);
   const isLorry = form === "lorry";
   const t = totals(items);
   // Blank rows up to the end of the page, like the printed form.
@@ -228,6 +254,15 @@ export function PaperScreen({
             <option value="TIN" />
           </datalist>
 
+          <div className="mb-2 flex justify-end">
+            <button
+              type="button"
+              onClick={() => setAutoFill(true)}
+              className="flex h-10 items-center gap-2 rounded-lg border-[1.5px] border-primary px-3.5 text-sm font-bold text-primary hover:bg-primary-soft"
+            >
+              <Calculator className="size-4" /> Auto-fill item
+            </button>
+          </div>
           <table className="w-full border-collapse text-left">
             <thead>
               <tr className="bg-surface-sunken text-[11px] leading-tight font-bold tracking-[.04em] text-body">
@@ -452,14 +487,57 @@ export function PaperScreen({
           <div className="mt-2 text-right text-sm font-bold text-muted">
             Total: {t.pallets} pallet{t.pallets === 1 ? "" : "s"} · {formatQty(t.qty)}
           </div>
+          {items.some((it) => it.name.trim()) ? (
+            <div className="mt-3 flex flex-col gap-1 rounded-[10px] border border-line bg-surface-sunken px-3 py-2">
+              {items.map((it, k) => {
+                if (!it.name.trim()) return null;
+                const st = countStatus(itemQty(it), it.targetQty, it.unit);
+                const r = ranges[k];
+                return (
+                  <div key={it.id} className="flex flex-wrap items-center justify-between gap-x-3 text-sm font-semibold">
+                    <span>
+                      {it.name}{" "}
+                      <span className="text-muted">
+                        · Pallet {r.start}
+                        {r.end > r.start ? `–${r.end}` : ""}
+                      </span>
+                    </span>
+                    <span
+                      className={cn(
+                        "font-extrabold",
+                        st.state === "ok" && "text-success",
+                        st.state === "short" && "text-warning",
+                        st.state === "over" && "text-danger",
+                      )}
+                    >
+                      {st.label}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          ) : null}
           <PaperFooter draft={draft} signerName={signerName} onEdit={onEdit} />
           <p className="mt-1 text-xs font-medium text-muted">
-            Each row is filled on its own. Tap 〃 in a cell (Item, Contract, Qty, Batch, Expired, Prod) to copy just that value from the row above. +B adds a second batch for a mixed
-            pallet. Dates: type 160427 for 16/04/27.
+            Each row is filled on its own. Tap 〃 in a cell (Item, Contract, Qty, Batch, Expired, Prod) to copy just that value from the row
+            above. +B adds a second batch for a mixed pallet. Dates: type 160427 for 16/04/27.
           </p>
         </div>
       </div>
 
+      {autoFill ? (
+        <AutoFillPanel
+          form={form}
+          history={history}
+          nextStart={filled + 1}
+          defaults={{ pltType: lastFilled?.pltType ?? "L", contractNo: lastFilled?.contractNo ?? "" }}
+          onClose={() => setAutoFill(false)}
+          onAdd={(item) => {
+            onItems((its) => appendItem(its, item));
+            setAutoFill(false);
+          }}
+        />
+      ) : null}
       <BottomBar>
         <Button className="w-full" onClick={onNext}>
           Next · Review
