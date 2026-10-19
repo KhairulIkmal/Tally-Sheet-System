@@ -115,6 +115,8 @@ export function PaperScreen({
   onNext: () => void;
 }) {
   const [autoFill, setAutoFill] = useState(false);
+  // A pallet row that continues the item above shows the paper's blank (or TOTAL) until tapped.
+  const [nameRow, setNameRow] = useState<number | null>(null);
   const rows = toRows(items);
   // Auto-fill starts after the last row with anything on it.
   let filled = rows.length;
@@ -126,12 +128,15 @@ export function PaperScreen({
     filled--;
   const lastFilled = filled > 0 ? rows[filled - 1].pallet : null;
   const ranges = palletRanges(items);
-  // As written on paper: each item's TOTAL, and pallets that are not full (circled).
+  // As written on paper: the name on an item's first row, its TOTAL on the second
+  // (under the name when it has one pallet), the last pallet circled.
   const marks = items.flatMap((it) => {
     const qtys = it.pallets.map(palletQty);
     const unit = normalizeUnit(it.unit);
+    const total = itemTotalText(unit, it.targetQty, qtys);
     return itemRowMarks(it.name.trim(), unit, it.targetQty, qtys).map((m, j) => ({
-      total: j === 0 ? itemTotalText(unit, it.targetQty, qtys) : "",
+      first: j === 0,
+      total: j === (qtys.length > 1 ? 1 : 0) ? total : "",
       circled: !!m.circled,
     }));
   });
@@ -354,26 +359,51 @@ export function PaperScreen({
                       </td>
                     ) : null}
                     <td className={cell}>
-                      <div className="flex items-center">
-                        <input
-                          value={r.name}
-                          list="paper-items"
-                          aria-label={`Pallet ${i + 1} item`}
-                          placeholder="Item"
-                          className={cn(input, noName && "bg-danger-bg/60")}
-                          onChange={(e) => {
-                            const name = e.target.value.toUpperCase();
-                            const hit = history.find((h) => h.name === name.trim());
-                            onItems((its) => renameRow(its, i, name, hit?.unit));
-                          }}
-                        />
-                        {above?.name.trim() && above.name.trim() !== r.name.trim() ? (
-                          <Ditto what="item" value={above.name.trim()} pallet={i + 1} onClick={() => onItems((its) => dittoItem(its, i))} />
-                        ) : null}
-                      </div>
-                      {marks[i]?.total && r.name.trim() ? (
-                        <div className="-mt-1 px-2 pb-1 text-[11px] font-bold tracking-[.03em] text-danger">{marks[i].total}</div>
-                      ) : null}
+                      {!marks[i]?.first && r.name.trim() && nameRow !== i ? (
+                        <button
+                          type="button"
+                          aria-label={`Pallet ${i + 1} item: ${r.name.trim()}. Tap to change`}
+                          title={r.name.trim()}
+                          className="flex h-10 w-full items-center px-2 text-left hover:bg-primary-soft"
+                          onClick={() => setNameRow(i)}
+                        >
+                          {marks[i]?.total ? (
+                            <span className="text-[13px] font-extrabold tracking-[.03em] text-danger">{marks[i].total}</span>
+                          ) : (
+                            <span className="text-lg font-bold text-faint">〃</span>
+                          )}
+                        </button>
+                      ) : (
+                        <>
+                          <div className="flex items-center">
+                            <input
+                              autoFocus={nameRow === i}
+                              onBlur={() => nameRow === i && setNameRow(null)}
+                              value={r.name}
+                              list="paper-items"
+                              aria-label={`Pallet ${i + 1} item`}
+                              placeholder="Item"
+                              className={cn(input, noName && "bg-danger-bg/60")}
+                              onChange={(e) => {
+                                const name = e.target.value.toUpperCase();
+                                const hit = history.find((h) => h.name === name.trim());
+                                onItems((its) => renameRow(its, i, name, hit?.unit));
+                              }}
+                            />
+                            {above?.name.trim() && above.name.trim() !== r.name.trim() ? (
+                              <Ditto
+                                what="item"
+                                value={above.name.trim()}
+                                pallet={i + 1}
+                                onClick={() => onItems((its) => dittoItem(its, i))}
+                              />
+                            ) : null}
+                          </div>
+                          {marks[i]?.first && marks[i].total && r.name.trim() ? (
+                            <div className="-mt-1 px-2 pb-1 text-[11px] font-bold tracking-[.03em] text-danger">{marks[i].total}</div>
+                          ) : null}
+                        </>
+                      )}
                     </td>
                     <td className={cell}>
                       <div className="flex">
