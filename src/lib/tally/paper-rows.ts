@@ -46,17 +46,18 @@ export function fromRows(rows: PaperRow[], prev: DraftItem[]): DraftItem[] {
   return items;
 }
 
-/**
- * Renames row i and the rows right below it that had the same item, so
- * fixing a typo on the first row of an item fixes the whole item.
- */
+/** Writes the item on row i only; every row has its own item cell, as on paper. */
 export function renameRow(items: DraftItem[], i: number, name: string, unit?: string): DraftItem[] {
   const rows = toRows(items);
-  const old = key(rows[i].name);
-  for (let j = i; j < rows.length && (j === i || key(rows[j].name) === old); j++) {
-    rows[j] = { ...rows[j], name: name.toUpperCase(), unit: unit ?? rows[j].unit };
-  }
+  rows[i] = { ...rows[i], name: name.toUpperCase(), unit: unit ?? rows[i].unit };
   return fromRows(rows, items);
+}
+
+/** 〃 on the item cell: the item (and its unit) from the row above. */
+export function dittoItem(items: DraftItem[], i: number): DraftItem[] {
+  if (i < 1) return items;
+  const rows = toRows(items);
+  return renameRow(items, i, rows[i - 1].name, rows[i - 1].unit);
 }
 
 /** The unit belongs to the item: every row of the item at row i changes. */
@@ -69,17 +70,16 @@ export function setRowUnit(items: DraftItem[], i: number, unit: string): DraftIt
   });
 }
 
-/** A new row at the bottom, carrying on the item, PLT type and contract from the row above. */
+/** A new, empty row at the bottom. Nothing is copied: the worker uses 〃 per cell for that. */
 export function addRow(items: DraftItem[]): DraftItem[] {
   const rows = toRows(items);
-  const above = rows.at(-1);
   rows.push({
-    name: above?.name ?? "",
-    unit: above?.unit ?? "CTN",
+    name: "",
+    unit: "CTN",
     pallet: {
       id: newId(),
-      pltType: above?.pallet.pltType ?? "L",
-      contractNo: above?.pallet.contractNo ?? "",
+      pltType: "L",
+      contractNo: "",
       remark: "",
       lines: [blankLine()],
     },

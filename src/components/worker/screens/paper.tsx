@@ -5,7 +5,17 @@ import { cn } from "@/lib/utils";
 import { PLT_TYPES, normalizeUnit, type SheetForm } from "@/lib/tally/constants";
 import { isValidPaperDate, normalizeDate } from "@/lib/tally/dates";
 import { blankLine, formatQty, totals, type DraftHeader, type DraftItem, type DraftLine, type HeaderErrors } from "@/lib/tally/draft";
-import { addRow, dittoField, dittoSource, removeRow, renameRow, setRowUnit, toRows, updateRowPallet } from "@/lib/tally/paper-rows";
+import {
+  addRow,
+  dittoField,
+  dittoItem,
+  dittoSource,
+  removeRow,
+  renameRow,
+  setRowUnit,
+  toRows,
+  updateRowPallet,
+} from "@/lib/tally/paper-rows";
 import type { ItemSuggestion } from "../pick";
 import { BottomBar, Button } from "../ui";
 
@@ -27,6 +37,21 @@ const HEADER: Record<SheetForm, { key: keyof DraftHeader; label: string; numeric
 };
 
 const ROWS_PER_PAGE = 25;
+
+/** 〃: copies one cell from the row above. Only shown when it would change something. */
+function Ditto({ what, value, pallet, onClick }: { what: string; value: string; pallet: number; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      title={`Copy ${what} from the row above: ${value}`}
+      aria-label={`Pallet ${pallet}: copy ${what} from the row above (${value})`}
+      onClick={onClick}
+      className="mr-0.5 grid h-9 w-8 flex-none place-items-center rounded-md text-lg font-extrabold text-primary hover:bg-primary-soft"
+    >
+      〃
+    </button>
+  );
+}
 const cell = "border border-ink/25 p-0 align-top";
 const input =
   "block h-11 w-full min-w-0 bg-transparent px-2 text-[15px] font-semibold uppercase outline-none placeholder:font-medium placeholder:text-placeholder focus:bg-primary-soft";
@@ -215,7 +240,7 @@ export function PaperScreen({
             <tbody>
               {rows.map((r, i) => {
                 const p = r.pallet;
-                const sameAsAbove = i > 0 && rows[i - 1].name.trim() === r.name.trim() && !!r.name.trim();
+                const above = i > 0 ? rows[i - 1] : null;
                 const noName = !r.name.trim();
                 return (
                   <tr key={p.id}>
@@ -249,34 +274,51 @@ export function PaperScreen({
                     ) : null}
                     {isLorry ? (
                       <td className={cell}>
-                        <input
-                          value={p.contractNo}
-                          aria-label={`Pallet ${i + 1} contract no`}
-                          className={input}
-                          onChange={(e) =>
-                            onItems((its) =>
-                              updateRowPallet(its, i, (x) => ({
-                                ...x,
-                                contractNo: e.target.value.toUpperCase(),
-                              })),
-                            )
-                          }
-                        />
+                        <div className="flex items-center">
+                          <input
+                            value={p.contractNo}
+                            aria-label={`Pallet ${i + 1} contract no`}
+                            className={input}
+                            onChange={(e) =>
+                              onItems((its) =>
+                                updateRowPallet(its, i, (x) => ({
+                                  ...x,
+                                  contractNo: e.target.value.toUpperCase(),
+                                })),
+                              )
+                            }
+                          />
+                          {above?.pallet.contractNo && above.pallet.contractNo !== p.contractNo ? (
+                            <Ditto
+                              what="contract no"
+                              value={above.pallet.contractNo}
+                              pallet={i + 1}
+                              onClick={() =>
+                                onItems((its) => updateRowPallet(its, i, (x) => ({ ...x, contractNo: above.pallet.contractNo })))
+                              }
+                            />
+                          ) : null}
+                        </div>
                       </td>
                     ) : null}
                     <td className={cell}>
-                      <input
-                        value={r.name}
-                        list="paper-items"
-                        aria-label={`Pallet ${i + 1} item`}
-                        placeholder="Item"
-                        className={cn(input, sameAsAbove && "text-muted", noName && "bg-danger-bg/60")}
-                        onChange={(e) => {
-                          const name = e.target.value.toUpperCase();
-                          const hit = history.find((h) => h.name === name.trim());
-                          onItems((its) => renameRow(its, i, name, hit?.unit));
-                        }}
-                      />
+                      <div className="flex items-center">
+                        <input
+                          value={r.name}
+                          list="paper-items"
+                          aria-label={`Pallet ${i + 1} item`}
+                          placeholder="Item"
+                          className={cn(input, noName && "bg-danger-bg/60")}
+                          onChange={(e) => {
+                            const name = e.target.value.toUpperCase();
+                            const hit = history.find((h) => h.name === name.trim());
+                            onItems((its) => renameRow(its, i, name, hit?.unit));
+                          }}
+                        />
+                        {above?.name.trim() && above.name.trim() !== r.name.trim() ? (
+                          <Ditto what="item" value={above.name.trim()} pallet={i + 1} onClick={() => onItems((its) => dittoItem(its, i))} />
+                        ) : null}
+                      </div>
                     </td>
                     <td className={cell}>
                       <div className="flex">
@@ -405,8 +447,8 @@ export function PaperScreen({
             Total: {t.pallets} pallet{t.pallets === 1 ? "" : "s"} · {formatQty(t.qty)}
           </div>
           <p className="mt-1 text-xs font-medium text-muted">
-            Tap 〃 in a Qty, Batch, Expired or Prod cell to copy just that value from the row above. +B adds a second batch for a mixed pallet.
-            Dates: type 160427 for 16/04/27.
+            Each row is filled on its own. Tap 〃 in a cell (Item, Contract, Qty, Batch, Expired, Prod) to copy just that value from the row above. +B adds a second batch for a mixed
+            pallet. Dates: type 160427 for 16/04/27.
           </p>
         </div>
       </div>

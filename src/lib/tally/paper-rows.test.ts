@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { buildPallets, type DraftItem } from "./draft";
-import { addRow, dittoField, fromRows, removeRow, renameRow, setRowUnit, toRows, unnamedRows, updateRowPallet } from "./paper-rows";
+import { addRow, dittoField, dittoItem, fromRows, removeRow, renameRow, setRowUnit, toRows, unnamedRows, updateRowPallet } from "./paper-rows";
 
 function item(name: string, qtys: number[], extra: Partial<DraftItem> = {}): DraftItem {
   return {
@@ -23,27 +23,28 @@ describe("paper rows", () => {
     expect(back).toEqual(items);
   });
 
-  it("renaming the first row of an item renames the rows below it", () => {
+  it("renaming a row changes only that row", () => {
     const items = [item("SUN OIL", [32, 32, 32]), item("KNIFE", [10])];
-    const out = renameRow(items, 0, "sun cooking oil");
-    expect(names(out)).toEqual(["SUN COOKING OIL×3", "KNIFE×1"]);
-  });
-
-  it("renaming a middle row splits the item there", () => {
+    expect(names(renameRow(items, 0, "sun cooking oil"))).toEqual(["SUN COOKING OIL×1", "SUN OIL×2", "KNIFE×1"]);
     const out = renameRow([item("A", [1, 2, 3])], 1, "B");
-    expect(names(out)).toEqual(["A×1", "B×2"]);
-    // The original item keeps its id on the first group.
+    expect(names(out)).toEqual(["A×1", "B×1", "A×1"]);
+    // The original item keeps its id and target on its first group.
     expect(out[0].id).toBe("id-A");
     expect(out[0].targetQty).toBe(100);
     expect(out[1].targetQty).toBeNull();
   });
 
-  it("adds a row carrying on the item and PLT type", () => {
+  it("adds an empty row, copying nothing", () => {
     const out = addRow([item("A", [32])]);
-    expect(names(out)).toEqual(["A×2"]);
-    expect(out[0].pallets[1]).toMatchObject({ pltType: "L", contractNo: "LS-1", lines: [{ qty: "", batch: "" }] });
-    expect(names(addRow([]))).toEqual(["×1"]);
-    expect(unnamedRows(addRow([]))).toEqual([1]);
+    expect(names(out)).toEqual(["A×1", "×1"]);
+    expect(out[1].pallets[0]).toMatchObject({ pltType: "L", contractNo: "", lines: [{ qty: "", batch: "" }] });
+    expect(unnamedRows(out)).toEqual([2]);
+  });
+
+  it("〃 on the item copies the name and unit from the row above", () => {
+    const out = dittoItem(addRow([item("KNIFE", [10], { unit: "TIN" })]), 1);
+    expect(names(out)).toEqual(["KNIFE×2"]);
+    expect(out[0].unit).toBe("TIN");
   });
 
   it("removes a row and merges neighbours with the same item", () => {
