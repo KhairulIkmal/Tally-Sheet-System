@@ -31,11 +31,14 @@ export function TopBar({
   subtitle,
   onBack,
   form,
+  action,
 }: {
   title: string;
   subtitle?: string;
   onBack?: () => void;
   form?: SheetForm | null;
+  /** E.g. the step-by-step / paper switch. */
+  action?: React.ReactNode;
 }) {
   return (
     <div className="flex h-[60px] flex-none items-center gap-1 bg-surface px-2">
@@ -50,6 +53,7 @@ export function TopBar({
         <div className="truncate text-lg font-bold">{title}</div>
         {subtitle ? <div className="truncate text-[13px] font-medium text-muted">{subtitle}</div> : null}
       </div>
+      {action}
       {form ? (
         <span className="mr-2">
           <FormBadge form={form} />

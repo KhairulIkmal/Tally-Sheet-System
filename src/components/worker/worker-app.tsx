@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { signOut } from "@/lib/auth/actions";
+import { cn } from "@/lib/utils";
 import { submitSheetAction } from "@/lib/data/actions";
 import { normalizeUnit, type SheetForm } from "@/lib/tally/constants";
 import { formatDateTime } from "@/lib/tally/dates";
@@ -25,17 +26,21 @@ import {
 import { draftToPayload } from "@/lib/tally/payload";
 import { paperFromDraft, type SheetSummary } from "@/lib/tally/sheet";
 import { newId } from "@/lib/tally/draft";
+import { unnamedRows } from "@/lib/tally/paper-rows";
 import { blankPick, type ItemSuggestion, type PickState } from "./pick";
 import {
   describeDevice,
   loadDraft,
+  loadMode,
   loadOutbox,
   loadRecent,
   loadRecentItems,
   remember,
   rememberItem,
   saveDraft,
+  saveMode,
   saveOutbox,
+  type FillMode,
   type OutboxEntry,
 } from "./storage";
 import { useOnline } from "./use-online";
@@ -52,11 +57,13 @@ import { ReviewScreen } from "./screens/review";
 import { SignatureScreen } from "./screens/signature";
 import { PreviewScreen } from "./screens/preview";
 import { SuccessScreen } from "./screens/success";
+import { PaperScreen } from "./screens/paper";
 
 type Screen =
   | "home"
   | "type"
   | "header"
+  | "paper"
   | "picker"
   | "setup"
   | "pallets"
@@ -100,6 +107,8 @@ export function WorkerApp({ user, history, sheets }: { user: WorkerUser; history
   const [screen, setScreen] = useState<Screen>("home");
   const [draft, setDraft] = useState<Draft | null>(null);
   const [form, setForm] = useState<SheetForm>("container");
+  const [mode, setMode] = useState<FillMode>("steps");
+  const [paperProblems, setPaperProblems] = useState<string[]>([]);
   const [cur, setCur] = useState(-1);
   const [pick, setPick] = useState<PickState>(blankPick());
   const [headerErrors, setHeaderErrors] = useState<HeaderErrors>({});
@@ -120,6 +129,7 @@ export function WorkerApp({ user, history, sheets }: { user: WorkerUser; history
     const d = loadDraft(user.id);
     setDraft(d);
     if (d) setForm(d.form);
+    setMode(loadMode(user.id));
     setOutbox(loadOutbox(user.id));
     setRecentItems(loadRecentItems(user.id));
     setRecentTransfers(loadRecent(user.id, "transfer"));
@@ -248,7 +258,8 @@ export function WorkerApp({ user, history, sheets }: { user: WorkerUser; history
     setup: "picker",
     pallets: "items",
     items: "header",
-    materials: "items",
+    paper: "home",
+    materials: mode === "paper" ? "paper" : "items",
     review: "materials",
     sign: "review",
     preview: "sign",
@@ -276,7 +287,36 @@ export function WorkerApp({ user, history, sheets }: { user: WorkerUser; history
       setDraft(fresh);
     }
     setHeaderErrors({});
-    go("header");
+    setPaperProblems([]);
+    go(mode === "paper" ? "paper" : "header");
+  }
+
+  /** Switches between the step-by-step screens and the paper layout; both edit the same draft. */
+  function switchMode(next: FillMode) {
+    setMode(next);
+    saveMode(user.id, next);
+    setPaperProblems([]);
+    if (next === "paper") go("paper");
+    else go(draft && draft.items.length ? "items" : "header");
+  }
+
+  function paperNext() {
+    if (!draft) return;
+    const errors = validateHeader(draft.form, draft.header);
+    setHeaderErrors(errors);
+    const problems: string[] = [];
+    const nErr = Object.keys(errors).length;
+    if (nErr) problems.push(`Header: ${nErr} field${nErr === 1 ? "" : "s"} need${nErr === 1 ? "s" : ""} fixing`);
+    if (!draft.items.length) problems.push("Fill at least one pallet row.");
+    const unnamed = unnamedRows(draft.items);
+    if (unnamed.length) problems.push(`Write the item on pallet ${unnamed.join(", ")}.`);
+    setPaperProblems(problems);
+    if (problems.length) return;
+    if (draft.form === "lorry") setRecentTransfers(remember(user.id, "transfer", draft.header.transferTo.trim().toUpperCase()));
+    for (const it of draft.items) {
+      setRecentItems(rememberItem(user.id, { name: it.name.trim(), unit: it.unit, qtyPerPallet: it.qtyPerPallet, useCount: 1 }));
+    }
+    go("materials");
   }
 
   function headerNext() {
@@ -376,6 +416,7 @@ export function WorkerApp({ user, history, sheets }: { user: WorkerUser; history
   const bars: Partial<Record<Screen, [string, string]>> = {
     type: ["New tally sheet", ""],
     header: ["Header", draft?.form === "lorry" ? "Lorry · Form B" : "Container · Form A"],
+    paper: ["Tally sheet", sheetNo || (draft?.form === "lorry" ? "Lorry · Form B" : "Container · Form A")],
     picker: ["Add item", `Item ${items.length + 1} · starts at Pallet ${nextStart}`],
     setup: [pick.name || "Item", `Item ${items.length + 1} · Pallet setup`],
     pallets: [
@@ -391,6 +432,33 @@ export function WorkerApp({ user, history, sheets }: { user: WorkerUser; history
     preview: ["Tally sheet preview", sheetNo],
   };
   const bar = bars[screen];
+  const canSwitch = screen === "paper" || screen === "header" || screen === "items" || screen === "pallets" || screen === "picker" || screen === "setup";
+  const modeSwitch = screen === "type" ? (
+    <div className="mr-1 flex h-9 overflow-hidden rounded-lg border-[1.5px] border-field text-sm font-bold" role="group" aria-label="How to fill the sheet">
+      {(["steps", "paper"] as const).map((m) => (
+        <button
+          key={m}
+          type="button"
+          aria-pressed={mode === m}
+          onClick={() => {
+            setMode(m);
+            saveMode(user.id, m);
+          }}
+          className={cn("px-3", m === "paper" && "border-l-[1.5px] border-field", mode === m ? "bg-solid text-on-solid" : "text-ink")}
+        >
+          {m === "steps" ? "Steps" : "Paper"}
+        </button>
+      ))}
+    </div>
+  ) : canSwitch ? (
+    <button
+      type="button"
+      onClick={() => switchMode(screen === "paper" ? "steps" : "paper")}
+      className="mr-1 flex h-9 items-center rounded-lg border-[1.5px] border-field px-3 text-sm font-bold text-primary hover:bg-primary-soft"
+    >
+      {screen === "paper" ? "Step by step" : "Paper view"}
+    </button>
+  ) : null;
 
   let body: React.ReactNode = null;
   if (screen === "home") {
@@ -408,7 +476,7 @@ export function WorkerApp({ user, history, sheets }: { user: WorkerUser; history
         onResume={() => {
           if (!draft) return;
           setForm(draft.form);
-          go(draft.items.length ? "items" : "header");
+          go(mode === "paper" ? "paper" : draft.items.length ? "items" : "header");
         }}
         onDiscardDraft={() => {
           if (window.confirm("Discard this draft? It can't be recovered.")) setDraft(null);
@@ -459,6 +527,30 @@ export function WorkerApp({ user, history, sheets }: { user: WorkerUser; history
             setHeaderErrors((e) => ({ ...e, [key]: undefined }));
           }}
           onNext={headerNext}
+        />
+      );
+    } else if (screen === "paper") {
+      body = (
+        <PaperScreen
+          form={draft.form}
+          header={draft.header}
+          items={draft.items}
+          errors={headerErrors}
+          problems={paperProblems}
+          transferSuggestions={recentTransfers}
+          history={suggestionPool}
+          onHeader={(key, value) => {
+            update((d) => {
+              d.header[key] = value;
+            });
+            setHeaderErrors((e) => ({ ...e, [key]: undefined }));
+          }}
+          onItems={(fn) =>
+            update((d) => {
+              d.items = fn(d.items);
+            })
+          }
+          onNext={paperNext}
         />
       );
     } else if (screen === "picker") {
@@ -559,8 +651,9 @@ export function WorkerApp({ user, history, sheets }: { user: WorkerUser; history
         <ReviewScreen
           draft={draft}
           warnings={warnings}
-          onEditHeader={() => go("header")}
+          onEditHeader={() => go(mode === "paper" ? "paper" : "header")}
           onEditItem={(i) => {
+            if (mode === "paper") return go("paper");
             setCur(i);
             go("pallets");
           }}
@@ -612,8 +705,10 @@ export function WorkerApp({ user, history, sheets }: { user: WorkerUser; history
   }
 
   return (
-    <div className="relative mx-auto flex h-dvh max-w-[820px] flex-col overflow-hidden bg-canvas text-ink">
-      {bar ? <TopBar title={bar[0]} subtitle={bar[1]} onBack={() => go(back[screen] ?? "home")} form={screen === "type" ? null : draft?.form} /> : null}
+    <div className={cn("relative mx-auto flex h-dvh flex-col overflow-hidden bg-canvas text-ink", screen === "paper" ? "max-w-[1280px]" : "max-w-[820px]")}>
+      {bar ? (
+        <TopBar title={bar[0]} subtitle={bar[1]} onBack={() => go(back[screen] ?? "home")} form={screen === "type" ? null : draft?.form} action={modeSwitch} />
+      ) : null}
       {step !== undefined ? <Progress step={step} /> : null}
       {body}
       <Toast message={toast} />

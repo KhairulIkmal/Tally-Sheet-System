@@ -112,6 +112,18 @@ export function rememberItem(userId: string, item: ItemSuggestion): ItemSuggesti
   return list;
 }
 
+export type FillMode = "steps" | "paper";
+const modeKey = (userId: string) => `tally:mode:${userId}`;
+
+/** How this worker likes to fill the sheet: step by step, or on the paper layout. */
+export function loadMode(userId: string): FillMode {
+  return read<FillMode>(modeKey(userId)) === "paper" ? "paper" : "steps";
+}
+
+export function saveMode(userId: string, mode: FillMode): void {
+  write(modeKey(userId), mode);
+}
+
 /** A short description of this device for the office ("Android · Chrome 129"). */
 export function describeDevice(): string {
   try {
