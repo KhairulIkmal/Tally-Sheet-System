@@ -1,5 +1,5 @@
 import { normalizeUnit } from "./constants";
-import { blankLine, copyPalletFrom, newId, type DraftItem, type DraftPallet } from "./draft";
+import { blankLine, newId, type DraftItem, type DraftPallet } from "./draft";
 
 /**
  * Paper mode: the sheet as the worker sees it on paper, one row per pallet
@@ -93,11 +93,14 @@ export function removeRow(items: DraftItem[], i: number): DraftItem[] {
   return fromRows(rows, items);
 }
 
-/** 〃 ditto: batch / expired / prod (and qty when empty) from the row above. */
+/** 〃 ditto: only batch / expired / prod from the row above. Qty and everything else stay as they are. */
 export function dittoRow(items: DraftItem[], i: number): DraftItem[] {
   if (i < 1) return items;
   const rows = toRows(items);
-  rows[i] = { ...rows[i], pallet: copyPalletFrom(rows[i].pallet, rows[i - 1].pallet) };
+  const above = rows[i - 1].pallet.lines;
+  const own = rows[i].pallet.lines;
+  const lines = above.map((a, j) => ({ qty: own[j]?.qty ?? "", batch: a.batch, expired: a.expired, prod: a.prod }));
+  rows[i] = { ...rows[i], pallet: { ...rows[i].pallet, lines } };
   return fromRows(rows, items);
 }
 

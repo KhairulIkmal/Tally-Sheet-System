@@ -266,8 +266,8 @@ export function PaperScreen({
                         <button
                           type="button"
                           disabled={i === 0}
-                          title="Same as above (〃)"
-                          aria-label={`Pallet ${i + 1}: same as above`}
+                          title="Copy batch, expired and prod from the row above (〃)"
+                          aria-label={`Pallet ${i + 1}: copy batch, expired and prod from the row above`}
                           onClick={() => onItems((its) => dittoRow(its, i))}
                           className="grid size-9 place-items-center rounded-md text-xl font-extrabold text-primary hover:bg-primary-soft disabled:opacity-25"
                         >
@@ -321,7 +321,7 @@ export function PaperScreen({
             Total: {t.pallets} pallet{t.pallets === 1 ? "" : "s"} · {formatQty(t.qty)}
           </div>
           <p className="mt-1 text-xs font-medium text-muted">
-            〃 copies batch and dates from the row above. +B adds a second batch for a mixed pallet. Dates: type 160427 for 16/04/27.
+            〃 copies batch, expired and prod from the row above (qty stays as you typed it). +B adds a second batch for a mixed pallet. Dates: type 160427 for 16/04/27.
           </p>
         </div>
       </div>
