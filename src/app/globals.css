@@ -6,6 +6,24 @@
  * (for dim warehouses) is kept but only applies with data-theme="dark".
  */
 @custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+/* Tailwind v4 leaves buttons with the arrow cursor; everything clickable gets the pointer. */
+@layer base {
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]),
+  a[href],
+  label[for],
+  select:not(:disabled),
+  summary,
+  input[type="checkbox"]:not(:disabled),
+  input[type="radio"]:not(:disabled),
+  input[type="date"]:not(:disabled) {
+    cursor: pointer;
+  }
+  :disabled {
+    cursor: not-allowed;
+  }
+}
 @theme {
   --color-primary: #1e4fa3;
   --color-primary-hover: #163c7e;
