@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { addDays, addMonths, monthGrid, monthLabel, rangeLabel } from "@/lib/data/filters";
 import type { KlDate, SheetFilter } from "@/lib/data/types";
@@ -130,7 +130,19 @@ export function DateSidebar({
         )}
       </div>
 
-      <div className="mt-4 text-[13px] font-medium text-muted">Selected: {rangeLabel(from, to)}</div>
+      <div className="mt-4 flex h-7 items-center justify-between text-[13px] font-medium text-muted">
+        <span>Selected: {rangeLabel(from, to)}</span>
+        {from || anchor ? (
+          <button
+            type="button"
+            onClick={() => quick({ from: null, to: null })}
+            className="flex items-center gap-1 rounded-md px-2 py-1 font-bold text-primary hover:bg-primary-soft"
+          >
+            <X className="size-3.5" strokeWidth={3} />
+            Clear
+          </button>
+        ) : null}
+      </div>
       <div className="mt-3 flex flex-wrap gap-2">
         {quickRanges.map(([label, r]) => {
           const active = r.from === from && r.to === to;
@@ -174,7 +186,7 @@ export function DateSidebar({
 
       <span className="flex-1" />
       <p className="mt-6 text-xs leading-relaxed font-medium text-muted">
-        Click a day, then a second day to select a range. The small number is how many sheets were submitted that day.
+        Click a day, then a second day to select a range. Clear removes the date filter. The small number is how many sheets were submitted that day.
       </p>
     </aside>
   );
