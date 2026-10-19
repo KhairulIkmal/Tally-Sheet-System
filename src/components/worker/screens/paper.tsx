@@ -32,7 +32,7 @@ const input =
   "block h-11 w-full min-w-0 bg-transparent px-2 text-[15px] font-semibold uppercase outline-none placeholder:font-medium placeholder:text-placeholder focus:bg-primary-soft";
 
 type LineKey = keyof DraftLine;
-const DITTO: LineKey[] = ["batch", "expired", "prod"];
+const DITTO: LineKey[] = ["qty", "batch", "expired", "prod"];
 
 /**
  * The tally sheet as it looks on paper: header boxes on top, one row per
@@ -99,7 +99,7 @@ export function PaperScreen({
       <td className={cell}>
         {p.lines.map((l, li) => {
           const bad = opts.date && !!l[k].trim() && !isValidPaperDate(l[k].trim());
-          const field = DITTO.includes(k) ? (k as "batch" | "expired" | "prod") : null;
+          const field = DITTO.includes(k) ? k : null;
           const source = field ? dittoSource(items, i, li, field) : "";
           const canDitto = !!source && source !== l[k];
           return (
@@ -281,16 +281,31 @@ export function PaperScreen({
                     <td className={cell}>
                       <div className="flex">
                         <div className="min-w-0 flex-1">
-                          {p.lines.map((l, li) => (
-                            <input
-                              key={li}
-                              value={l.qty}
-                              inputMode="numeric"
-                              aria-label={`Pallet ${i + 1} qty${p.lines.length > 1 ? ` line ${li + 1}` : ""}`}
-                              className={cn(input, "text-right", li > 0 && "border-t border-dashed border-ink/25")}
-                              onChange={(e) => setLine(i, li, "qty", e.target.value.replace(/\D/g, "").slice(0, 5))}
-                            />
-                          ))}
+                          {p.lines.map((l, li) => {
+                            const source = dittoSource(items, i, li, "qty");
+                            return (
+                              <div key={li} className={cn("flex items-center", li > 0 && "border-t border-dashed border-ink/25")}>
+                                {source && source !== l.qty ? (
+                                  <button
+                                    type="button"
+                                    title={`Copy qty from the row above: ${source}`}
+                                    aria-label={`Pallet ${i + 1}: copy qty from the row above (${source})`}
+                                    onClick={() => onItems((its) => dittoField(its, i, li, "qty"))}
+                                    className="ml-0.5 grid h-9 w-8 flex-none place-items-center rounded-md text-lg font-extrabold text-primary hover:bg-primary-soft"
+                                  >
+                                    〃
+                                  </button>
+                                ) : null}
+                                <input
+                                  value={l.qty}
+                                  inputMode="numeric"
+                                  aria-label={`Pallet ${i + 1} qty${p.lines.length > 1 ? ` line ${li + 1}` : ""}`}
+                                  className={cn(input, "text-right")}
+                                  onChange={(e) => setLine(i, li, "qty", e.target.value.replace(/\D/g, "").slice(0, 5))}
+                                />
+                              </div>
+                            );
+                          })}
                         </div>
                         <input
                           value={r.unit}
@@ -390,7 +405,7 @@ export function PaperScreen({
             Total: {t.pallets} pallet{t.pallets === 1 ? "" : "s"} · {formatQty(t.qty)}
           </div>
           <p className="mt-1 text-xs font-medium text-muted">
-            Tap 〃 in a Batch, Expired or Prod cell to copy just that value from the row above. +B adds a second batch for a mixed pallet.
+            Tap 〃 in a Qty, Batch, Expired or Prod cell to copy just that value from the row above. +B adds a second batch for a mixed pallet.
             Dates: type 160427 for 16/04/27.
           </p>
         </div>

@@ -7,7 +7,6 @@ import { calendarInputToPaperDate, isValidPaperDate, normalizeDate } from "@/lib
 import {
   blankLine,
   newId,
-  copyPalletFrom,
   countStatus,
   itemQty,
   palletQty,
@@ -128,16 +127,23 @@ function LineFields({
         </div>
       ) : null}
       <div className="grid grid-cols-[0.8fr_1.2fr] gap-2">
-        <label className="flex min-w-0 flex-col gap-1">
+        <div className="flex min-w-0 flex-col gap-1">
           <span className="flex h-[18px] items-center text-xs font-bold text-muted">QTY ({unit})</span>
-          <input
-            value={line.qty}
-            inputMode="numeric"
-            placeholder="0"
-            onChange={(e) => onSet("qty", e.target.value.replace(/\D/g, "").slice(0, 5))}
-            className="h-14 w-full rounded-[9px] border-[1.5px] border-field bg-surface px-3 text-2xl font-bold text-ink outline-none focus:border-2 focus:border-primary"
-          />
-        </label>
+          <div className="relative">
+            <input
+              value={line.qty}
+              inputMode="numeric"
+              placeholder="0"
+              aria-label={`Qty (${unit})`}
+              onChange={(e) => onSet("qty", e.target.value.replace(/\D/g, "").slice(0, 5))}
+              className={cn(
+                "h-14 w-full rounded-[9px] border-[1.5px] border-field bg-surface pl-3 text-2xl font-bold text-ink outline-none focus:border-2 focus:border-primary",
+                hasPrev ? "pr-[50px]" : "pr-3",
+              )}
+            />
+            {hasPrev ? <SameButton onClick={() => onCopy("qty")} label="Qty same as above" /> : null}
+          </div>
+        </div>
         <div className="flex min-w-0 flex-col gap-1">
           <span className="flex h-[18px] items-center text-xs font-bold text-muted">BATCH</span>
           <div className="relative">
@@ -231,21 +237,6 @@ export function PalletDetailsScreen({
                   <X className="size-6" />
                 </button>
               </div>
-
-              {prev ? (
-                <button
-                  type="button"
-                  onClick={() =>
-                    onUpdate((it, all) => {
-                      const source = previousPallet(all, itemIndex, i);
-                      if (source) it.pallets[i] = copyPalletFrom(it.pallets[i], source);
-                    })
-                  }
-                  className="flex h-12 items-center justify-center gap-1.5 rounded-[10px] bg-primary-soft text-[15px] font-bold text-primary"
-                >
-                  <ArrowUp className="size-4" strokeWidth={2.5} /> Same as above (Pallet {no - 1})
-                </button>
-              ) : null}
 
               {form === "lorry" ? (
                 <div className="grid grid-cols-[1fr_1.1fr] gap-2">

@@ -93,7 +93,7 @@ export function removeRow(items: DraftItem[], i: number): DraftItem[] {
   return fromRows(rows, items);
 }
 
-export type DittoField = "batch" | "expired" | "prod";
+export type DittoField = "qty" | "batch" | "expired" | "prod";
 
 /** The value 〃 would copy into row i, line li: the same line on the row above (its last line if it has fewer). */
 export function dittoSource(items: DraftItem[], i: number, li: number, field: DittoField): string {
@@ -102,7 +102,7 @@ export function dittoSource(items: DraftItem[], i: number, li: number, field: Di
   return (above[li] ?? above.at(-1))?.[field] ?? "";
 }
 
-/** 〃 for one cell: copies just that field (batch, expired or prod) from the row above. */
+/** 〃 for one cell: copies just that field (qty, batch, expired or prod) from the row above. */
 export function dittoField(items: DraftItem[], i: number, li: number, field: DittoField): DraftItem[] {
   const value = dittoSource(items, i, li, field);
   if (!value) return items;
