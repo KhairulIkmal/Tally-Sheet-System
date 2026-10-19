@@ -50,10 +50,25 @@ function Stacked({ values, align, circled = false }: { values: string[]; align: 
       }}
     >
       {values.map((v, i) => (
-        <div key={i} style={{ lineHeight: values.length > 2 ? "8px" : "11px", fontSize: values.length > 2 ? 7.5 : undefined, whiteSpace: "nowrap" }}>
+        <div
+          key={i}
+          style={{ lineHeight: values.length > 2 ? "8px" : "11px", fontSize: values.length > 2 ? 7.5 : undefined, whiteSpace: "nowrap" }}
+        >
           {circled && v ? (
             // A pallet that is not full: circled, as written on paper.
-            <span style={{ ...RED, display: "inline-block", border: "1.4px solid currentColor", borderRadius: 999, padding: "1px 5px", lineHeight: "11px", fontWeight: 700 }}>{v}</span>
+            <span
+              style={{
+                ...RED,
+                display: "inline-block",
+                border: "1.4px solid currentColor",
+                borderRadius: 999,
+                padding: "1px 5px",
+                lineHeight: "11px",
+                fontWeight: 700,
+              }}
+            >
+              {v}
+            </span>
           ) : (
             v
           )}
@@ -85,10 +100,10 @@ function Cell({ children, center, last, bold }: { children?: React.ReactNode; ce
 function Signature({ data }: { data: PaperData }) {
   return (
     <>
-      <div style={{ height: 44, display: "flex", alignItems: "flex-end", paddingLeft: 14 }}>
+      <div style={{ width: 230, height: 44, display: "flex", alignItems: "flex-end", justifyContent: "center" }}>
         {data.signature ? (
           // eslint-disable-next-line @next/next/no-img-element -- a data: URL signature, not a static asset
-          <img src={data.signature} alt="Signature" style={{ height: 42, maxWidth: 230, objectFit: "contain", objectPosition: "left bottom" }} />
+          <img src={data.signature} alt="Signature" style={{ maxHeight: 42, maxWidth: 220, objectFit: "contain" }} />
         ) : null}
       </div>
       <div style={{ width: 230, borderBottom: "1.5px dotted #111" }} />
@@ -99,9 +114,7 @@ function Signature({ data }: { data: PaperData }) {
 
 function rowsFor(form: PaperData["form"], rows: PaperRow[], highlightMixed: boolean) {
   const cols =
-    form === "container"
-      ? "34px minmax(0,1fr) 46px 62px 62px 92px 86px"
-      : "32px 34px 76px minmax(0,1fr) 38px 56px 56px 78px 62px";
+    form === "container" ? "34px minmax(0,1fr) 46px 62px 62px 92px 86px" : "32px 34px 76px minmax(0,1fr) 38px 56px 56px 78px 62px";
   return rows.map((r) => {
     const q = r.lines.map((l) => l.qty);
     const e = r.lines.map((l) => l.expired);
@@ -119,7 +132,9 @@ function rowsFor(form: PaperData["form"], rows: PaperRow[], highlightMixed: bool
           background: highlightMixed && r.lines.length > 1 ? "#fff6d6" : "transparent",
         }}
       >
-        <div style={{ borderRight: line, display: "flex", alignItems: "center", justifyContent: "center", font: "700 10px Arial, sans-serif" }}>
+        <div
+          style={{ borderRight: line, display: "flex", alignItems: "center", justifyContent: "center", font: "700 10px Arial, sans-serif" }}
+        >
           {r.no}
         </div>
         {form === "lorry" ? (
@@ -158,9 +173,7 @@ export function PaperSheet({ data, page = 1, highlightMixed = false }: { data: P
   const rows = pageRows(data.rows, page);
   const h = data.header;
   const isContainer = data.form === "container";
-  const headCols = isContainer
-    ? "34px minmax(0,1fr) 46px 62px 62px 92px 86px"
-    : "32px 34px 76px minmax(0,1fr) 38px 56px 56px 78px 62px";
+  const headCols = isContainer ? "34px minmax(0,1fr) 46px 62px 62px 92px 86px" : "32px 34px 76px minmax(0,1fr) 38px 56px 56px 78px 62px";
   const heads = isContainer
     ? ["NO", "ITEM (DESCRIPTION)", "QTY", "EXPIRED", "PROD", "BATCH", "REMARK"]
     : ["PLT\nNO", "PLT\nTYPE", "CONTRACT\nNO.", "ITEM (DESC)", "QTY", "EXPIRED", "PROD", "BATCH", "REMARK"];
@@ -245,7 +258,9 @@ export function PaperSheet({ data, page = 1, highlightMixed = false }: { data: P
       </div>
 
       {isLast && isContainer ? (
-        <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) 330px", gap: 28, marginTop: 16, fontSize: 10.5, fontWeight: 700 }}>
+        <div
+          style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) 330px", gap: 28, marginTop: 16, fontSize: 10.5, fontWeight: 700 }}
+        >
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             <div style={{ display: "grid", gridTemplateColumns: "72px 10px 1fr", alignItems: "end" }}>
               <span>REMARKS</span>
@@ -273,7 +288,9 @@ export function PaperSheet({ data, page = 1, highlightMixed = false }: { data: P
 
       {isLast && !isContainer ? (
         <>
-          <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) 230px", gap: 40, marginTop: 12, fontSize: 10.5, fontWeight: 700 }}>
+          <div
+            style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) 230px", gap: 40, marginTop: 12, fontSize: 10.5, fontWeight: 700 }}
+          >
             <div style={{ display: "flex", flexDirection: "column", gap: 7, paddingTop: 16 }}>
               {data.checks.map((c) => (
                 <div key={c.label} style={{ display: "grid", gridTemplateColumns: "76px 10px 24px 1fr", alignItems: "end", gap: "0 4px" }}>
@@ -292,7 +309,16 @@ export function PaperSheet({ data, page = 1, highlightMixed = false }: { data: P
                   >
                     {c.value}
                   </span>
-                  <span style={{ borderBottom: line, font: `500 10px ${mono}`, padding: "0 4px 1px", height: 14, marginLeft: 8, overflow: "hidden" }}>
+                  <span
+                    style={{
+                      borderBottom: line,
+                      font: `500 10px ${mono}`,
+                      padding: "0 4px 1px",
+                      height: 14,
+                      marginLeft: 8,
+                      overflow: "hidden",
+                    }}
+                  >
                     {c.note}
                   </span>
                 </div>
@@ -313,7 +339,9 @@ export function PaperSheet({ data, page = 1, highlightMixed = false }: { data: P
                   <span style={{ padding: "0 6px", display: "flex", alignItems: "center", fontSize: 9.5, borderRight: "1.5px solid #111" }}>
                     {p.label}
                   </span>
-                  <span style={{ font: `600 10.5px ${mono}`, display: "flex", alignItems: "center", justifyContent: "center" }}>{p.value}</span>
+                  <span style={{ font: `600 10.5px ${mono}`, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    {p.value}
+                  </span>
                 </div>
               ))}
             </div>
@@ -324,7 +352,16 @@ export function PaperSheet({ data, page = 1, highlightMixed = false }: { data: P
       ) : null}
 
       {!isLast ? (
-        <div style={{ marginTop: 16, display: "flex", justifyContent: "space-between", alignItems: "flex-end", fontSize: 10.5, fontWeight: 700 }}>
+        <div
+          style={{
+            marginTop: 16,
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "flex-end",
+            fontSize: 10.5,
+            fontWeight: 700,
+          }}
+        >
           <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
             <div>COUNT &amp; PREPARED BY :</div>
             <Signature data={data} />

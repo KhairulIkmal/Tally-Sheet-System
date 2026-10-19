@@ -22,10 +22,10 @@ export function PaperFooter({ draft, signerName, onEdit }: { draft: Draft; signe
   const signature = (
     <div className="flex flex-col gap-1">
       <span className="text-xs font-bold">COUNT &amp; PREPARED BY :</span>
-      <div className="flex h-14 items-end pl-3">
+      <div className="flex h-14 w-[230px] items-end justify-center">
         {draft.signature ? (
           // eslint-disable-next-line @next/next/no-img-element -- a data: URL signature
-          <img src={draft.signature} alt="Signature" className="h-12 max-w-[230px] object-contain object-left-bottom" />
+          <img src={draft.signature} alt="Signature" className="max-h-12 max-w-[220px] object-contain" />
         ) : (
           <span className="pb-1 text-xs font-medium text-muted">Signed after the review</span>
         )}
