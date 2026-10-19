@@ -62,40 +62,15 @@ export function PalletSetupScreen({
   return (
     <>
       <Scroll className="gap-3 px-4 py-3.5">
-        <div className="grid grid-cols-2 gap-1 rounded-xl bg-line p-1" role="tablist">
-          {(
-            [
-              ["auto", "From total qty"],
-              ["manual", "Number of pallets"],
-            ] as const
-          ).map(([mode, label]) => (
-            <button
-              key={mode}
-              type="button"
-              role="tab"
-              aria-selected={pick.mode === mode}
-              onClick={() => onChange({ mode })}
-              className={cn("h-11 rounded-[9px] text-[15px] font-bold", pick.mode === mode ? "bg-surface text-ink" : "text-muted")}
-            >
-              {label}
-            </button>
-          ))}
+        <div className="grid grid-cols-2 gap-2.5">
+          <NumberBox label={`Total ${unit}`} value={pick.total} placeholder="150" onChange={(v) => onChange({ total: v })} />
+          <NumberBox label={`${unit} per pallet (optional)`} value={pick.per} placeholder="32" onChange={(v) => onChange({ per: v })} />
         </div>
-
-        {pick.mode === "auto" ? (
-          <div className="grid grid-cols-2 gap-2.5">
-            <NumberBox label={`Total ${unit}`} value={pick.total} placeholder="150" onChange={(v) => onChange({ total: v })} />
-            <NumberBox label={`${unit} per pallet`} value={pick.per} placeholder="32" onChange={(v) => onChange({ per: v })} />
+        {total > 0 && !per ? (
+          <div className="rounded-[10px] bg-primary-soft px-3.5 py-2.5 text-sm font-semibold text-primary">
+            No qty per pallet: 1 pallet is started. On the next screen type each pallet&apos;s qty and add more with + Pallet. The total is checked against {total} {unit}.
           </div>
-        ) : (
-          <>
-            <div className="grid grid-cols-2 gap-2.5">
-              <NumberBox label="Number of pallets" value={pick.count} placeholder="5" onChange={(v) => onChange({ count: v.slice(0, 3) })} />
-              <NumberBox label={`Total ${unit} (optional)`} value={pick.total} placeholder="—" onChange={(v) => onChange({ total: v })} />
-            </div>
-            <div className="text-sm font-medium text-muted">You fill in the qty for each pallet.</div>
-          </>
-        )}
+        ) : null}
 
         {form === "lorry" ? (
           <div className="grid grid-cols-[1fr_1.2fr] gap-2.5">
@@ -112,7 +87,7 @@ export function PalletSetupScreen({
 
         <div className="overflow-hidden rounded-[14px] border border-line bg-surface">
           <div className="flex items-baseline justify-between border-b border-line-soft px-3.5 py-3">
-            <span className="text-[15px] font-bold">{count ? `${count} pallet${count === 1 ? "" : "s"} will be created` : "Enter the numbers to see the pallets"}</span>
+            <span className="text-[15px] font-bold">{count ? `${count} pallet${count === 1 ? "" : "s"} will be created` : `Enter the total ${unit} to see the pallets`}</span>
             <span className="text-sm font-semibold text-muted">{range}</span>
           </div>
           {qtys.slice(0, 12).map((q, i) => {
@@ -128,7 +103,7 @@ export function PalletSetupScreen({
               </div>
             );
           })}
-          {pick.mode === "auto" && count > 0 ? (
+          {per > 0 && count > 0 ? (
             <div className="flex justify-between bg-success-bg px-3.5 py-2.5 text-base font-bold text-success">
               <span>Total</span>
               <span>
@@ -140,7 +115,7 @@ export function PalletSetupScreen({
       </Scroll>
       <BottomBar>
         <Button className="w-full" disabled={!count} onClick={onCreate}>
-          {count ? `Create ${count} pallet${count === 1 ? "" : "s"}` : "Create pallets"}
+          {count ? `Create ${count} pallet${count === 1 ? "" : "s"}` : `Enter the total ${unit}`}
         </Button>
       </BottomBar>
     </>

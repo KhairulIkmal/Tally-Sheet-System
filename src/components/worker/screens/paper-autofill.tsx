@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { PLT_TYPE_NAMES, PLT_TYPES, QUICK_UNITS, normalizeUnit, type PltType, type SheetForm } from "@/lib/tally/constants";
-import { buildPallets, newId, splitIntoPallets, type DraftItem } from "@/lib/tally/draft";
+import { buildPallets, newId, setupPallets, type DraftItem } from "@/lib/tally/draft";
 import type { ItemSuggestion } from "../pick";
 import { Button } from "../ui";
 
@@ -39,7 +39,7 @@ export function AutoFillPanel({
   const [pltType, setPltType] = useState<PltType>(defaults.pltType);
   const [contractNo, setContractNo] = useState(defaults.contractNo);
 
-  const qtys = useMemo(() => splitIntoPallets(parseInt(total, 10) || 0, parseInt(per, 10) || 0), [total, per]);
+  const qtys = useMemo(() => setupPallets(parseInt(total, 10) || 0, parseInt(per, 10) || 0), [total, per]);
   const ready = !!name.trim() && qtys.length > 0;
   const end = nextStart + qtys.length - 1;
 
@@ -67,7 +67,7 @@ export function AutoFillPanel({
         <div className="flex items-center justify-between">
           <div>
             <div className="text-lg font-extrabold">Auto-fill item</div>
-            <div className="text-sm font-medium text-muted">Enter the total and the qty on a full pallet. The rows are filled for you.</div>
+            <div className="text-sm font-medium text-muted">Enter the total. With a qty per pallet the rows are filled for you.</div>
           </div>
           <button
             type="button"
@@ -137,7 +137,7 @@ export function AutoFillPanel({
             />
           </label>
           <label className="flex flex-col gap-1">
-            <span className="text-xs font-bold text-muted">QTY PER PALLET</span>
+            <span className="text-xs font-bold text-muted">QTY PER PALLET (OPTIONAL)</span>
             <input
               value={per}
               inputMode="numeric"
@@ -175,8 +175,8 @@ export function AutoFillPanel({
           aria-live="polite"
         >
           {qtys.length
-            ? `${qtys.length} pallet${qtys.length === 1 ? "" : "s"} · Pallet ${nextStart}${qtys.length > 1 ? `–${end}` : ""}: ${qtys.join(" · ")}`
-            : "Pallets appear here as you type."}
+            ? `${qtys.length} pallet${qtys.length === 1 ? "" : "s"} · Pallet ${nextStart}${qtys.length > 1 ? `–${end}` : ""}: ${per ? qtys.join(" · ") : "qty typed on the row; add more rows for the other pallets"}`
+            : "Enter the total. Add the qty per pallet to split it into pallets."}
         </div>
 
         <Button className="w-full" disabled={!ready} onClick={add}>

@@ -14,8 +14,7 @@ import {
   totals,
   validateHeader,
   type Draft,
-  type DraftItem,
-} from "./draft";
+  type DraftItem, setupPallets } from "./draft";
 
 function item(name: string, qtys: number[], target: number | null = null, unit = "CTN"): DraftItem {
   return {
@@ -164,5 +163,17 @@ describe("reviewWarnings", () => {
     d.items = [item("A", [10, 10])];
     d.pltAdjust.L = 1;
     expect(reviewWarnings(d).map((x) => x.kind)).toContain("plt");
+  });
+});
+
+describe("setupPallets", () => {
+  it("splits the total when the qty per pallet is known", () => {
+    expect(setupPallets(150, 32)).toEqual([32, 32, 32, 32, 22]);
+  });
+  it("starts one pallet with a blank qty when it is not", () => {
+    expect(setupPallets(80, 0)).toEqual([""]);
+  });
+  it("needs a total", () => {
+    expect(setupPallets(0, 32)).toEqual([]);
   });
 });

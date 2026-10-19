@@ -4,10 +4,8 @@ import { DEFAULT_UNIT, type PltType } from "@/lib/tally/constants";
 export interface PickState {
   name: string;
   unit: string;
-  mode: "auto" | "manual";
   total: string;
   per: string;
-  count: string;
   pltType: PltType;
   contractNo: string;
 }
@@ -16,10 +14,8 @@ export function blankPick(defaults?: Partial<Pick<PickState, "pltType" | "contra
   return {
     name: "",
     unit: DEFAULT_UNIT,
-    mode: "auto",
     total: "",
     per: "",
-    count: "",
     pltType: defaults?.pltType ?? "L",
     contractNo: defaults?.contractNo ?? "",
   };

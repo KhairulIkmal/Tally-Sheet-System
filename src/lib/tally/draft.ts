@@ -200,6 +200,17 @@ export function splitIntoPallets(total: number, perPallet: number, max = 200): n
   return qtys;
 }
 
+/**
+ * Pallets for a new item from its total. With a qty per pallet the total is
+ * split (150 at 32 → 32, 32, 32, 32, 22). Without one, pallets often hold
+ * different amounts (80 → 54 + 26), so one pallet is started with the qty
+ * left blank and the worker adds pallets and types each qty.
+ */
+export function setupPallets(total: number, perPallet: number): (number | "")[] {
+  if (!(total > 0)) return [];
+  return perPallet > 0 ? splitIntoPallets(total, perPallet) : [""];
+}
+
 export function buildPallets(
   qtys: (number | "")[],
   defaults: { pltType: PltType; contractNo: string },

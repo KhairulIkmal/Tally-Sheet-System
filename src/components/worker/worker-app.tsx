@@ -14,7 +14,7 @@ import {
   newDraft,
   palletRanges,
   reviewWarnings,
-  splitIntoPallets,
+  setupPallets,
   totals,
   validateHeader,
   vehicleNo,
@@ -240,9 +240,7 @@ export function WorkerApp({ user, history, sheets }: { user: WorkerUser; history
   }, [history, recentItems]);
 
   const setupQtys = useMemo((): (number | "")[] => {
-    if (pick.mode === "auto") return splitIntoPallets(parseInt(pick.total, 10) || 0, parseInt(pick.per, 10) || 0);
-    const n = Math.min(parseInt(pick.count, 10) || 0, 200);
-    return Array.from({ length: n }, () => "" as const);
+    return setupPallets(parseInt(pick.total, 10) || 0, parseInt(pick.per, 10) || 0);
   }, [pick]);
 
   // ── navigation ──────────────────────────────────────────────────────
@@ -347,7 +345,7 @@ export function WorkerApp({ user, history, sheets }: { user: WorkerUser; history
       name,
       unit: normalizeUnit(pick.unit),
       targetQty: total > 0 ? total : null,
-      qtyPerPallet: pick.mode === "auto" ? parseInt(pick.per, 10) || null : null,
+      qtyPerPallet: parseInt(pick.per, 10) || null,
       pallets: buildPallets(setupQtys, { pltType: pick.pltType, contractNo: pick.contractNo.trim().toUpperCase() }),
     };
     update((d) => {
