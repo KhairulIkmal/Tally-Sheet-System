@@ -23,16 +23,17 @@ export interface HistoryItemInput {
   isActive: boolean;
 }
 
-export type DateRange = "today" | "7" | "30" | "all";
+/** A calendar day in Kuala Lumpur, "YYYY-MM-DD". */
+export type KlDate = string;
 
 export interface SheetFilter {
-  range: DateRange;
+  /** Inclusive day range; both null = all dates. */
+  from: KlDate | null;
+  to: KlDate | null;
   form: "all" | "container" | "lorry";
   status: "all" | "submitted" | "printed";
   q: string;
 }
-
-export const DEFAULT_FILTER: SheetFilter = { range: "7", form: "all", status: "all", q: "" };
 
 export interface SubmitResult {
   id: string;
@@ -52,6 +53,8 @@ export interface TallyStore {
   listMySheets(userId: string, limit: number): Promise<SheetSummary[]>;
   /** Every sheet the caller may see, filtered (office list). */
   listSheets(filter: SheetFilter, limit: number): Promise<SheetSummary[]>;
+  /** submitted_at of every sheet the caller may see in [since, until), for the calendar's per-day counts. */
+  listSubmittedAt(since: string, until: string): Promise<string[]>;
   getSheet(id: string): Promise<SheetDetail | null>;
   submitSheet(payload: SubmitPayload): Promise<SubmitResult>;
   setPrinted(id: string, printed: boolean): Promise<void>;

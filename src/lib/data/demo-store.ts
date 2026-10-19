@@ -3,7 +3,7 @@ import "server-only";
 import type { PltType } from "@/lib/tally/constants";
 import { submitPayloadSchema, type SubmitPayload } from "@/lib/tally/payload";
 import type { SheetDetail, SheetSummary } from "@/lib/tally/sheet";
-import { rangeStart } from "./filters";
+import { rangeBounds } from "./filters";
 import { StoreError, type HistoryItem, type TallyStore } from "./types";
 
 /**
@@ -147,17 +147,24 @@ export function demoStore(actor: { id: string; name: string; roles: string[] }):
     },
 
     async listSheets(filter, limit) {
-      const since = rangeStart(filter.range);
+      const bounds = rangeBounds(filter);
       const q = filter.q.trim().toLowerCase();
       return state()
         .sheets.filter(visible)
-        .filter((s) => !since || s.submittedAt >= since)
+        .filter((s) => !bounds || (s.submittedAt >= bounds.since && s.submittedAt < bounds.until))
         .filter((s) => filter.form === "all" || s.form === filter.form)
         .filter((s) => filter.status === "all" || s.status === filter.status)
         .filter((s) => !q || [s.ref, s.vehicleNo, s.docNo, s.preparedByName].join(" ").toLowerCase().includes(q))
         .sort((a, b) => b.submittedAt.localeCompare(a.submittedAt))
         .slice(0, limit)
         .map(summary);
+    },
+
+    async listSubmittedAt(since, until) {
+      return state()
+        .sheets.filter(visible)
+        .filter((s) => s.submittedAt >= since && s.submittedAt < until)
+        .map((s) => s.submittedAt);
     },
 
     async getSheet(id) {

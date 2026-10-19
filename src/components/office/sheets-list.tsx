@@ -3,54 +3,48 @@
 import { useEffect, useMemo, useState, useTransition } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Search } from "lucide-react";
+import { Check, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatDateTime } from "@/lib/tally/dates";
 import { formatQty } from "@/lib/tally/draft";
 import type { SheetSummary } from "@/lib/tally/sheet";
-import type { SheetFilter } from "@/lib/data/types";
+import type { KlDate, SheetFilter } from "@/lib/data/types";
+import { filterParams, rangeLabel } from "@/lib/data/filters";
 import { FormBadge } from "@/components/worker/ui";
+import { DateSidebar, toggleOne } from "./date-sidebar";
 
 const SEEN_KEY = "tally:office-last-seen";
-const COLS = "6px 140px 130px minmax(150px,1fr) minmax(140px,1fr) 80px 100px minmax(170px,1fr) 130px";
+const COLS = "6px 124px 128px minmax(120px,1fr) minmax(120px,1fr) 76px 112px minmax(140px,1fr) 124px";
 
 export const STATUS_CHIP = {
   submitted: { label: "Submitted", className: "bg-success-bg text-success" },
   printed: { label: "Printed", className: "bg-chip text-body" },
 } as const;
 
-function Segmented<T extends string>({
-  value,
-  options,
-  onChange,
-  label,
-}: {
-  value: T;
-  options: [T, string][];
-  onChange: (v: T) => void;
-  label: string;
-}) {
-  return (
-    <div className="flex items-center gap-2">
-      <span className="text-[13px] font-semibold text-muted">{label}</span>
-      <div className="flex h-[38px] overflow-hidden rounded-lg border border-field bg-surface text-sm font-semibold" role="group" aria-label={label}>
-        {options.map(([v, l], i) => (
-          <button
-            key={v}
-            type="button"
-            aria-pressed={value === v}
-            onClick={() => onChange(v)}
-            className={cn("px-3.5", i > 0 && "border-l border-field", value === v ? "bg-solid text-on-solid" : "text-ink hover:bg-canvas")}
-          >
-            {l}
-          </button>
-        ))}
-      </div>
-    </div>
-  );
-}
+type Status = "submitted" | "printed";
 
-export function SheetsList({ sheets, filter }: { sheets: SheetSummary[]; filter: SheetFilter }) {
+const STATUS_TOGGLES: { value: Status; label: string; on: string; box: string }[] = [
+  { value: "submitted", label: "Submitted", on: "border-success bg-success-bg/60 text-success", box: "bg-success" },
+  { value: "printed", label: "Printed", on: "border-body bg-chip/60 text-body", box: "bg-body" },
+];
+
+const FORM_LABEL = { all: "Container & Lorry", container: "Container only", lorry: "Lorry only" } as const;
+
+export function SheetsList({
+  sheets,
+  filter,
+  statusCounts,
+  month,
+  today,
+  dayCounts,
+}: {
+  sheets: SheetSummary[];
+  filter: SheetFilter;
+  statusCounts: Record<Status, number>;
+  month: string;
+  today: KlDate;
+  dayCounts: Record<KlDate, number>;
+}) {
   const router = useRouter();
   const pathname = usePathname();
   const [pending, startTransition] = useTransition();
@@ -79,15 +73,22 @@ export function SheetsList({ sheets, filter }: { sheets: SheetSummary[]; filter:
     return () => clearInterval(timer);
   }, [router]);
 
-  function setFilter(patch: Partial<SheetFilter>) {
-    const next = { ...filter, q, ...patch };
-    const params = new URLSearchParams();
-    if (next.range !== "7") params.set("range", next.range);
-    if (next.form !== "all") params.set("form", next.form);
-    if (next.status !== "all") params.set("status", next.status);
-    if (next.q.trim()) params.set("q", next.q.trim());
+  function go(params: URLSearchParams) {
     const qs = params.toString();
-    startTransition(() => router.replace(qs ? `${pathname}?${qs}` : pathname));
+    startTransition(() => router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false }));
+  }
+
+  // Changing the dates lets the calendar follow the range; other changes keep the month shown.
+  function setFilter(patch: Partial<SheetFilter>) {
+    const params = filterParams({ ...filter, q, ...patch });
+    if (!("from" in patch) && month !== (filter.to ?? today).slice(0, 7)) params.set("month", month);
+    go(params);
+  }
+
+  function setMonth(next: string) {
+    const params = filterParams({ ...filter, q });
+    params.set("month", next);
+    go(params);
   }
 
   // Debounced search.
@@ -100,129 +101,132 @@ export function SheetsList({ sheets, filter }: { sheets: SheetSummary[]; filter:
 
   const rows = useMemo(() => (asc ? [...sheets].reverse() : sheets), [sheets, asc]);
   const freshCount = lastSeen ? sheets.filter((s) => s.submittedAt > lastSeen).length : 0;
-  const hasFilter = !!filter.q || filter.range !== "7" || filter.form !== "all" || filter.status !== "all";
+  const isDefault = filterParams(filter).toString() === "";
+  // Dates drop the year when the whole range is in this year.
+  const sameYear = !!filter.from && filter.from.slice(0, 4) === today.slice(0, 4);
 
   return (
-    <>
-      <div className="flex items-end gap-4 px-7 pt-6 pb-4">
-        <div className="flex-1">
-          <h1 className="text-[28px] font-extrabold">Submitted sheets</h1>
-          <div className="text-[15px] font-medium text-muted">
-            {lastSeen ? `${freshCount} new since you last looked` : "Sheets signed and sent from the warehouse phones"}
+    <div className="flex min-h-0 flex-1">
+      <div className="flex min-w-0 flex-1 flex-col">
+        <div className="flex items-end gap-4 px-7 pt-6 pb-4">
+          <div className="min-w-0 flex-1">
+            <h1 className="text-[28px] font-extrabold">Submitted sheets</h1>
+            <div className="text-[15px] font-medium text-muted">
+              {rangeLabel(filter.from, filter.to)} · {FORM_LABEL[filter.form]}
+              {freshCount > 0 ? <span className="font-bold text-primary"> · {freshCount} new since you last looked</span> : null}
+            </div>
+          </div>
+          <div className="relative">
+            <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-faint" />
+            <input
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              placeholder="Search container, lorry, contract, D/O, worker…"
+              aria-label="Search sheets"
+              className="h-11 w-[340px] rounded-lg border border-field bg-surface pr-3.5 pl-9 text-[15px] font-medium outline-none focus:border-primary focus:ring-[3px] focus:ring-primary-ring"
+            />
           </div>
         </div>
-        <div className="relative">
-          <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-faint" />
-          <input
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            placeholder="Search container, lorry, contract, D/O, worker…"
-            aria-label="Search sheets"
-            className="h-11 w-[380px] rounded-lg border border-field bg-surface pr-3.5 pl-9 text-[15px] font-medium outline-none focus:border-primary focus:ring-[3px] focus:ring-primary-ring"
-          />
-        </div>
-      </div>
 
-      <div className="flex flex-wrap items-center gap-4 px-7 pb-3.5">
-        <Segmented
-          label="Date"
-          value={filter.range}
-          options={[
-            ["today", "Today"],
-            ["7", "7 days"],
-            ["30", "30 days"],
-            ["all", "All"],
-          ]}
-          onChange={(range) => setFilter({ range })}
-        />
-        <Segmented
-          label="Form"
-          value={filter.form}
-          options={[
-            ["all", "All"],
-            ["container", "Container"],
-            ["lorry", "Lorry"],
-          ]}
-          onChange={(form) => setFilter({ form })}
-        />
-        <Segmented
-          label="Status"
-          value={filter.status}
-          options={[
-            ["all", "All"],
-            ["submitted", "Submitted"],
-            ["printed", "Printed"],
-          ]}
-          onChange={(status) => setFilter({ status })}
-        />
-        {hasFilter ? (
-          <button
-            type="button"
-            onClick={() => {
-              setQ("");
-              startTransition(() => router.replace(pathname));
-            }}
-            className="p-2 text-sm font-bold text-primary"
-          >
-            Clear filters
-          </button>
-        ) : null}
-        <span className="flex-1" />
-        <span className={cn("text-sm font-medium text-muted", pending && "opacity-50")}>
-          {sheets.length} sheet{sheets.length === 1 ? "" : "s"}
-        </span>
-      </div>
-
-      <div className={cn("mx-7 mb-5 flex min-h-0 flex-1 flex-col overflow-hidden rounded-[10px] border border-line bg-surface", pending && "opacity-70")}>
-        <div className="grid h-11 flex-none items-center border-b border-line bg-surface-sunken text-xs font-bold tracking-[.06em] text-muted" style={{ gridTemplateColumns: COLS }}>
-          <span />
-          <button type="button" onClick={() => setAsc(!asc)} className="pl-3.5 text-left">
-            SUBMITTED {asc ? "↑" : "↓"}
-          </button>
-          <span>FORM</span>
-          <span>CONTAINER / LORRY</span>
-          <span>CONTRACT / D/O</span>
-          <span className="text-right">PALLETS</span>
-          <span className="text-right">TOTAL QTY</span>
-          <span className="pl-7">PREPARED BY</span>
-          <span>STATUS</span>
-        </div>
-        <div className="min-h-0 flex-1 overflow-y-auto">
-          {rows.map((s) => {
-            const fresh = !!lastSeen && s.submittedAt > lastSeen;
-            const chip = STATUS_CHIP[s.status];
+        <div className="flex flex-wrap items-center gap-3 px-7 pb-3.5">
+          {STATUS_TOGGLES.map((t) => {
+            const on = filter.status === "all" || filter.status === t.value;
             return (
-              <Link
-                key={s.id}
-                href={`/office/sheets/${s.id}`}
-                className={cn("grid h-[50px] items-center border-b border-line-soft text-[15px] font-medium hover:bg-primary-soft", fresh ? "bg-primary-soft/50" : "bg-surface")}
-                style={{ gridTemplateColumns: COLS }}
+              <button
+                key={t.value}
+                type="button"
+                aria-pressed={on}
+                onClick={() => setFilter({ status: toggleOne<Status>(filter.status, t.value, ["submitted", "printed"]) })}
+                className={cn(
+                  "flex h-12 items-center gap-2.5 rounded-lg border-2 pr-2 pl-3.5 text-[15px] font-bold",
+                  on ? t.on : "border-field bg-surface text-muted hover:bg-canvas",
+                )}
               >
-                <span className={cn("h-full", fresh ? "bg-primary" : "bg-transparent")} />
-                <span className="pl-3.5 text-body">{formatDateTime(s.submittedAt)}</span>
-                <span>
-                  <FormBadge form={s.form} />
+                <span className={cn("flex size-5 items-center justify-center rounded", on ? `${t.box} text-white` : "border-2 border-field")}>
+                  {on ? <Check className="size-3.5" strokeWidth={3.5} /> : null}
                 </span>
-                <span className={cn("truncate pr-2", fresh ? "font-bold" : "font-medium")}>{s.vehicleNo}</span>
-                <span className="truncate pr-2 text-body">{s.docNo}</span>
-                <span className="text-right font-semibold">{s.totalPallets}</span>
-                <span className="truncate text-right font-semibold">{formatQty(s.qtyByUnit)}</span>
-                <span className="truncate pl-7">{s.preparedByName}</span>
-                <span className="flex items-center gap-2">
-                  <span className={cn("flex h-6 items-center rounded-full px-2.5 text-xs font-bold", chip.className)}>{chip.label}</span>
-                  {fresh ? <span className="text-[11px] font-bold tracking-[.06em] text-primary">NEW</span> : null}
+                {t.label}
+                <span className="ml-1 flex h-8 min-w-8 items-center justify-center rounded-md border border-line bg-surface px-2 text-sm text-ink">
+                  {statusCounts[t.value]}
                 </span>
-              </Link>
+              </button>
             );
           })}
-          {rows.length === 0 ? (
-            <div className="flex flex-col items-center gap-1.5 px-5 py-16 text-center">
-              <div className="text-lg font-bold">No matching sheets</div>
-              <div className="text-[15px] font-medium text-muted">Try a different search or filter.</div>
-            </div>
+          {!isDefault || q ? (
+            <button
+              type="button"
+              onClick={() => {
+                setQ("");
+                go(new URLSearchParams());
+              }}
+              className="p-2 text-[15px] font-bold text-primary"
+            >
+              Reset
+            </button>
           ) : null}
+          <span className="flex-1" />
+          <span className={cn("text-[15px] font-medium text-muted", pending && "opacity-50")}>
+            {sheets.length} sheet{sheets.length === 1 ? "" : "s"}
+          </span>
+        </div>
+
+        <div className={cn("mx-7 mb-5 flex min-h-0 flex-1 flex-col overflow-hidden rounded-[10px] border border-line bg-surface", pending && "opacity-70")}>
+          <div className="flex min-h-0 flex-1 flex-col overflow-x-auto">
+            <div className="flex min-h-0 min-w-[880px] flex-1 flex-col">
+              <div className="grid h-11 flex-none items-center border-b border-line bg-surface-sunken text-xs font-bold tracking-[.06em] text-muted" style={{ gridTemplateColumns: COLS }}>
+                <span />
+                <button type="button" onClick={() => setAsc(!asc)} className="pl-3.5 text-left">
+                  DATE {asc ? "↑" : "↓"}
+                </button>
+                <span>FORM</span>
+                <span>CONTAINER / LORRY</span>
+                <span>CONTRACT / D/O</span>
+                <span className="text-right">PALLETS</span>
+                <span className="text-right">TOTAL QTY</span>
+                <span className="pl-6">PREPARED BY</span>
+                <span>STATUS</span>
+              </div>
+              <div className="min-h-0 flex-1 overflow-y-auto">
+                {rows.map((s) => {
+                  const fresh = !!lastSeen && s.submittedAt > lastSeen;
+                  const chip = STATUS_CHIP[s.status];
+                  return (
+                    <Link
+                      key={s.id}
+                      href={`/office/sheets/${s.id}`}
+                      className={cn("grid h-[50px] items-center border-b border-line-soft text-[15px] font-medium hover:bg-primary-soft", fresh ? "bg-primary-soft/50" : "bg-surface")}
+                      style={{ gridTemplateColumns: COLS }}
+                    >
+                      <span className={cn("h-full", fresh ? "bg-primary" : s.status === "printed" ? "bg-field" : "bg-success")} />
+                      <span className="pl-3.5 text-body">{formatDateTime(s.submittedAt, { year: !sameYear })}</span>
+                      <span>
+                        <FormBadge form={s.form} />
+                      </span>
+                      <span className={cn("truncate pr-2", fresh ? "font-bold" : "font-medium")}>{s.vehicleNo}</span>
+                      <span className="truncate pr-2 text-body">{s.docNo}</span>
+                      <span className="text-right font-semibold">{s.totalPallets}</span>
+                      <span className="truncate text-right font-semibold">{formatQty(s.qtyByUnit)}</span>
+                      <span className="truncate pl-6">{s.preparedByName}</span>
+                      <span className="flex items-center gap-2">
+                        <span className={cn("flex h-6 items-center rounded-full px-2.5 text-xs font-bold", chip.className)}>{chip.label}</span>
+                        {fresh ? <span className="text-[11px] font-bold tracking-[.06em] text-primary">NEW</span> : null}
+                      </span>
+                    </Link>
+                  );
+                })}
+                {rows.length === 0 ? (
+                  <div className="flex flex-col items-center gap-1.5 px-5 py-16 text-center">
+                    <div className="text-lg font-bold">No matching sheets</div>
+                    <div className="text-[15px] font-medium text-muted">Pick other days on the calendar, or change the search.</div>
+                  </div>
+                ) : null}
+              </div>
+            </div>
+          </div>
         </div>
       </div>
-    </>
+
+      <DateSidebar filter={filter} month={month} today={today} dayCounts={dayCounts} onChange={setFilter} onMonth={setMonth} />
+    </div>
   );
 }

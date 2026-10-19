@@ -75,8 +75,8 @@ export function todayPaperDate(now: Date = new Date()): string {
   return `${get("day")}/${get("month")}/${get("year")}`;
 }
 
-/** A timestamp as "14/10/26 15:42" in Kuala Lumpur time. */
-export function formatDateTime(iso: string | null | undefined): string {
+/** A timestamp as "14/10/26 15:42" (or "14/10 15:42" without the year) in Kuala Lumpur time. */
+export function formatDateTime(iso: string | null | undefined, { year = true }: { year?: boolean } = {}): string {
   if (!iso) return "";
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) return "";
@@ -90,7 +90,8 @@ export function formatDateTime(iso: string | null | undefined): string {
     hourCycle: "h23",
   }).formatToParts(date);
   const get = (type: string) => parts.find((p) => p.type === type)?.value ?? "";
-  return `${get("day")}/${get("month")}/${get("year")} ${get("hour")}:${get("minute")}`;
+  const day = `${get("day")}/${get("month")}`;
+  return `${year ? `${day}/${get("year")}` : day} ${get("hour")}:${get("minute")}`;
 }
 
 /** The HTML date input's "YYYY-MM-DD" → "DD/MM/YY". */

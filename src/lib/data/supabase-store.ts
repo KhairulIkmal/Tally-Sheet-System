@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import type { SubmitPayload } from "@/lib/tally/payload";
 import type { SheetDetail, SheetSummary } from "@/lib/tally/sheet";
 import type { PltType, SheetForm } from "@/lib/tally/constants";
-import { rangeStart, safeSearch } from "./filters";
+import { rangeBounds, safeSearch } from "./filters";
 import { StoreError, type HistoryItem, type HistoryItemInput, type SheetFilter, type SubmitResult, type TallyStore } from "./types";
 
 const SUMMARY_COLUMNS =
@@ -96,8 +96,8 @@ export function supabaseStore(): TallyStore {
     async listSheets(filter: SheetFilter, limit) {
       const supabase = await createClient();
       let query = supabase.from("sheets").select(SUMMARY_COLUMNS).order("submitted_at", { ascending: false }).limit(limit);
-      const since = rangeStart(filter.range);
-      if (since) query = query.gte("submitted_at", since);
+      const bounds = rangeBounds(filter);
+      if (bounds) query = query.gte("submitted_at", bounds.since).lt("submitted_at", bounds.until);
       if (filter.form !== "all") query = query.eq("form", filter.form);
       if (filter.status !== "all") query = query.eq("status", filter.status);
       const q = safeSearch(filter.q);
@@ -110,6 +110,18 @@ export function supabaseStore(): TallyStore {
       const { data, error } = await query;
       if (error) fail(error, "Couldn't load the sheets.");
       return ((data ?? []) as SummaryRow[]).map(toSummary);
+    },
+
+    async listSubmittedAt(since, until) {
+      const supabase = await createClient();
+      const { data, error } = await supabase
+        .from("sheets")
+        .select("submitted_at")
+        .gte("submitted_at", since)
+        .lt("submitted_at", until)
+        .limit(5000);
+      if (error) fail(error, "Couldn't load the calendar.");
+      return ((data ?? []) as { submitted_at: string }[]).map((r) => r.submitted_at);
     },
 
     async getSheet(id) {
