@@ -60,19 +60,7 @@ import { SuccessScreen } from "./screens/success";
 import { PaperScreen } from "./screens/paper";
 
 type Screen =
-  | "home"
-  | "type"
-  | "header"
-  | "paper"
-  | "picker"
-  | "setup"
-  | "pallets"
-  | "items"
-  | "materials"
-  | "review"
-  | "sign"
-  | "preview"
-  | "success";
+  "home" | "type" | "header" | "paper" | "picker" | "setup" | "pallets" | "items" | "materials" | "review" | "sign" | "preview" | "success";
 
 const STEP_OF: Partial<Record<Screen, number>> = {
   header: 0,
@@ -141,7 +129,6 @@ export function WorkerApp({ user, history, sheets }: { user: WorkerUser; history
     if (!hydrated) return;
     if (!saveDraft(user.id, draft) && draft) showToast("This phone's storage is full. The draft may not be saved.");
     // showToast is stable enough for this purpose.
-     
   }, [draft, hydrated, user.id]);
 
   useEffect(() => {
@@ -206,7 +193,6 @@ export function WorkerApp({ user, history, sheets }: { user: WorkerUser; history
       showToast(`${sent} sheet${sent === 1 ? "" : "s"} sent to the office`);
       router.refresh();
     }
-     
   }, [router, user.id]);
 
   useEffect(() => {
@@ -436,32 +422,37 @@ export function WorkerApp({ user, history, sheets }: { user: WorkerUser; history
   // Both views edit the same draft, so the worker can switch on any screen while filling the sheet.
   const canSwitch = (["paper", "header", "picker", "setup", "pallets", "items", "materials", "review"] as Screen[]).includes(screen);
   const toPaper = screen === "review" ? mode !== "paper" : screen !== "paper";
-  const modeSwitch = screen === "type" ? (
-    <div className="mr-1 flex h-9 overflow-hidden rounded-lg border-[1.5px] border-field text-sm font-bold" role="group" aria-label="How to fill the sheet">
-      {(["steps", "paper"] as const).map((m) => (
-        <button
-          key={m}
-          type="button"
-          aria-pressed={mode === m}
-          onClick={() => {
-            setMode(m);
-            saveMode(user.id, m);
-          }}
-          className={cn("px-3", m === "paper" && "border-l-[1.5px] border-field", mode === m ? "bg-solid text-on-solid" : "text-ink")}
-        >
-          {m === "steps" ? "Steps" : "Paper"}
-        </button>
-      ))}
-    </div>
-  ) : canSwitch ? (
-    <button
-      type="button"
-      onClick={() => switchMode(toPaper ? "paper" : "steps")}
-      className="mr-1 flex h-9 items-center rounded-lg border-[1.5px] border-field px-3 text-sm font-bold text-primary hover:bg-primary-soft"
-    >
-      {toPaper ? "Paper view" : "Step by step"}
-    </button>
-  ) : null;
+  const modeSwitch =
+    screen === "type" ? (
+      <div
+        className="mr-1 flex h-9 overflow-hidden rounded-lg border-[1.5px] border-field text-sm font-bold"
+        role="group"
+        aria-label="How to fill the sheet"
+      >
+        {(["steps", "paper"] as const).map((m) => (
+          <button
+            key={m}
+            type="button"
+            aria-pressed={mode === m}
+            onClick={() => {
+              setMode(m);
+              saveMode(user.id, m);
+            }}
+            className={cn("px-3", m === "paper" && "border-l-[1.5px] border-field", mode === m ? "bg-solid text-on-solid" : "text-ink")}
+          >
+            {m === "steps" ? "Steps" : "Paper"}
+          </button>
+        ))}
+      </div>
+    ) : canSwitch ? (
+      <button
+        type="button"
+        onClick={() => switchMode(toPaper ? "paper" : "steps")}
+        className="mr-1 flex h-9 items-center rounded-lg border-[1.5px] border-field px-3 text-sm font-bold text-primary hover:bg-primary-soft"
+      >
+        {toPaper ? "Paper view" : "Step by step"}
+      </button>
+    ) : null;
 
   let body: React.ReactNode = null;
   if (screen === "home") {
@@ -566,9 +557,7 @@ export function WorkerApp({ user, history, sheets }: { user: WorkerUser; history
           history={suggestionPool}
           onName={(name) => setPick((p) => ({ ...p, name }))}
           onUnit={(unit) => setPick((p) => ({ ...p, unit }))}
-          onSuggestion={(h) =>
-            setPick((p) => ({ ...p, name: h.name, unit: h.unit, per: h.qtyPerPallet ? String(h.qtyPerPallet) : p.per }))
-          }
+          onSuggestion={(h) => setPick((p) => ({ ...p, name: h.name, unit: h.unit, per: h.qtyPerPallet ? String(h.qtyPerPallet) : p.per }))}
           onNext={() => pick.name.trim() && go("setup")}
         />
       );
@@ -610,6 +599,11 @@ export function WorkerApp({ user, history, sheets }: { user: WorkerUser; history
             setCur(i);
             go("pallets");
           }}
+          onRename={(i, name) =>
+            update((d) => {
+              d.items[i].name = name;
+            })
+          }
           onMoveUp={(i) =>
             update((d) => {
               [d.items[i - 1], d.items[i]] = [d.items[i], d.items[i - 1]];
@@ -711,9 +705,20 @@ export function WorkerApp({ user, history, sheets }: { user: WorkerUser; history
   }
 
   return (
-    <div className={cn("relative mx-auto flex h-dvh flex-col overflow-hidden bg-canvas text-ink", screen === "paper" ? "max-w-[1280px]" : "max-w-[820px]")}>
+    <div
+      className={cn(
+        "relative mx-auto flex h-dvh flex-col overflow-hidden bg-canvas text-ink",
+        screen === "paper" ? "max-w-[1280px]" : "max-w-[820px]",
+      )}
+    >
       {bar ? (
-        <TopBar title={bar[0]} subtitle={bar[1]} onBack={() => go(back[screen] ?? "home")} form={screen === "type" ? null : draft?.form} action={modeSwitch} />
+        <TopBar
+          title={bar[0]}
+          subtitle={bar[1]}
+          onBack={() => go(back[screen] ?? "home")}
+          form={screen === "type" ? null : draft?.form}
+          action={modeSwitch}
+        />
       ) : null}
       {step !== undefined ? <Progress step={step} /> : null}
       {body}
