@@ -50,8 +50,8 @@ export function ItemNameScreen({
           />
         </label>
         <div className="flex flex-col gap-1.5">
-          <span className="text-sm font-bold text-body">Unit for QTY</span>
-          <div className="flex gap-2" role="radiogroup" aria-label="Unit">
+          <span className="text-sm font-bold text-body">UOM (unit of measure)</span>
+          <div className="flex gap-2" role="radiogroup" aria-label="UOM (unit of measure)">
             {QUICK_UNITS.map((u) => (
               <button
                 key={u}
@@ -71,7 +71,7 @@ export function ItemNameScreen({
               value={customUnit ? pick.unit : ""}
               onChange={(e) => onUnit(e.target.value.toUpperCase().replace(/[^A-Z0-9 .]/g, "").slice(0, 10))}
               placeholder="Other"
-              aria-label="Other unit"
+              aria-label="Other UOM"
               className={cn(
                 "h-12 min-w-0 flex-1 rounded-[10px] bg-surface px-3 text-lg font-bold text-ink uppercase outline-none focus:border-2 focus:border-primary",
                 customUnit && pick.unit ? "border-2 border-primary" : "border-[1.5px] border-field",
