@@ -93,15 +93,20 @@ export function removeRow(items: DraftItem[], i: number): DraftItem[] {
   return fromRows(rows, items);
 }
 
-/** 〃 ditto: only batch / expired / prod from the row above. Qty and everything else stay as they are. */
-export function dittoRow(items: DraftItem[], i: number): DraftItem[] {
-  if (i < 1) return items;
-  const rows = toRows(items);
-  const above = rows[i - 1].pallet.lines;
-  const own = rows[i].pallet.lines;
-  const lines = above.map((a, j) => ({ qty: own[j]?.qty ?? "", batch: a.batch, expired: a.expired, prod: a.prod }));
-  rows[i] = { ...rows[i], pallet: { ...rows[i].pallet, lines } };
-  return fromRows(rows, items);
+export type DittoField = "batch" | "expired" | "prod";
+
+/** The value 〃 would copy into row i, line li: the same line on the row above (its last line if it has fewer). */
+export function dittoSource(items: DraftItem[], i: number, li: number, field: DittoField): string {
+  if (i < 1) return "";
+  const above = toRows(items)[i - 1]?.pallet.lines ?? [];
+  return (above[li] ?? above.at(-1))?.[field] ?? "";
+}
+
+/** 〃 for one cell: copies just that field (batch, expired or prod) from the row above. */
+export function dittoField(items: DraftItem[], i: number, li: number, field: DittoField): DraftItem[] {
+  const value = dittoSource(items, i, li, field);
+  if (!value) return items;
+  return updateRowPallet(items, i, (p) => ({ ...p, lines: p.lines.map((l, j) => (j === li ? { ...l, [field]: value } : l)) }));
 }
 
 /** Edits the pallet on row i in place. */

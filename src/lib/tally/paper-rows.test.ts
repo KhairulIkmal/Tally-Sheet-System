@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { buildPallets, type DraftItem } from "./draft";
-import { addRow, dittoRow, fromRows, removeRow, renameRow, setRowUnit, toRows, unnamedRows, updateRowPallet } from "./paper-rows";
+import { addRow, dittoField, fromRows, removeRow, renameRow, setRowUnit, toRows, unnamedRows, updateRowPallet } from "./paper-rows";
 
 function item(name: string, qtys: number[], extra: Partial<DraftItem> = {}): DraftItem {
   return {
@@ -51,15 +51,15 @@ describe("paper rows", () => {
     expect(names(removeRow(items, 1))).toEqual(["A×2"]);
   });
 
-  it("ditto copies only batch and dates from the row above", () => {
-    let items = [item("A", [32, 22, 0])];
-    items = updateRowPallet(items, 2, (p) => ({ ...p, lines: [{ ...p.lines[0], qty: "" }] }));
+  it("〃 copies one field at a time from the row above", () => {
+    let items = [item("A", [32, 22])];
     items = updateRowPallet(items, 0, (p) => ({ ...p, lines: [{ qty: "32", batch: "B1", expired: "16/04/27", prod: "16/04/25" }] }));
-    const out = dittoRow(items, 1);
-    expect(out[0].pallets[1].lines).toEqual([{ qty: "22", batch: "B1", expired: "16/04/27", prod: "16/04/25" }]);
-    // An empty qty stays empty.
-    const out2 = dittoRow(dittoRow(items, 1), 2);
-    expect(out2[0].pallets[2].lines).toEqual([{ qty: "", batch: "B1", expired: "16/04/27", prod: "16/04/25" }]);
+    const out = dittoField(items, 1, 0, "batch");
+    expect(out[0].pallets[1].lines).toEqual([{ qty: "22", batch: "B1", expired: "", prod: "" }]);
+    const both = dittoField(out, 1, 0, "prod");
+    expect(both[0].pallets[1].lines).toEqual([{ qty: "22", batch: "B1", expired: "", prod: "16/04/25" }]);
+    // Nothing above row 1.
+    expect(dittoField(items, 0, 0, "batch")).toBe(items);
   });
 
   it("unit changes the whole item", () => {
