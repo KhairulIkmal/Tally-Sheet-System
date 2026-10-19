@@ -132,7 +132,7 @@ export function PaperScreen({
     const unit = normalizeUnit(it.unit);
     return itemRowMarks(it.name.trim(), unit, it.targetQty, qtys).map((m, j) => ({
       total: j === 0 ? itemTotalText(unit, it.targetQty, qtys) : "",
-      loose: !!m.loose,
+      circled: !!m.circled,
     }));
   });
   const isLorry = form === "lorry";
@@ -383,12 +383,12 @@ export function PaperScreen({
                             return (
                               <div
                                 key={li}
-                                title={marks[i]?.loose && p.lines.length === 1 ? "Not a full pallet" : undefined}
+                                title={marks[i]?.circled ? "Last pallet of this item" : undefined}
                                 className={cn(
                                   "flex items-center",
                                   li > 0 && "border-t border-dashed border-ink/25",
                                   // A pallet that is not full is circled, as on paper.
-                                  marks[i]?.loose && p.lines.length === 1 && "m-1 rounded-full text-danger ring-2 ring-danger",
+                                  marks[i]?.circled && "m-1 rounded-full text-danger ring-2 ring-danger",
                                 )}
                               >
                                 {source && source !== l.qty ? (

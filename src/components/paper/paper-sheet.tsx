@@ -140,7 +140,7 @@ function rowsFor(form: PaperData["form"], rows: PaperRow[], highlightMixed: bool
             <span style={r.itemIsTotal ? { ...RED, fontSize: 8.5, fontWeight: 700 } : undefined}>{r.item}</span>
           )}
         </Cell>
-        <Stacked values={q} align="end" circled={!!r.loose && r.lines.length === 1} />
+        <Stacked values={q} align="end" circled={!!r.circled} />
         <Stacked values={e} align="center" />
         <Stacked values={p} align="center" />
         <Stacked values={b} align="start" />

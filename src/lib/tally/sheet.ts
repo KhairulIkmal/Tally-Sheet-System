@@ -96,8 +96,8 @@ export interface PaperRow {
   itemSub?: string;
   /** The item cell holds the TOTAL line, not a name. */
   itemIsTotal?: boolean;
-  /** A pallet that is not full: its qty is circled, as on paper. */
-  loose?: boolean;
+  /** The item's last pallet: its qty is circled in red, so the end of each item stands out. */
+  circled?: boolean;
   pltType: string;
   contractNo: string;
   remark: string;
@@ -146,23 +146,21 @@ export function itemTotalText(unit: string, targetQty: number | null, palletQtys
 /**
  * How an item's rows are written on paper: the name on the first row, the
  * TOTAL on the second (or under the name for a one-pallet item), and the
- * qty circled on any pallet holding less than the item's fullest pallet
- * (150 TIN as 48 · 48 · 48 · ⑥; 80 CTN as 54 · ㉖).
+ * qty of the item's last pallet circled (48 · 48 · 48 · ⑥; 40 · 40 · ㊵).
  */
 export function itemRowMarks(
   name: string,
   unit: string,
   targetQty: number | null,
   palletQtys: number[],
-): Pick<PaperRow, "item" | "itemSub" | "itemIsTotal" | "loose">[] {
+): Pick<PaperRow, "item" | "itemSub" | "itemIsTotal" | "circled">[] {
   const total = itemTotalText(unit, targetQty, palletQtys);
-  const full = Math.max(0, ...palletQtys);
   const single = palletQtys.length === 1;
   return palletQtys.map((q, j) => ({
     item: j === 0 ? name : j === 1 ? total : "",
     itemSub: j === 0 && single && total ? total : undefined,
     itemIsTotal: j === 1 && !!total,
-    loose: !single && q > 0 && q < full,
+    circled: j === palletQtys.length - 1 && q > 0,
   }));
 }
 
