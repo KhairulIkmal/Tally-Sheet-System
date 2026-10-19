@@ -372,7 +372,7 @@ export function PaperScreen({
                         ) : null}
                       </div>
                       {marks[i]?.total && r.name.trim() ? (
-                        <div className="-mt-1 px-2 pb-1 text-[11px] font-bold tracking-[.03em] text-muted">{marks[i].total}</div>
+                        <div className="-mt-1 px-2 pb-1 text-[11px] font-bold tracking-[.03em] text-danger">{marks[i].total}</div>
                       ) : null}
                     </td>
                     <td className={cell}>
@@ -388,7 +388,7 @@ export function PaperScreen({
                                   "flex items-center",
                                   li > 0 && "border-t border-dashed border-ink/25",
                                   // A pallet that is not full is circled, as on paper.
-                                  marks[i]?.loose && p.lines.length === 1 && "m-1 rounded-full ring-2 ring-ink",
+                                  marks[i]?.loose && p.lines.length === 1 && "m-1 rounded-full text-danger ring-2 ring-danger",
                                 )}
                               >
                                 {source && source !== l.qty ? (

@@ -181,7 +181,6 @@ function footer(
 
 /** Paper layout data for a submitted sheet. */
 export function paperFromSheet(sheet: SheetDetail): PaperData {
-  const itemUnit = new Map(sheet.items.map((it) => [it.itemNo, it.unit]));
   const marks = new Map<number, ReturnType<typeof itemRowMarks>[number]>();
   for (const it of sheet.items) {
     const pallets = sheet.pallets.filter((p) => p.itemNo === it.itemNo);
@@ -200,7 +199,7 @@ export function paperFromSheet(sheet: SheetDetail): PaperData {
       contractNo: p.contractNo,
       remark: p.remark,
       lines: p.lines.map((l) => ({
-        qty: l.qty === null ? "" : paperQty(String(l.qty), itemUnit.get(p.itemNo)),
+        qty: l.qty === null ? "" : String(l.qty),
         expired: isoToPaperDate(l.expired),
         prod: isoToPaperDate(l.prod),
         batch: l.batch,
@@ -231,7 +230,7 @@ export function paperFromDraft(draft: Draft, signerName: string, ref = "NOT SUBM
         pltType: draft.form === "lorry" ? p.pltType : "",
         contractNo: draft.form === "lorry" ? up(p.contractNo) : "",
         remark: up(p.remark),
-        lines: p.lines.map((l) => ({ qty: paperQty(l.qty.trim(), normalizeUnit(it.unit)), expired: l.expired.trim(), prod: l.prod.trim(), batch: up(l.batch) })),
+        lines: p.lines.map((l) => ({ qty: l.qty.trim(), expired: l.expired.trim(), prod: l.prod.trim(), batch: up(l.batch) })),
       });
     }
   }
@@ -264,15 +263,6 @@ export function paperFromDraft(draft: Draft, signerName: string, ref = "NOT SUBM
     totalPallets: t.pallets,
     qtyByUnit: t.qty,
   };
-}
-
-/**
- * The QTY cell: just the number for CTN (the usual case, as on paper),
- * the number and unit for anything else ("40 TIN").
- */
-export function paperQty(qty: string, unit: string | undefined): string {
-  if (!qty) return "";
-  return !unit || unit === "CTN" ? qty : `${qty} ${unit}`;
 }
 
 export function pageCount(rowCount: number): number {

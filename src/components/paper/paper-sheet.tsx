@@ -33,6 +33,9 @@ function HeaderField({ label, value, labelWidth }: { label: string; value: strin
   );
 }
 
+/** Item TOTALs and circled qtys stand out in red, kept when printing (browsers drop colours by default). */
+const RED: React.CSSProperties = { color: "#d1201b", printColorAdjust: "exact", WebkitPrintColorAdjust: "exact" };
+
 function Stacked({ values, align, circled = false }: { values: string[]; align: "start" | "center" | "end"; circled?: boolean }) {
   return (
     <div
@@ -50,7 +53,7 @@ function Stacked({ values, align, circled = false }: { values: string[]; align: 
         <div key={i} style={{ lineHeight: values.length > 2 ? "8px" : "11px", fontSize: values.length > 2 ? 7.5 : undefined, whiteSpace: "nowrap" }}>
           {circled && v ? (
             // A pallet that is not full: circled, as written on paper.
-            <span style={{ display: "inline-block", border: "1.2px solid #111", borderRadius: 999, padding: "1px 5px", lineHeight: "11px" }}>{v}</span>
+            <span style={{ ...RED, display: "inline-block", border: "1.4px solid currentColor", borderRadius: 999, padding: "1px 5px", lineHeight: "11px", fontWeight: 700 }}>{v}</span>
           ) : (
             v
           )}
@@ -131,10 +134,10 @@ function rowsFor(form: PaperData["form"], rows: PaperRow[], highlightMixed: bool
           {r.itemSub ? (
             <span style={{ display: "flex", flexDirection: "column", lineHeight: "11px" }}>
               <span>{r.item}</span>
-              <span style={{ fontSize: 7.5 }}>{r.itemSub}</span>
+              <span style={{ ...RED, fontSize: 7.5, fontWeight: 700 }}>{r.itemSub}</span>
             </span>
           ) : (
-            <span style={r.itemIsTotal ? { fontSize: 8.5 } : undefined}>{r.item}</span>
+            <span style={r.itemIsTotal ? { ...RED, fontSize: 8.5, fontWeight: 700 } : undefined}>{r.item}</span>
           )}
         </Cell>
         <Stacked values={q} align="end" circled={!!r.loose && r.lines.length === 1} />

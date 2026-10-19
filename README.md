@@ -39,7 +39,7 @@ The worker app keeps working without signal:
 
 Workers type item names; there is no product master. Every submitted item name is saved to `tally.item_history` with its unit and qty per pallet, and suggested on the next sheet as soon as the worker starts typing (names starting with the text first). The phone also remembers its own recent items, so suggestions work offline.
 
-QTY is counted in each item's unit (CTN, TIN, or a typed unit). Totals are kept per unit ("150 CTN · 40 TIN") and never added across units. On the printed sheet the QTY cell shows just the number for CTN, as on paper, and "40 TIN" for other units.
+QTY is counted in each item's unit (CTN, TIN, or a typed unit). Totals are kept per unit ("150 CTN · 40 TIN") and never added across units. On the printed sheet the QTY cell is just the number, as on paper; the unit is on the item's TOTAL line ("TOTAL: 150 TIN").
 
 ## Database
 

@@ -61,8 +61,8 @@ describe("paper layout", () => {
     const paper = paperFromDraft(lorryDraft(), "Mohd Hafiz");
     expect(paper.rows).toHaveLength(2);
     expect(paper.rows[1].lines.map((l) => l.batch)).toEqual(["B1", "B2"]);
-    // Not CTN, so the QTY cell names the unit.
-    expect(paper.rows[1].lines.map((l) => l.qty)).toEqual(["12 TIN", "8 TIN"]);
+    // Just the number, even for TIN: the unit is on the TOTAL line.
+    expect(paper.rows[1].lines.map((l) => l.qty)).toEqual(["12", "8"]);
     expect(paper.plt.find((x) => x.label.startsWith("C"))?.value).toBe("2");
     expect(paper.signedBy).toBe("MOHD HAFIZ · 14/10/26 15:58");
   });
