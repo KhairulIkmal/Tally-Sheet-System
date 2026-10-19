@@ -1,6 +1,6 @@
 import { CHECKS, MATERIALS, PLT_TYPES, ROWS_PER_PAGE, normalizeUnit, type PltType, type SheetForm } from "./constants";
 import { formatDateTime, isoToPaperDate } from "./dates";
-import { pltCounts, totals, type Draft, type QtyByUnit } from "./draft";
+import { palletQty, pltCounts, totals, type Draft, type QtyByUnit } from "./draft";
 
 export type SheetStatus = "submitted" | "printed";
 
@@ -90,7 +90,14 @@ export interface PaperLine {
 
 export interface PaperRow {
   no: number;
+  /** Item name on the item's first row, "TOTAL: 200 CTN" on its second, blank after (as written on paper). */
   item: string;
+  /** "TOTAL: …" under the name when the item has only one row. */
+  itemSub?: string;
+  /** The item cell holds the TOTAL line, not a name. */
+  itemIsTotal?: boolean;
+  /** A pallet that is not full: its qty is circled, as on paper. */
+  loose?: boolean;
   pltType: string;
   contractNo: string;
   remark: string;
@@ -130,6 +137,35 @@ export const PLT_LABELS: Record<PltType, string> = {
   O: "O - (OTHERS)",
 };
 
+/** "TOTAL: 200 CTN": the total the order asked for, else what was counted. */
+export function itemTotalText(unit: string, targetQty: number | null, palletQtys: number[]): string {
+  const total = targetQty ?? palletQtys.reduce((a, b) => a + b, 0);
+  return total > 0 ? `TOTAL: ${total} ${unit || "CTN"}` : "";
+}
+
+/**
+ * How an item's rows are written on paper: the name on the first row, the
+ * TOTAL on the second (or under the name for a one-pallet item), and the
+ * qty circled on any pallet holding less than the item's fullest pallet
+ * (150 TIN as 48 · 48 · 48 · ⑥; 80 CTN as 54 · ㉖).
+ */
+export function itemRowMarks(
+  name: string,
+  unit: string,
+  targetQty: number | null,
+  palletQtys: number[],
+): Pick<PaperRow, "item" | "itemSub" | "itemIsTotal" | "loose">[] {
+  const total = itemTotalText(unit, targetQty, palletQtys);
+  const full = Math.max(0, ...palletQtys);
+  const single = palletQtys.length === 1;
+  return palletQtys.map((q, j) => ({
+    item: j === 0 ? name : j === 1 ? total : "",
+    itemSub: j === 0 && single && total ? total : undefined,
+    itemIsTotal: j === 1 && !!total,
+    loose: !single && q > 0 && q < full,
+  }));
+}
+
 function footer(
   form: SheetForm,
   materials: Record<string, number>,
@@ -145,15 +181,21 @@ function footer(
 
 /** Paper layout data for a submitted sheet. */
 export function paperFromSheet(sheet: SheetDetail): PaperData {
-  const itemName = new Map(sheet.items.map((it) => [it.itemNo, it.name]));
   const itemUnit = new Map(sheet.items.map((it) => [it.itemNo, it.unit]));
+  const marks = new Map<number, ReturnType<typeof itemRowMarks>[number]>();
+  for (const it of sheet.items) {
+    const pallets = sheet.pallets.filter((p) => p.itemNo === it.itemNo);
+    const qtys = pallets.map((p) => p.lines.reduce((a, l) => a + (l.qty ?? 0), 0));
+    itemRowMarks(it.name, it.unit, it.targetQty, qtys).forEach((m, j) => marks.set(pallets[j].palletNo, m));
+  }
   return {
     form: sheet.form,
     ref: sheet.ref,
     header: { ...sheet.header, date: isoToPaperDate(sheet.date) },
     rows: sheet.pallets.map((p) => ({
       no: p.palletNo,
-      item: itemName.get(p.itemNo) ?? "",
+      ...marks.get(p.palletNo),
+      item: marks.get(p.palletNo)?.item ?? "",
       pltType: p.pltType ?? "",
       contractNo: p.contractNo,
       remark: p.remark,
@@ -179,11 +221,13 @@ export function paperFromDraft(draft: Draft, signerName: string, ref = "NOT SUBM
   const rows: PaperRow[] = [];
   let n = 0;
   for (const it of draft.items) {
-    for (const p of it.pallets) {
+    const unit = normalizeUnit(it.unit);
+    const marks = itemRowMarks(up(it.name), unit, it.targetQty, it.pallets.map(palletQty));
+    for (const [j, p] of it.pallets.entries()) {
       n += 1;
       rows.push({
         no: n,
-        item: up(it.name),
+        ...marks[j],
         pltType: draft.form === "lorry" ? p.pltType : "",
         contractNo: draft.form === "lorry" ? up(p.contractNo) : "",
         remark: up(p.remark),

@@ -33,7 +33,7 @@ function HeaderField({ label, value, labelWidth }: { label: string; value: strin
   );
 }
 
-function Stacked({ values, align }: { values: string[]; align: "start" | "center" | "end" }) {
+function Stacked({ values, align, circled = false }: { values: string[]; align: "start" | "center" | "end"; circled?: boolean }) {
   return (
     <div
       style={{
@@ -48,7 +48,12 @@ function Stacked({ values, align }: { values: string[]; align: "start" | "center
     >
       {values.map((v, i) => (
         <div key={i} style={{ lineHeight: values.length > 2 ? "8px" : "11px", fontSize: values.length > 2 ? 7.5 : undefined, whiteSpace: "nowrap" }}>
-          {v}
+          {circled && v ? (
+            // A pallet that is not full: circled, as written on paper.
+            <span style={{ display: "inline-block", border: "1.2px solid #111", borderRadius: 999, padding: "1px 5px", lineHeight: "11px" }}>{v}</span>
+          ) : (
+            v
+          )}
         </div>
       ))}
     </div>
@@ -122,8 +127,17 @@ function rowsFor(form: PaperData["form"], rows: PaperRow[], highlightMixed: bool
             <Cell>{r.contractNo}</Cell>
           </>
         ) : null}
-        <Cell>{r.item}</Cell>
-        <Stacked values={q} align="end" />
+        <Cell>
+          {r.itemSub ? (
+            <span style={{ display: "flex", flexDirection: "column", lineHeight: "11px" }}>
+              <span>{r.item}</span>
+              <span style={{ fontSize: 7.5 }}>{r.itemSub}</span>
+            </span>
+          ) : (
+            <span style={r.itemIsTotal ? { fontSize: 8.5 } : undefined}>{r.item}</span>
+          )}
+        </Cell>
+        <Stacked values={q} align="end" circled={!!r.loose && r.lines.length === 1} />
         <Stacked values={e} align="center" />
         <Stacked values={p} align="center" />
         <Stacked values={b} align="start" />

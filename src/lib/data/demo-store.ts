@@ -54,6 +54,7 @@ function seed(): DemoState {
   const sheets: SheetDetail[] = [
     seedSheet(1, "lorry", now - 3 * 3600_000, "printed"),
     seedSheet(2, "container", now - 26 * 3600_000, "submitted"),
+    paperExampleSheet(3, now - 3600_000),
   ];
   return { history, sheets, counter: { [period(new Date())]: 2 } };
 }
@@ -108,6 +109,78 @@ function seedSheet(n: number, form: "container" | "lorry", at: number, status: "
       { event: "submitted", at: iso, actorName: DEMO_USERS.worker.name },
       ...(status === "printed" ? [{ event: "printed" as const, at: iso, actorName: DEMO_USERS.office.name }] : []),
     ],
+  };
+}
+
+/**
+ * A container sheet copied from a real paper tally sheet (Daisy Marg to
+ * Brunei): items with a total, pallets that are not full, a mixed set of
+ * units, and packing materials. Shows how the printed sheet compares.
+ */
+function paperExampleSheet(n: number, at: number): SheetDetail {
+  const iso = new Date(at).toISOString();
+  // name, unit, target, qtys, expired, prod, batches (one per pallet, the last repeats)
+  const ITEMS: [string, string, number, number[], string, string, string[]][] = [
+    ["36X240G DAISY MARG", "CTN", 200, [40, 40, 40, 40, 40], "2027-04-16", "2026-04-17", ["1261704203", "1161704203", "1261704203", "1161704203", "1161704203"]],
+    ["24X480G DAISY MARG", "CTN", 200, [40, 40, 40, 40, 40], "2027-04-14", "2026-04-13", ["0381504203", "0361504203"]],
+    ["12X1KG DAISY MARG", "CTN", 80, [54, 26], "2028-10-07", "2026-04-08", ["0260804103"]],
+    ["18KG DAISY MARG-TIN", "TIN", 150, [48, 48, 48, 6], "2027-04-02", "2026-04-03", ["03303"]],
+    ["6X2.5KG DAISY MARG", "CTN", 100, [48, 48, 4], "2028-10-07", "2026-04-08", ["0460804203"]],
+    ["2X4.8KG DAISY MARG", "CTN", 150, [32, 32, 32, 32, 22], "2027-02-11", "2026-02-12", ["08612021", "08612021", "09612021", "08612021"]],
+    ["16KG LS SHTG BLUE LB", "CTN", 40, [40], "2027-04-07", "2026-04-08", ["01202"]],
+  ];
+  let palletNo = 0;
+  const qtyByUnit: Record<string, number> = {};
+  const items = ITEMS.map(([name, unit, targetQty], i) => ({ itemNo: i + 1, name, unit, targetQty }));
+  const pallets = ITEMS.flatMap(([, unit, , qtys, expired, prod, batches], i) =>
+    qtys.map((qty, j) => {
+      qtyByUnit[unit] = (qtyByUnit[unit] ?? 0) + qty;
+      palletNo += 1;
+      return {
+        palletNo,
+        itemNo: i + 1,
+        pltType: null,
+        contractNo: "",
+        remark: "",
+        lines: [{ qty, batch: batches[Math.min(j, batches.length - 1)], expired, prod }],
+      };
+    }),
+  );
+  return {
+    id: `20000000-0000-4000-8000-${String(n).padStart(12, "0")}`,
+    ref: `TS-${period(new Date(at))}-${String(n).padStart(4, "0")}`,
+    form: "container",
+    date: "2026-05-11",
+    vehicleNo: "TGCU 2174696",
+    docNo: "8900003281",
+    totalPallets: pallets.length,
+    qtyByUnit,
+    preparedBy: DEMO_USERS.worker.id,
+    preparedByName: DEMO_USERS.worker.name,
+    submittedAt: iso,
+    status: "submitted",
+    header: {
+      contractNo: "8900003281",
+      containerNo: "TGCU 2174696",
+      sealNo: "PK 2353287",
+      siNo: "8106085",
+      disport: "MUARA, BRUNEI",
+      transferTo: "",
+      doNo: "",
+      lorryNo: "",
+    },
+    remark: "",
+    materials: { LINER: 1, POLYFOAM: 11 },
+    checks: {},
+    pltCounts: {},
+    signature: SEED_SIGNATURE,
+    signedAt: iso,
+    device: "Demo device",
+    printedAt: null,
+    printedByName: null,
+    items,
+    pallets,
+    events: [{ event: "submitted", at: iso, actorName: DEMO_USERS.worker.name }],
   };
 }
 

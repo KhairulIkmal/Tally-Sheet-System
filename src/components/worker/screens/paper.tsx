@@ -10,6 +10,7 @@ import {
   countStatus,
   formatQty,
   itemQty,
+  palletQty,
   palletRanges,
   totals,
   type Draft,
@@ -32,6 +33,7 @@ import {
 } from "@/lib/tally/paper-rows";
 import type { ItemSuggestion } from "../pick";
 import { BottomBar, Button } from "../ui";
+import { itemRowMarks, itemTotalText } from "@/lib/tally/sheet";
 import { PaperFooter } from "./paper-footer";
 import { AutoFillPanel } from "./paper-autofill";
 
@@ -124,6 +126,15 @@ export function PaperScreen({
     filled--;
   const lastFilled = filled > 0 ? rows[filled - 1].pallet : null;
   const ranges = palletRanges(items);
+  // As written on paper: each item's TOTAL, and pallets that are not full (circled).
+  const marks = items.flatMap((it) => {
+    const qtys = it.pallets.map(palletQty);
+    const unit = normalizeUnit(it.unit);
+    return itemRowMarks(it.name.trim(), unit, it.targetQty, qtys).map((m, j) => ({
+      total: j === 0 ? itemTotalText(unit, it.targetQty, qtys) : "",
+      loose: !!m.loose,
+    }));
+  });
   const isLorry = form === "lorry";
   const t = totals(items);
   // Blank rows up to the end of the page, like the printed form.
@@ -360,6 +371,9 @@ export function PaperScreen({
                           <Ditto what="item" value={above.name.trim()} pallet={i + 1} onClick={() => onItems((its) => dittoItem(its, i))} />
                         ) : null}
                       </div>
+                      {marks[i]?.total && r.name.trim() ? (
+                        <div className="-mt-1 px-2 pb-1 text-[11px] font-bold tracking-[.03em] text-muted">{marks[i].total}</div>
+                      ) : null}
                     </td>
                     <td className={cell}>
                       <div className="flex">
@@ -367,7 +381,16 @@ export function PaperScreen({
                           {p.lines.map((l, li) => {
                             const source = dittoSource(items, i, li, "qty");
                             return (
-                              <div key={li} className={cn("flex items-center", li > 0 && "border-t border-dashed border-ink/25")}>
+                              <div
+                                key={li}
+                                title={marks[i]?.loose && p.lines.length === 1 ? "Not a full pallet" : undefined}
+                                className={cn(
+                                  "flex items-center",
+                                  li > 0 && "border-t border-dashed border-ink/25",
+                                  // A pallet that is not full is circled, as on paper.
+                                  marks[i]?.loose && p.lines.length === 1 && "m-1 rounded-full ring-2 ring-ink",
+                                )}
+                              >
                                 {source && source !== l.qty ? (
                                   <button
                                     type="button"
