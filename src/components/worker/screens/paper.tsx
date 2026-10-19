@@ -4,7 +4,7 @@ import { Plus, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { PLT_TYPES, normalizeUnit, type SheetForm } from "@/lib/tally/constants";
 import { isValidPaperDate, normalizeDate } from "@/lib/tally/dates";
-import { blankLine, formatQty, totals, type DraftHeader, type DraftItem, type DraftLine, type HeaderErrors } from "@/lib/tally/draft";
+import { blankLine, formatQty, totals, type Draft, type DraftHeader, type DraftItem, type DraftLine, type HeaderErrors } from "@/lib/tally/draft";
 import {
   addRow,
   dittoField,
@@ -18,20 +18,22 @@ import {
 } from "@/lib/tally/paper-rows";
 import type { ItemSuggestion } from "../pick";
 import { BottomBar, Button } from "../ui";
+import { PaperFooter } from "./paper-footer";
 
+/** Header boxes in the printed order: two columns, left then right. */
 const HEADER: Record<SheetForm, { key: keyof DraftHeader; label: string; numeric?: boolean }[]> = {
   container: [
     { key: "contractNo", label: "Contract No" },
+    { key: "date", label: "Date", numeric: true },
     { key: "containerNo", label: "Container No" },
     { key: "sealNo", label: "Seal No" },
     { key: "siNo", label: "SI No" },
     { key: "disport", label: "Disport" },
-    { key: "date", label: "Date", numeric: true },
   ],
   lorry: [
     { key: "transferTo", label: "Transfer To" },
-    { key: "doNo", label: "D/O No" },
     { key: "date", label: "Date", numeric: true },
+    { key: "doNo", label: "D/O No" },
     { key: "lorryNo", label: "Lorry No" },
   ],
 };
@@ -65,6 +67,9 @@ const DITTO: LineKey[] = ["qty", "batch", "expired", "prod"];
  * Same draft as the step-by-step screens, so the worker can switch any time.
  */
 export function PaperScreen({
+  draft,
+  signerName,
+  onEdit,
   form,
   header,
   items,
@@ -76,6 +81,10 @@ export function PaperScreen({
   onItems,
   onNext,
 }: {
+  /** For the footer (materials, remark, PLT totals, signature). */
+  draft: Draft;
+  signerName: string;
+  onEdit: (fn: (d: Draft) => void) => void;
   form: SheetForm;
   header: DraftHeader;
   items: DraftItem[];
@@ -180,11 +189,8 @@ export function PaperScreen({
       <div className="min-h-0 flex-1 overflow-auto bg-canvas">
         <div className="mx-auto w-fit min-w-full bg-surface p-3 sm:p-5">
           <div className="mb-1 text-center text-lg font-extrabold tracking-[.04em]">COUNT TALLY SHEET</div>
-          <div className="mb-3 text-center text-xs font-bold tracking-[.08em] text-muted">
-            {isLorry ? "LORRY · FORM B" : "CONTAINER · FORM A"}
-          </div>
 
-          <div className={cn("mb-4 grid gap-x-4 gap-y-2", isLorry ? "grid-cols-2" : "grid-cols-2 sm:grid-cols-3")}>
+          <div className="mt-3 mb-4 grid grid-cols-2 gap-x-6 gap-y-2">
             {HEADER[form].map((f) => (
               <label key={f.key} className="flex items-end gap-2">
                 <span className={cn("pb-1.5 text-xs font-bold whitespace-nowrap uppercase", errors[f.key] ? "text-danger" : "text-body")}>
@@ -443,9 +449,10 @@ export function PaperScreen({
               })}
             </tbody>
           </table>
-          <div className="mt-3 text-[15px] font-bold">
+          <div className="mt-2 text-right text-sm font-bold text-muted">
             Total: {t.pallets} pallet{t.pallets === 1 ? "" : "s"} · {formatQty(t.qty)}
           </div>
+          <PaperFooter draft={draft} signerName={signerName} onEdit={onEdit} />
           <p className="mt-1 text-xs font-medium text-muted">
             Each row is filled on its own. Tap 〃 in a cell (Item, Contract, Qty, Batch, Expired, Prod) to copy just that value from the row above. +B adds a second batch for a mixed
             pallet. Dates: type 160427 for 16/04/27.
@@ -455,7 +462,7 @@ export function PaperScreen({
 
       <BottomBar>
         <Button className="w-full" onClick={onNext}>
-          Next · {isLorry ? "Materials & pallets" : "Packing materials"}
+          Next · Review
         </Button>
       </BottomBar>
     </>

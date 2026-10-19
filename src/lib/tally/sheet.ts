@@ -123,7 +123,7 @@ export interface PaperData {
   qtyByUnit: QtyByUnit;
 }
 
-const PLT_LABELS: Record<PltType, string> = {
+export const PLT_LABELS: Record<PltType, string> = {
   L: "L - (LAM SOON)",
   E: "E - (ECR)",
   C: "C - (LOSCAM)",

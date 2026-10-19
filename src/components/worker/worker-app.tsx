@@ -260,7 +260,7 @@ export function WorkerApp({ user, history, sheets }: { user: WorkerUser; history
     items: "header",
     paper: "home",
     materials: mode === "paper" ? "paper" : "items",
-    review: "materials",
+    review: mode === "paper" ? "paper" : "materials",
     sign: "review",
     preview: "sign",
   };
@@ -296,6 +296,8 @@ export function WorkerApp({ user, history, sheets }: { user: WorkerUser; history
     setMode(next);
     saveMode(user.id, next);
     setPaperProblems([]);
+    // On the review the view only changes where "Back" and "Edit" lead.
+    if (screen === "review") return;
     if (next === "paper") go("paper");
     else go(draft && draft.items.length ? "items" : "header");
   }
@@ -316,7 +318,8 @@ export function WorkerApp({ user, history, sheets }: { user: WorkerUser; history
     for (const it of draft.items) {
       setRecentItems(rememberItem(user.id, { name: it.name.trim(), unit: it.unit, qtyPerPallet: it.qtyPerPallet, useCount: 1 }));
     }
-    go("materials");
+    // Materials, remark and PLT totals are on the paper itself.
+    go("review");
   }
 
   function headerNext() {
@@ -432,7 +435,9 @@ export function WorkerApp({ user, history, sheets }: { user: WorkerUser; history
     preview: ["Tally sheet preview", sheetNo],
   };
   const bar = bars[screen];
-  const canSwitch = screen === "paper" || screen === "header" || screen === "items" || screen === "pallets" || screen === "picker" || screen === "setup";
+  // Both views edit the same draft, so the worker can switch on any screen while filling the sheet.
+  const canSwitch = (["paper", "header", "picker", "setup", "pallets", "items", "materials", "review"] as Screen[]).includes(screen);
+  const toPaper = screen === "review" ? mode !== "paper" : screen !== "paper";
   const modeSwitch = screen === "type" ? (
     <div className="mr-1 flex h-9 overflow-hidden rounded-lg border-[1.5px] border-field text-sm font-bold" role="group" aria-label="How to fill the sheet">
       {(["steps", "paper"] as const).map((m) => (
@@ -453,10 +458,10 @@ export function WorkerApp({ user, history, sheets }: { user: WorkerUser; history
   ) : canSwitch ? (
     <button
       type="button"
-      onClick={() => switchMode(screen === "paper" ? "steps" : "paper")}
+      onClick={() => switchMode(toPaper ? "paper" : "steps")}
       className="mr-1 flex h-9 items-center rounded-lg border-[1.5px] border-field px-3 text-sm font-bold text-primary hover:bg-primary-soft"
     >
-      {screen === "paper" ? "Step by step" : "Paper view"}
+      {toPaper ? "Paper view" : "Step by step"}
     </button>
   ) : null;
 
@@ -532,6 +537,9 @@ export function WorkerApp({ user, history, sheets }: { user: WorkerUser; history
     } else if (screen === "paper") {
       body = (
         <PaperScreen
+          draft={draft}
+          signerName={user.name}
+          onEdit={(fn) => update(fn)}
           form={draft.form}
           header={draft.header}
           items={draft.items}
@@ -657,7 +665,7 @@ export function WorkerApp({ user, history, sheets }: { user: WorkerUser; history
             setCur(i);
             go("pallets");
           }}
-          onEditMaterials={() => go("materials")}
+          onEditMaterials={() => go(mode === "paper" ? "paper" : "materials")}
           onSign={() => go("sign")}
         />
       );
