@@ -1,7 +1,7 @@
 // Tally Sheet service worker: lets the worker app reopen without signal.
 // Network first for the worker page (always fresh when online), cache
 // fallback when offline. Static build assets are cached on first use.
-const CACHE = "tally-v1";
+const CACHE = "tally-v2";
 
 self.addEventListener("install", () => self.skipWaiting());
 self.addEventListener("activate", (event) => {
@@ -16,7 +16,7 @@ self.addEventListener("fetch", (event) => {
   const url = new URL(req.url);
   if (url.origin !== self.location.origin) return;
 
-  if (url.pathname.startsWith("/_next/static/") || url.pathname === "/icon.svg") {
+  if (url.pathname.startsWith("/_next/static/") || url.pathname === "/icon.svg" || url.pathname === "/lam-soon-logo.png") {
     event.respondWith(
       caches.match(req).then(
         (hit) =>

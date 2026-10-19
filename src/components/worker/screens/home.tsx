@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 import { isoToPaperDate } from "@/lib/tally/dates";
 import { formatQty, totals, vehicleNo, type Draft } from "@/lib/tally/draft";
 import type { SheetSummary } from "@/lib/tally/sheet";
+import { LamSoonLogo } from "@/components/brand";
 import type { OutboxEntry } from "../storage";
 import { BottomBar, Button, FormBadge, Scroll, SectionLabel } from "../ui";
 
@@ -56,10 +57,13 @@ export function HomeScreen({
   return (
     <>
       <div className="flex flex-none items-center justify-between bg-surface px-4 pt-2 pb-3.5">
-        <div className="min-w-0">
-          <div className="text-[26px] font-extrabold">Tally Sheet</div>
-          <div className="truncate text-sm font-medium text-muted">
-            {userName} · {department}
+        <div className="flex min-w-0 items-center gap-3">
+          <LamSoonLogo className="h-12 w-auto flex-none" />
+          <div className="min-w-0">
+            <div className="text-[26px] leading-tight font-extrabold">Tally Sheet</div>
+            <div className="truncate text-sm font-medium text-muted">
+              {userName} · {department}
+            </div>
           </div>
         </div>
         <div className="flex items-center gap-2">
