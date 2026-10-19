@@ -1,6 +1,7 @@
 "use client";
 
-import { LogOut, Plus, RefreshCw } from "lucide-react";
+import Link from "next/link";
+import { ChevronRight, LogOut, Plus, RefreshCw } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { isoToPaperDate } from "@/lib/tally/dates";
 import { formatQty, totals, vehicleNo, type Draft } from "@/lib/tally/draft";
@@ -72,10 +73,19 @@ export function HomeScreen({
               Office
             </a>
           ) : null}
-          <span aria-hidden="true" className="grid size-12 place-items-center rounded-full bg-primary-soft text-base font-bold text-primary">
+          <span
+            aria-hidden="true"
+            className="grid size-12 place-items-center rounded-full bg-primary-soft text-base font-bold text-primary"
+          >
             {initials}
           </span>
-          <button type="button" onClick={onSignOut} aria-label="Sign out" title="Sign out" className="grid size-10 place-items-center text-muted">
+          <button
+            type="button"
+            onClick={onSignOut}
+            aria-label="Sign out"
+            title="Sign out"
+            className="grid size-10 place-items-center text-muted"
+          >
             <LogOut className="size-5" />
           </button>
         </div>
@@ -90,7 +100,12 @@ export function HomeScreen({
               : `Offline${pending ? ` · ${pending} sheet${pending === 1 ? "" : "s"} waiting to sync` : " · your work is still saved"}`}
           </span>
           {online && pending > 0 ? (
-            <button type="button" onClick={onRetry} disabled={sending} className="flex items-center gap-1 font-bold text-[#9dbbff] disabled:opacity-50">
+            <button
+              type="button"
+              onClick={onRetry}
+              disabled={sending}
+              className="flex items-center gap-1 font-bold text-[#9dbbff] disabled:opacity-50"
+            >
               <RefreshCw className={cn("size-4", sending && "animate-spin")} /> Send now
             </button>
           ) : null}
@@ -106,7 +121,9 @@ export function HomeScreen({
             <span className="w-1/2 rounded-sm bg-line" />
           </div>
           <div className="text-[22px] font-extrabold">No tally sheets yet</div>
-          <div className="text-base/[1.45] font-medium text-muted">Start a new sheet when you get the order document and begin counting pallets.</div>
+          <div className="text-base/[1.45] font-medium text-muted">
+            Start a new sheet when you get the order document and begin counting pallets.
+          </div>
         </div>
       ) : (
         <Scroll className="gap-2.5 p-4">
@@ -118,9 +135,15 @@ export function HomeScreen({
                   <FormBadge form={draft.form} size="sm" />
                   <span className="flex h-6 items-center rounded-full bg-chip px-2.5 text-xs font-bold">Draft</span>
                 </div>
-                <div className="text-[21px] font-bold">{vehicleNo(draft) || (draft.form === "container" ? "New container" : "New lorry")}</div>
+                <div className="text-[21px] font-bold">
+                  {vehicleNo(draft) || (draft.form === "container" ? "New container" : "New lorry")}
+                </div>
                 <div className="text-sm font-medium text-muted">
-                  {[draft.form === "container" ? draft.header.contractNo : draft.header.doNo, draft.header.date, `${totals(draft.items).pallets} pallets`]
+                  {[
+                    draft.form === "container" ? draft.header.contractNo : draft.header.doNo,
+                    draft.header.date,
+                    `${totals(draft.items).pallets} pallets`,
+                  ]
                     .filter(Boolean)
                     .join(" · ")}
                 </div>
@@ -140,7 +163,10 @@ export function HomeScreen({
           {outbox.map((o) => {
             const chip = CHIP[o.state === "failed" ? "failed" : sending ? "sending" : "pending"];
             return (
-              <div key={o.clientId} className="grid grid-cols-[1fr_auto] items-center gap-x-2.5 gap-y-1 rounded-[14px] border border-line bg-surface px-3.5 py-3">
+              <div
+                key={o.clientId}
+                className="grid grid-cols-[1fr_auto] items-center gap-x-2.5 gap-y-1 rounded-[14px] border border-line bg-surface px-3.5 py-3"
+              >
                 <div className="flex min-w-0 items-center gap-2">
                   <FormBadge form={o.payload.form} size="sm" />
                   <span className="truncate text-lg font-bold">{o.vehicleNo}</span>
@@ -172,7 +198,12 @@ export function HomeScreen({
           {shown.map((s) => {
             const chip = CHIP[s.status];
             return (
-              <div key={s.id} className="grid grid-cols-[1fr_auto] items-center gap-x-2.5 gap-y-1 rounded-[14px] border border-line bg-surface px-3.5 py-3">
+              <Link
+                key={s.id}
+                href={`/worker/sheets/${s.id}`}
+                aria-label={`View ${s.vehicleNo} as a tally sheet`}
+                className="grid grid-cols-[1fr_auto] items-center gap-x-2.5 gap-y-1 rounded-[14px] border border-line bg-surface px-3.5 py-3 hover:border-primary active:bg-chip"
+              >
                 <div className="flex min-w-0 items-center gap-2">
                   <FormBadge form={s.form} size="sm" />
                   <span className="truncate text-lg font-bold">{s.vehicleNo}</span>
@@ -183,8 +214,11 @@ export function HomeScreen({
                   <span>{isoToPaperDate(s.date)}</span>
                   <span>{s.totalPallets} pallets</span>
                   <span>{formatQty(s.qtyByUnit)}</span>
+                  <span className="ml-auto flex items-center font-bold text-primary">
+                    View <ChevronRight className="size-4" />
+                  </span>
                 </div>
-              </div>
+              </Link>
             );
           })}
         </Scroll>
