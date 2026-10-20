@@ -58,6 +58,7 @@ import { SignatureScreen } from "./screens/signature";
 import { PreviewScreen } from "./screens/preview";
 import { SuccessScreen } from "./screens/success";
 import { PaperScreen } from "./screens/paper";
+import { sampleDraft } from "@/lib/tally/sample";
 
 type Screen =
   "home" | "type" | "header" | "paper" | "picker" | "setup" | "pallets" | "items" | "materials" | "review" | "sign" | "preview" | "success";
@@ -98,6 +99,9 @@ export function WorkerApp({ user, history, sheets }: { user: WorkerUser; history
   const [mode, setMode] = useState<FillMode>("steps");
   const [paperProblems, setPaperProblems] = useState<string[]>([]);
   const [cur, setCur] = useState(-1);
+  // Set when the worker leaves the review to fix something: "Save" and "Back" then return to the review.
+  const [fromReview, setFromReview] = useState(false);
+  const [focusPallet, setFocusPallet] = useState<number | null>(null);
   const [pick, setPick] = useState<PickState>(blankPick());
   const [headerErrors, setHeaderErrors] = useState<HeaderErrors>({});
   const [outbox, setOutbox] = useState<OutboxEntry[]>([]);
@@ -114,10 +118,22 @@ export function WorkerApp({ user, history, sheets }: { user: WorkerUser; history
   // ── device storage ──────────────────────────────────────────────────
   useEffect(() => {
     /* eslint-disable react-hooks/set-state-in-effect -- one-time read of device storage after mount */
-    const d = loadDraft(user.id);
+    let d = loadDraft(user.id);
+    let opened: Screen = "home";
+    // /worker?sample=1 loads a complete sheet that only needs signing (for demos).
+    const url = new URL(window.location.href);
+    if (url.searchParams.get("sample") === "1") {
+      url.searchParams.delete("sample");
+      window.history.replaceState(null, "", url.pathname + url.search);
+      if (!d || (!d.items.length && !vehicleNo(d)) || window.confirm("Load the sample sheet? The current draft will be replaced.")) {
+        d = sampleDraft();
+        opened = "review";
+      }
+    }
     setDraft(d);
     if (d) setForm(d.form);
-    setMode(loadMode(user.id));
+    setScreen(opened);
+    setMode(opened === "review" ? "steps" : loadMode(user.id));
     setOutbox(loadOutbox(user.id));
     setRecentItems(loadRecentItems(user.id));
     setRecentTransfers(loadRecent(user.id, "transfer"));
@@ -233,7 +249,45 @@ export function WorkerApp({ user, history, sheets }: { user: WorkerUser; history
   function go(s: Screen) {
     setScreen(s);
     setSubmitError("");
+    setFocusPallet(null);
+    if (s === "review" || s === "home" || s === "type" || s === "paper") setFromReview(false);
   }
+
+  /** Opens an item's pallets, optionally scrolled to one pallet. */
+  function openItem(i: number, pallet: number | null = null) {
+    setCur(i);
+    go("pallets");
+    setFocusPallet(pallet);
+  }
+
+  /** From the review: fix one part, then come straight back. */
+  function fixFromReview(open: () => void) {
+    open();
+    setFromReview(true);
+  }
+
+  /** The step bar: jump to a part of the sheet (step-by-step view). */
+  function jumpTo(i: number) {
+    if (!draft) return;
+    if (screen === "header") {
+      const errors = validateHeader(draft.form, draft.header);
+      setHeaderErrors(errors);
+      if (i > 0 && Object.keys(errors).length) {
+        showToast("Fix the header first");
+        return;
+      }
+    }
+    const keep = fromReview;
+    if (i === 0) go("header");
+    else if (i === 1) go("items");
+    else if (i === 2) openItem(cur >= 0 && cur < items.length ? cur : 0);
+    else if (i === 3) go("materials");
+    else if (i === 4) go("review");
+    if (keep && i < 4) setFromReview(true);
+  }
+
+  // Steps the worker can jump to: the header always; the rest once there is an item.
+  const canJump = (i: number) => i === 0 || (i <= 4 && items.length > 0 && !!draft && !!vehicleNo(draft));
 
   const back: Partial<Record<Screen, Screen>> = {
     type: "home",
@@ -312,7 +366,8 @@ export function WorkerApp({ user, history, sheets }: { user: WorkerUser; history
     setHeaderErrors(errors);
     if (Object.keys(errors).length) return;
     if (draft.form === "lorry") setRecentTransfers(remember(user.id, "transfer", draft.header.transferTo.trim().toUpperCase()));
-    if (draft.items.length) go("items");
+    if (fromReview) go("review");
+    else if (draft.items.length) go("items");
     else openPicker();
   }
 
@@ -521,6 +576,7 @@ export function WorkerApp({ user, history, sheets }: { user: WorkerUser; history
             setHeaderErrors((e) => ({ ...e, [key]: undefined }));
           }}
           onNext={headerNext}
+          nextLabel={fromReview ? "Save · Back to review" : undefined}
         />
       );
     } else if (screen === "paper") {
@@ -579,13 +635,15 @@ export function WorkerApp({ user, history, sheets }: { user: WorkerUser; history
           items={items}
           itemIndex={cur}
           startNo={ranges[cur].start}
+          focusPallet={focusPallet}
+          saveLabel={fromReview ? "Save · Back to review" : undefined}
           onUpdate={(mutate) =>
             update((d) => {
               mutate(d.items[cur], d.items);
             })
           }
           onSave={() => {
-            go("items");
+            go(fromReview ? "review" : "items");
             const it = items[cur];
             showToast(`Item saved · ${itemQty(it)} ${it.unit} on ${it.pallets.length} pallet${it.pallets.length === 1 ? "" : "s"}`);
           }}
@@ -596,8 +654,9 @@ export function WorkerApp({ user, history, sheets }: { user: WorkerUser; history
         <ItemListScreen
           items={items}
           onEdit={(i) => {
-            setCur(i);
-            go("pallets");
+            const keep = fromReview;
+            openItem(i);
+            if (keep) setFromReview(true);
           }}
           onRename={(i, name) =>
             update((d) => {
@@ -616,7 +675,8 @@ export function WorkerApp({ user, history, sheets }: { user: WorkerUser; history
             setCur(-1);
           }}
           onAdd={openPicker}
-          onDone={() => go("materials")}
+          onDone={() => go(fromReview ? "review" : "materials")}
+          doneLabel={fromReview ? "Done · Back to review" : undefined}
         />
       );
     } else if (screen === "materials") {
@@ -644,6 +704,7 @@ export function WorkerApp({ user, history, sheets }: { user: WorkerUser; history
             })
           }
           onNext={() => go("review")}
+          nextLabel={fromReview ? "Save · Back to review" : undefined}
         />
       );
     } else if (screen === "review") {
@@ -651,13 +712,9 @@ export function WorkerApp({ user, history, sheets }: { user: WorkerUser; history
         <ReviewScreen
           draft={draft}
           warnings={warnings}
-          onEditHeader={() => go(mode === "paper" ? "paper" : "header")}
-          onEditItem={(i) => {
-            if (mode === "paper") return go("paper");
-            setCur(i);
-            go("pallets");
-          }}
-          onEditMaterials={() => go(mode === "paper" ? "paper" : "materials")}
+          onEditHeader={() => (mode === "paper" ? go("paper") : fixFromReview(() => go("header")))}
+          onEditItem={(i, pallet) => (mode === "paper" ? go("paper") : fixFromReview(() => openItem(i, pallet ?? null)))}
+          onEditMaterials={() => (mode === "paper" ? go("paper") : fixFromReview(() => go("materials")))}
           onSign={() => go("sign")}
         />
       );
@@ -715,12 +772,22 @@ export function WorkerApp({ user, history, sheets }: { user: WorkerUser; history
         <TopBar
           title={bar[0]}
           subtitle={bar[1]}
-          onBack={() => go(back[screen] ?? "home")}
+          onBack={() => {
+            // Leaving a fix started from the review goes back to the review (an item in progress returns to its list).
+            if (fromReview && (screen === "header" || screen === "items" || screen === "pallets" || screen === "materials")) go("review");
+            else go(back[screen] ?? "home");
+          }}
           form={screen === "type" ? null : draft?.form}
           action={modeSwitch}
         />
       ) : null}
-      {step !== undefined ? <Progress step={step} /> : null}
+      {step !== undefined ? (
+        <Progress
+          step={step}
+          canJump={canJump}
+          onStep={screen === "sign" || screen === "preview" || screen === "picker" || screen === "setup" ? undefined : jumpTo}
+        />
+      ) : null}
       {body}
       <Toast message={toast} />
     </div>

@@ -295,6 +295,8 @@ export interface Warning {
   message: string;
   /** Item to jump to for fixing it, or null for the materials screen. */
   itemIndex: number | null;
+  /** The pallet within that item, when the problem is on one pallet. */
+  palletIndex?: number;
 }
 
 /**
@@ -337,6 +339,7 @@ export function reviewWarnings(draft: Draft): Warning[] {
           severity: "error",
           message: `Pallet ${no}: ${[...bad].join(", ")} is not a valid date`,
           itemIndex: i,
+          palletIndex: pi,
         });
       }
       if (missing.size) {
@@ -345,6 +348,7 @@ export function reviewWarnings(draft: Draft): Warning[] {
           severity: "warn",
           message: `Pallet ${no}: ${[...missing].join(", ")} empty`,
           itemIndex: i,
+          palletIndex: pi,
         });
       }
     });

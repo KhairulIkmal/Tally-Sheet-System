@@ -18,7 +18,8 @@ export function ReviewScreen({
   draft: Draft;
   warnings: Warning[];
   onEditHeader: () => void;
-  onEditItem: (i: number) => void;
+  /** Opens the item's pallets, scrolled to one pallet when given. */
+  onEditItem: (i: number, pallet?: number) => void;
   onEditMaterials: () => void;
   onSign: () => void;
 }) {
@@ -64,14 +65,15 @@ export function ReviewScreen({
             <div className={cn("flex-1 text-sm/[1.35] font-semibold", w.severity === "error" ? "text-danger-ink" : "text-warning-ink")}>{w.message}</div>
             <button
               type="button"
-              onClick={() => (w.itemIndex === null ? onEditMaterials() : onEditItem(w.itemIndex))}
+              onClick={() => (w.itemIndex === null ? onEditMaterials() : onEditItem(w.itemIndex, w.palletIndex))}
               className="py-2 text-sm font-bold text-primary"
             >
-              View
+              Fix
             </button>
           </div>
         ))}
         {warnings.length > 6 ? <div className="text-sm font-semibold text-warning-ink">and {warnings.length - 6} more warnings</div> : null}
+        <div className="flex-none text-[13px] font-medium text-faint">Tap Edit, or a pallet number, to fix it. You come straight back here.</div>
         {warnings.length === 0 ? (
           <div className="flex-none rounded-xl border border-success-border bg-success-bg p-3 text-[15px] font-bold text-success">✓ All counts match, no empty fields</div>
         ) : null}
@@ -105,16 +107,19 @@ export function ReviewScreen({
                 {it.pallets.map((p, pi) => {
                   const q = p.lines.map((l) => l.qty || "?").join("+");
                   return (
-                    <span
+                    <button
+                      type="button"
                       key={p.id}
+                      aria-label={`Edit pallet ${ranges[i].start + pi}`}
+                      onClick={() => onEditItem(i, pi)}
                       className={cn(
-                        "flex h-10 min-w-10 flex-col items-center justify-center rounded-[7px] border border-field px-1",
+                        "flex h-10 min-w-10 flex-col items-center justify-center rounded-[7px] border border-field px-1 hover:border-primary active:bg-chip",
                         p.lines.length > 1 ? "bg-primary-soft" : palletQty(p) ? "bg-surface" : "bg-warning-bg",
                       )}
                     >
                       <span className="font-condensed text-[15px]/none font-extrabold">{ranges[i].start + pi}</span>
                       <span className="text-[11px]/[1.1] font-semibold text-muted">{q}</span>
-                    </span>
+                    </button>
                   );
                 })}
               </div>

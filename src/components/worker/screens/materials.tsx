@@ -36,6 +36,7 @@ export function MaterialsScreen({
   onPltAdjust,
   onRemark,
   onNext,
+  nextLabel = "Next · Review",
 }: {
   draft: Draft;
   onMaterial: (k: MaterialKey, delta: number) => void;
@@ -43,6 +44,7 @@ export function MaterialsScreen({
   onPltAdjust: (k: PltType, delta: number) => void;
   onRemark: (v: string) => void;
   onNext: () => void;
+  nextLabel?: string;
 }) {
   const isContainer = draft.form === "container";
   const counts = pltCounts(draft);
@@ -149,7 +151,7 @@ export function MaterialsScreen({
       </Scroll>
       <BottomBar>
         <Button className="w-full" onClick={onNext}>
-          Next · Review
+          {nextLabel}
         </Button>
       </BottomBar>
     </>

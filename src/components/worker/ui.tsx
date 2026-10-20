@@ -65,16 +65,38 @@ export function TopBar({
 
 export const STEPS = ["Header", "Item", "Pallet", "Materials", "Review", "Sign"] as const;
 
-export function Progress({ step }: { step: number }) {
+/**
+ * The step bar. With onStep, the steps the worker can reach are buttons, so
+ * they can jump straight to the part they want to fix.
+ */
+export function Progress({ step, canJump, onStep }: { step: number; canJump?: (i: number) => boolean; onStep?: (i: number) => void }) {
   return (
-    <div className="grid flex-none grid-cols-6 gap-1 border-b border-line bg-surface px-4 pt-1 pb-2.5" aria-label={`Step ${step + 1} of 6: ${STEPS[step]}`}>
-      {STEPS.map((label, i) => (
-        <div key={label} className="flex flex-col gap-[5px]">
-          <div className={cn("h-1 rounded-sm", i <= step ? "bg-primary" : "bg-field")} />
-          <div className={cn("truncate text-[11px]", i === step ? "font-bold text-ink" : "font-medium text-faint")}>{label}</div>
-        </div>
-      ))}
-    </div>
+    <nav className="grid flex-none grid-cols-6 gap-1 border-b border-line bg-surface px-4 pt-1 pb-1.5" aria-label={`Step ${step + 1} of 6: ${STEPS[step]}`}>
+      {STEPS.map((label, i) => {
+        const inner = (
+          <>
+            <div className={cn("h-1 rounded-sm", i <= step ? "bg-primary" : "bg-field")} />
+            <div className={cn("truncate text-[11px]", i === step ? "font-bold text-ink" : "font-medium text-faint")}>{label}</div>
+          </>
+        );
+        const jumpable = !!onStep && i !== step && (canJump?.(i) ?? true);
+        return jumpable ? (
+          <button
+            key={label}
+            type="button"
+            onClick={() => onStep(i)}
+            aria-label={`Go to ${label}`}
+            className="-mx-0.5 flex flex-col gap-[5px] rounded-md px-0.5 pb-1 text-left hover:bg-primary-soft [&>div:last-child]:text-primary"
+          >
+            {inner}
+          </button>
+        ) : (
+          <div key={label} className="flex flex-col gap-[5px] pb-1" aria-current={i === step ? "step" : undefined}>
+            {inner}
+          </div>
+        );
+      })}
+    </nav>
   );
 }
 

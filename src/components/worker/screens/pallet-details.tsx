@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { ArrowUp, CalendarDays, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { MAX_LINES_PER_PALLET, type SheetForm } from "@/lib/tally/constants";
@@ -175,6 +176,8 @@ export function PalletDetailsScreen({
   items,
   itemIndex,
   startNo,
+  focusPallet = null,
+  saveLabel = "Save item",
   onUpdate,
   onSave,
 }: {
@@ -182,10 +185,20 @@ export function PalletDetailsScreen({
   items: DraftItem[];
   itemIndex: number;
   startNo: number;
+  /** Pallet (index within the item) to scroll to and highlight on open. */
+  focusPallet?: number | null;
+  saveLabel?: string;
   onUpdate: (mutate: Mutator) => void;
   onSave: () => void;
 }) {
   const item = items[itemIndex];
+  const [flash, setFlash] = useState<number | null>(focusPallet);
+  useEffect(() => {
+    if (focusPallet === null) return;
+    document.getElementById(`pallet-card-${focusPallet}`)?.scrollIntoView({ block: "center" });
+    const t = setTimeout(() => setFlash(null), 2000);
+    return () => clearTimeout(t);
+  }, [focusPallet]);
   const status = countStatus(itemQty(item), item.targetQty, item.unit);
 
   const setPallet = (i: number, fn: (p: DraftPallet, all: DraftItem[]) => void) =>
@@ -207,7 +220,12 @@ export function PalletDetailsScreen({
           return (
             <div
               key={p.id}
-              className={cn("flex flex-none flex-col gap-2.5 rounded-[14px] bg-surface p-3", mixed ? "border-2 border-primary" : "border border-line")}
+              id={`pallet-card-${i}`}
+              className={cn(
+                "flex flex-none flex-col gap-2.5 rounded-[14px] bg-surface p-3 transition-shadow",
+                mixed ? "border-2 border-primary" : "border border-line",
+                flash === i && "ring-4 ring-warning",
+              )}
             >
               <div className="flex items-center gap-3">
                 <PalletBadge no={no} size="lg" />
@@ -324,7 +342,7 @@ export function PalletDetailsScreen({
         >
           + Pallet
         </Button>
-        <Button onClick={onSave}>Save item</Button>
+        <Button onClick={onSave}>{saveLabel}</Button>
       </BottomBar>
     </>
   );

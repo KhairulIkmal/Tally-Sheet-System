@@ -29,6 +29,7 @@ export function HeaderFormScreen({
   transferSuggestions,
   onChange,
   onNext,
+  nextLabel = "Next · Add item",
 }: {
   form: SheetForm;
   header: DraftHeader;
@@ -36,6 +37,7 @@ export function HeaderFormScreen({
   transferSuggestions: string[];
   onChange: (key: keyof DraftHeader, value: string) => void;
   onNext: () => void;
+  nextLabel?: string;
 }) {
   const errorCount = Object.values(errors).filter(Boolean).length;
   return (
@@ -93,7 +95,7 @@ export function HeaderFormScreen({
       </Scroll>
       <BottomBar>
         <Button className="w-full" onClick={onNext}>
-          Next · Add item
+          {nextLabel}
         </Button>
       </BottomBar>
     </>

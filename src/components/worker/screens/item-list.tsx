@@ -16,6 +16,7 @@ export function ItemListScreen({
   onDelete,
   onAdd,
   onDone,
+  doneLabel = "Done · Materials",
 }: {
   items: DraftItem[];
   onEdit: (i: number) => void;
@@ -24,6 +25,7 @@ export function ItemListScreen({
   onDelete: (i: number) => void;
   onAdd: () => void;
   onDone: () => void;
+  doneLabel?: string;
 }) {
   const t = totals(items);
   const ranges = palletRanges(items);
@@ -115,7 +117,7 @@ export function ItemListScreen({
       </Scroll>
       <BottomBar>
         <Button className="w-full" disabled={items.length === 0} onClick={onDone}>
-          Done · Materials
+          {doneLabel}
         </Button>
       </BottomBar>
     </>
