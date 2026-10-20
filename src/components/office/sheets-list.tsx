@@ -6,7 +6,6 @@ import { usePathname, useRouter } from "next/navigation";
 import { Check, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatDateTime } from "@/lib/tally/dates";
-import { formatQty } from "@/lib/tally/draft";
 import type { SheetSummary } from "@/lib/tally/sheet";
 import type { KlDate, SheetFilter } from "@/lib/data/types";
 import { filterParams, rangeLabel } from "@/lib/data/filters";
@@ -14,7 +13,7 @@ import { FormBadge } from "@/components/worker/ui";
 import { DateSidebar, toggleOne } from "./date-sidebar";
 
 const SEEN_KEY = "tally:office-last-seen";
-const COLS = "6px 124px 128px minmax(120px,1fr) minmax(120px,1fr) 76px 112px minmax(140px,1fr) 124px";
+const COLS = "6px 124px 128px minmax(120px,1fr) minmax(120px,1fr) 84px 136px minmax(140px,1fr) 160px";
 
 export const STATUS_CHIP = {
   submitted: { label: "Submitted", className: "bg-success-bg text-success" },
@@ -172,7 +171,7 @@ export function SheetsList({
 
         <div className={cn("mx-7 mb-5 flex min-h-0 flex-1 flex-col overflow-hidden rounded-[10px] border border-line bg-surface", pending && "opacity-70")}>
           <div className="flex min-h-0 flex-1 flex-col overflow-x-auto">
-            <div className="flex min-h-0 min-w-[880px] flex-1 flex-col">
+            <div className="flex min-h-0 min-w-[960px] flex-1 flex-col">
               <div className="grid h-11 flex-none items-center border-b border-line bg-surface-sunken text-xs font-bold tracking-[.06em] text-muted" style={{ gridTemplateColumns: COLS }}>
                 <span />
                 <button type="button" onClick={() => setAsc(!asc)} className="pl-3.5 text-left">
@@ -181,7 +180,7 @@ export function SheetsList({
                 <span>FORM</span>
                 <span>CONTAINER / LORRY</span>
                 <span>CONTRACT / D/O</span>
-                <span className="text-right">PALLETS</span>
+                <span className="pr-4 text-right">PALLETS</span>
                 <span className="text-right">TOTAL QTY</span>
                 <span className="pl-6">PREPARED BY</span>
                 <span>STATUS</span>
@@ -204,8 +203,19 @@ export function SheetsList({
                       </span>
                       <span className={cn("truncate pr-2", fresh ? "font-bold" : "font-medium")}>{s.vehicleNo}</span>
                       <span className="truncate pr-2 text-body">{s.docNo}</span>
-                      <span className="text-right font-semibold">{s.totalPallets}</span>
-                      <span className="truncate text-right font-semibold">{formatQty(s.qtyByUnit)}</span>
+                      <span className="pr-4 text-right font-semibold tabular-nums">{s.totalPallets}</span>
+                      {/* One line per unit (770 CTN / 150 TIN), so nothing is cut off. */}
+                      <span className="flex flex-col items-end text-right leading-tight font-semibold tabular-nums">
+                        {Object.entries(s.qtyByUnit).length ? (
+                          Object.entries(s.qtyByUnit).map(([unit, n]) => (
+                            <span key={unit} className={Object.keys(s.qtyByUnit).length > 1 ? "text-[13px]" : undefined}>
+                              {n} {unit}
+                            </span>
+                          ))
+                        ) : (
+                          <span>0</span>
+                        )}
+                      </span>
                       <span className="truncate pl-6">{s.preparedByName}</span>
                       <span className="flex items-center gap-2">
                         <span className={cn("flex h-6 items-center rounded-full px-2.5 text-xs font-bold", chip.className)}>{chip.label}</span>
