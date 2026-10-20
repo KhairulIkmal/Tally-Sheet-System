@@ -49,7 +49,7 @@ export function ReviewScreen({
           </div>
           <div className="rounded-xl bg-solid px-3.5 py-2.5 text-on-solid">
             <div className="text-[13px] font-semibold opacity-75">Total qty</div>
-            <div className="truncate text-[34px]/[1.1] font-extrabold">{formatQty(t.qty)}</div>
+            <div className={cn("font-extrabold", Object.keys(t.qty).length > 1 ? "text-xl/tight" : "truncate text-[34px]/[1.1]")}>{formatQty(t.qty)}</div>
           </div>
         </div>
 

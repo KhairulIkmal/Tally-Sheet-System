@@ -68,7 +68,8 @@ const STEP_OF: Partial<Record<Screen, number>> = {
   picker: 1,
   setup: 1,
   pallets: 2,
-  items: 2,
+  // The items list is the "Item" step; "Pallet" is one item's pallets.
+  items: 1,
   materials: 3,
   review: 4,
   sign: 5,

@@ -45,7 +45,10 @@ export function ItemListScreen({
           </div>
           <div className="rounded-xl border border-line bg-surface px-3.5 py-3">
             <div className="text-[13px] font-semibold text-muted">Total qty</div>
-            <div className="truncate text-[32px] font-extrabold">{formatQty(t.qty)}</div>
+            {/* Several units (446 CTN · 100 TIN) wrap at a smaller size instead of being cut off. */}
+            <div className={cn("font-extrabold", Object.keys(t.qty).length > 1 ? "text-xl/tight" : "truncate text-[32px]")}>
+              {formatQty(t.qty)}
+            </div>
           </div>
         </div>
         {items.map((it, i) => {
