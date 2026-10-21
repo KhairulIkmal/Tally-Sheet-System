@@ -5,8 +5,6 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { isDemoMode } from "@/lib/env";
 import { createClient } from "@/lib/supabase/server";
-import { isCrossDomainSsoTopology } from "@/lib/supabase/cookieOptions";
-import { CENTRAL_PORTAL_LOGIN_URL } from "./central-portal";
 import { DEMO_USERS } from "@/lib/data/demo-store";
 import { demoStore } from "@/lib/data/demo-store";
 import { supabaseStore } from "@/lib/data/supabase-store";
@@ -25,7 +23,7 @@ export interface CurrentUser {
 
 export type DeniedReason = "no_access" | "pending" | "suspended" | "revoked" | "inactive" | "no_role";
 
-type SessionOutcome =
+export type SessionOutcome =
   | { status: "signed_out" }
   | { status: "denied"; reason: DeniedReason; name: string; email: string }
   | { status: "ok"; user: CurrentUser };
@@ -106,6 +104,11 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
   return outcome.status === "ok" ? outcome.user : null;
 }
 
+/** The whole outcome, for the sign-in page: signed out, denied (and why), or signed in. */
+export async function getSessionOutcome(): Promise<SessionOutcome> {
+  return loadSession();
+}
+
 export async function getDeniedState(): Promise<{ reason: DeniedReason; name: string; email: string } | null> {
   const outcome = await loadSession();
   return outcome.status === "denied" ? outcome : null;
@@ -120,7 +123,8 @@ export async function requireUser(): Promise<CurrentUser> {
   const outcome = await loadSession();
   if (outcome.status === "ok") return outcome.user;
   if (outcome.status === "signed_out") {
-    redirect(!isDemoMode() && isCrossDomainSsoTopology() ? CENTRAL_PORTAL_LOGIN_URL : "/login");
+    // Our own sign-in page first, like the other Lam Soon systems; its button goes on to the Portal.
+    redirect("/login");
   }
   redirect(`/access-denied?reason=${outcome.reason}`);
 }

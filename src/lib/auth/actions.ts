@@ -7,7 +7,7 @@ import { isDemoMode } from "@/lib/env";
 import { createClient } from "@/lib/supabase/server";
 import { isCrossDomainSsoTopology } from "@/lib/supabase/cookieOptions";
 import { safeReturnTo } from "@/lib/return-to";
-import { CENTRAL_PORTAL_HOME_URL } from "./central-portal";
+import { CENTRAL_PORTAL_HOME_URL, CENTRAL_PORTAL_LOGIN_URL } from "./central-portal";
 import { DEMO_COOKIE, type DemoPersona } from "./dal";
 
 export interface ActionResult {
@@ -65,4 +65,15 @@ export async function signOut(): Promise<void> {
   const supabase = await createClient();
   await supabase.auth.signOut();
   redirect(isCrossDomainSsoTopology() ? CENTRAL_PORTAL_HOME_URL : "/login");
+}
+
+/** "Use another account" on the sign-in page: sign out, then straight to the Portal sign-in. */
+export async function switchAccount(): Promise<void> {
+  if (isDemoMode()) {
+    (await cookies()).delete(DEMO_COOKIE);
+    redirect("/login");
+  }
+  const supabase = await createClient();
+  await supabase.auth.signOut();
+  redirect(isCrossDomainSsoTopology() ? CENTRAL_PORTAL_LOGIN_URL : "/login");
 }
