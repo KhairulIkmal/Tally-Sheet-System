@@ -85,7 +85,7 @@ async function SignInPanel({ returnTo }: { returnTo?: string }) {
       <div className="flex flex-col gap-3">
         <Who name={user.name} email={user.email} detail={roles} />
         <Link href={safeReturnTo(returnTo) ?? homePathFor(user)} className={primaryBtn}>
-          Continue as {user.name.split(/\s+/)[0] || "you"} <ArrowRight aria-hidden className="size-5" />
+          Continue as {user.name.split(/\s+/).slice(0, 2).join(" ") || "you"} <ArrowRight aria-hidden className="size-5" />
         </Link>
         <UseAnotherAccount />
       </div>
