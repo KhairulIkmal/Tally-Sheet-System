@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ArrowRight, ShieldAlert } from "lucide-react";
+import { ArrowRight, Boxes, ClipboardList, Lock, PenLine, Printer, ShieldAlert } from "lucide-react";
 import { getSessionOutcome, homePathFor } from "@/lib/auth/dal";
 import { switchAccount } from "@/lib/auth/actions";
 import { CENTRAL_PORTAL_HOME_URL, CENTRAL_PORTAL_LOGIN_URL } from "@/lib/auth/central-portal";
@@ -15,11 +15,10 @@ import { DemoPicker } from "./demo-picker";
 
 export const metadata: Metadata = { title: "Sign in" };
 
-// A few rows of a sheet, as a picture of what the app is: the last pallet of the item circled in red.
-const PREVIEW = [
-  { plt: 1, name: "36X240G DAISY MARG", qty: 40, last: false },
-  { plt: 2, name: "〃", qty: 40, last: false },
-  { plt: 3, name: "TOTAL 120", qty: 40, last: true },
+const FEATURES = [
+  { icon: Boxes, title: "Pallet by pallet", body: "Numbered like the stickers, totals worked out for you." },
+  { icon: PenLine, title: "Signed at the dock", body: "Sign on the phone before the load leaves." },
+  { icon: Printer, title: "Ready to print", body: "The office prints the same sheet you know." },
 ] as const;
 
 const primaryBtn =
@@ -118,75 +117,83 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
   }
 
   return (
-    <main className="flex min-h-dvh flex-col bg-surface lg:grid lg:grid-cols-2">
-      <section className="relative overflow-hidden bg-primary px-6 pt-9 pb-14 text-white lg:flex lg:flex-col lg:justify-center lg:px-16 lg:py-16">
-        {/* Ruled lines, like the paper sheet. */}
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-0 opacity-[0.08] [background-image:repeating-linear-gradient(0deg,#fff_0_1px,transparent_1px_34px)]"
-        />
-        <div className="relative mx-auto w-full max-w-[440px]">
-          <div className="mb-7 flex items-center gap-3">
-            <span className="grid size-14 place-items-center rounded-2xl bg-white p-1.5 shadow-[0_6px_20px_rgba(0,0,0,.18)]">
+    <main className="relative flex min-h-dvh flex-col overflow-hidden bg-[#08152d] text-white">
+      {/* The warehouse floor, under a navy wash: dense on the left where the words sit, open on the right. */}
+      <div aria-hidden className="absolute inset-0">
+        <picture>
+          <source media="(min-width: 1024px)" srcSet="/login-warehouse.webp" />
+          <img src="/login-warehouse-sm.webp" alt="" className="size-full object-cover object-[38%_70%] lg:object-center" />
+        </picture>
+        <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(8,21,45,.72)_0%,rgba(8,21,45,.80)_45%,rgba(8,21,45,.95)_100%)] lg:bg-[linear-gradient(100deg,rgba(6,16,36,.96)_0%,rgba(8,22,48,.86)_38%,rgba(8,22,48,.45)_72%,rgba(8,22,48,.25)_100%)]" />
+        <div className="absolute inset-x-0 bottom-0 h-1/3 bg-[linear-gradient(0deg,rgba(6,16,36,.7),transparent)]" />
+      </div>
+
+      <div className="relative mx-auto flex w-full max-w-[1240px] flex-1 flex-col lg:px-14">
+        <header className="flex items-center justify-between px-6 pt-6 lg:px-0 lg:pt-9">
+          <div className="flex items-center gap-3">
+            <span className="grid size-11 place-items-center rounded-xl bg-white p-1 shadow-[0_8px_24px_rgba(0,0,0,.35)]">
               <LamSoonLogo className="h-full w-auto" />
             </span>
-            <div>
+            <div className="leading-tight">
               <div className="text-[15px] font-bold">Lam Soon PSG</div>
-              <div className="font-condensed text-[13px] font-semibold tracking-[.08em] text-white/70 uppercase">Warehouse</div>
+              <div className="font-condensed text-xs font-semibold tracking-[.14em] text-white/60 uppercase">Warehouse Operations</div>
             </div>
           </div>
-          <h1 className="text-[44px]/none font-extrabold tracking-tight lg:text-[60px]/none">Tally Sheet</h1>
-          <p className="mt-3 max-w-[380px] text-[17px]/snug font-medium text-white/85">
-            Count pallets on your phone, sign, and submit. The office prints it, just like the paper sheet.
-          </p>
+          <span className="hidden items-center gap-2 rounded-full border border-white/15 bg-white/[.06] px-3.5 py-1.5 text-xs font-semibold text-white/75 backdrop-blur-sm sm:flex">
+            <Lock aria-hidden className="size-3.5" /> Internal use only
+          </span>
+        </header>
 
-          <div
-            aria-hidden
-            className="mt-7 rounded-xl bg-white p-3 font-condensed text-ink shadow-[0_10px_30px_rgba(0,0,0,.22)] [@media(max-height:700px)]:hidden"
-          >
-            <div className="grid grid-cols-[34px_1fr_44px] border-b-2 border-ink pb-1 text-[11px] font-bold tracking-[.06em] text-muted uppercase">
-              <span>Plt</span>
-              <span>Item</span>
-              <span className="text-right">Qty</span>
+        <div className="flex flex-1 flex-col lg:grid lg:grid-cols-[minmax(0,1fr)_440px] lg:items-center lg:gap-20 lg:py-12">
+          <section className="px-6 pt-12 pb-10 lg:p-0">
+            <div className="mb-5 flex items-center gap-3 font-condensed text-[13px] font-bold tracking-[.22em] text-white/70 uppercase">
+              <span aria-hidden className="h-0.5 w-8 bg-[#e8463a]" />
+              Count Tally Sheet
             </div>
-            {PREVIEW.map((r) => (
-              <div
-                key={r.plt}
-                className="grid grid-cols-[34px_1fr_44px] items-center border-b border-line py-1.5 text-[15px] font-bold last:border-0"
-              >
-                <span className="text-muted">{r.plt}</span>
-                <span className={r.last ? "text-danger" : r.name === "〃" ? "text-faint" : ""}>{r.name}</span>
-                <span className="flex justify-end">
-                  <span
-                    className={
-                      r.last
-                        ? "grid size-8 place-items-center rounded-full border-2 border-danger text-danger"
-                        : "grid size-8 place-items-center"
-                    }
-                  >
-                    {r.qty}
-                  </span>
+            <h1 className="max-w-[620px] text-[40px]/[1.02] font-extrabold tracking-[-.02em] text-balance sm:text-[52px]/[1.02] lg:text-[68px]/[1]">
+              Every pallet counted, signed and on record.
+            </h1>
+            <p className="mt-5 max-w-[500px] text-[16px]/relaxed font-medium text-white/75 lg:text-lg/relaxed">
+              The warehouse tally sheet, on your phone. Count each pallet, sign at the dock, and the office has it ready to print.
+            </p>
+            <ul className="mt-10 hidden max-w-[560px] grid-cols-3 border-t border-white/15 pt-6 lg:grid">
+              {FEATURES.map(({ icon: Icon, title, body }, i) => (
+                <li key={title} className={i ? "border-l border-white/15 pl-5" : "pr-5"}>
+                  <Icon aria-hidden className="mb-2.5 size-5 text-[#ff8a7f]" />
+                  <div className="text-[15px] font-bold">{title}</div>
+                  <div className="mt-0.5 text-[13px]/snug font-medium text-white/60">{body}</div>
+                </li>
+              ))}
+            </ul>
+          </section>
+
+          <section className="flex flex-1 flex-col rounded-t-[28px] bg-surface px-6 pt-8 pb-7 text-ink shadow-[0_-12px_40px_rgba(0,0,0,.25)] lg:flex-none lg:rounded-[28px] lg:p-10 lg:shadow-[0_40px_100px_rgba(0,0,0,.5)]">
+            <div className="mx-auto flex w-full max-w-[400px] flex-1 flex-col">
+              <div className="mb-7 flex items-center gap-3">
+                <span className="grid size-11 place-items-center rounded-xl bg-primary text-white">
+                  <ClipboardList aria-hidden className="size-[22px]" />
                 </span>
+                <div className="leading-tight">
+                  <div className="text-[17px] font-extrabold">Tally Sheet</div>
+                  <div className="text-[13px] font-medium text-muted">Lam Soon staff only</div>
+                </div>
               </div>
-            ))}
-          </div>
+              <h2 className="text-[28px]/tight font-extrabold tracking-[-.01em]">Sign in</h2>
+              <p className="mt-1.5 mb-6 text-[15px] font-medium text-muted">Use your Lam Soon work account, the same one as the Portal.</p>
+              <SignInPanel returnTo={returnTo} />
+              <p className="mt-auto border-t border-line-soft pt-5 text-center text-[13px] font-medium text-faint lg:mt-8">
+                Need access? Request Tally Sheet on the{" "}
+                <a href={CENTRAL_PORTAL_HOME_URL} className="font-semibold text-primary hover:underline">
+                  Lam Soon PSG Portal
+                </a>
+                .
+              </p>
+            </div>
+          </section>
         </div>
-      </section>
 
-      <section className="relative -mt-6 flex flex-1 flex-col rounded-t-[28px] bg-surface px-6 pt-8 pb-8 lg:mt-0 lg:justify-center lg:rounded-none lg:px-16">
-        <div className="mx-auto flex w-full max-w-[400px] flex-1 flex-col lg:flex-none">
-          <h2 className="text-[26px] font-extrabold">Sign in</h2>
-          <p className="mt-1 mb-6 text-[15px] font-medium text-muted">Lam Soon staff only.</p>
-          <SignInPanel returnTo={returnTo} />
-          <p className="mt-auto pt-8 text-center text-[13px] font-medium text-faint">
-            Need access? Request Tally Sheet on the{" "}
-            <a href={CENTRAL_PORTAL_HOME_URL} className="font-semibold text-primary hover:underline">
-              Lam Soon PSG Portal
-            </a>
-            .
-          </p>
-        </div>
-      </section>
+        <footer className="hidden pb-8 text-xs font-medium text-white/45 lg:block">© 2026 Lam Soon PSG</footer>
+      </div>
     </main>
   );
 }
