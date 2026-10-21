@@ -1,31 +1,32 @@
 import Link from "next/link";
 import { hasRole, requireOffice } from "@/lib/auth/dal";
-import { signOut } from "@/lib/auth/actions";
 import { LamSoonLogo } from "@/components/brand";
 import { OfficeNav } from "@/components/office/office-nav";
+import { HeaderClock } from "@/components/office/header-clock";
+import { UserMenu } from "@/components/office/user-menu";
 
 export default async function OfficeLayout({ children }: { children: React.ReactNode }) {
   const user = await requireOffice();
+  const roleLabel = user.roles.map((r) => (r === "office" ? "Office" : "Worker")).join(" · ");
   return (
     <div className="flex h-dvh min-w-[1024px] flex-col bg-canvas text-ink print:block print:h-auto print:min-w-0 print:bg-white">
-      <header data-noprint className="flex h-[60px] flex-none items-center gap-7 bg-[#15181d] px-7 text-white">
+      <header data-noprint className="flex h-[64px] flex-none items-center gap-7 bg-[#15181d] px-7 text-white">
         <Link href="/office" className="flex items-center gap-2.5 text-xl font-extrabold">
           <LamSoonLogo className="h-9 w-auto" />
           Tally Sheet
         </Link>
         <OfficeNav />
         <span className="flex-1" />
-        {hasRole(user, "worker") ? (
-          <Link href="/worker" className="text-sm font-semibold text-[#9dbbff]">
-            Open worker app →
-          </Link>
-        ) : null}
-        <span className="text-sm font-medium opacity-80">{user.name}</span>
-        <form action={signOut}>
-          <button type="submit" className="text-sm font-semibold opacity-80 hover:opacity-100">
-            Sign out
-          </button>
-        </form>
+        <HeaderClock />
+        <span aria-hidden className="h-8 w-px bg-white/15" />
+        <UserMenu
+          name={user.name}
+          email={user.email}
+          initials={user.initials}
+          roleLabel={roleLabel}
+          department={user.department}
+          canOpenWorker={hasRole(user, "worker")}
+        />
       </header>
       {children}
     </div>
