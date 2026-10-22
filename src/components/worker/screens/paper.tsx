@@ -423,20 +423,21 @@ export function PaperScreen({
                       <div className="flex">
                         <div className="min-w-0 flex-1">
                           {p.lines.map((l, li) => {
+                            const circleAt = marks[i]?.circled ? p.lines.findLastIndex((x) => !!x.qty) : -1;
                             const source = dittoSource(items, i, li, "qty");
                             return (
                               <div
                                 key={li}
-                                title={marks[i]?.circled && l.qty ? "Last pallet of this item" : undefined}
+                                title={li === circleAt ? "Last pallet of this item" : undefined}
                                 className={cn(
                                   "relative flex items-center",
                                   li > 0 && "border-t border-dashed border-ink/25",
-                                  marks[i]?.circled && l.qty && "text-danger",
+                                  li === circleAt && "text-danger",
                                 )}
                               >
-                                {/* The item's last pallet is circled, as on paper: only lines with a qty, drawn over the
+                                {/* The item's last pallet is circled, as on paper: only the last batch's qty, drawn over the
                                     cell so the line keeps the same height as Expired, Prod and Batch beside it. */}
-                                {marks[i]?.circled && l.qty ? (
+                                {li === circleAt ? (
                                   <span
                                     aria-hidden
                                     className="pointer-events-none absolute inset-x-1 inset-y-1 rounded-full ring-2 ring-danger"

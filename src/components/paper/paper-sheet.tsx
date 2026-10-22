@@ -37,6 +37,8 @@ function HeaderField({ label, value, labelWidth }: { label: string; value: strin
 const RED: React.CSSProperties = { color: "#d1201b", printColorAdjust: "exact", WebkitPrintColorAdjust: "exact" };
 
 function Stacked({ values, align, circled = false }: { values: string[]; align: "start" | "center" | "end"; circled?: boolean }) {
+  // On a mixed pallet only the last batch's qty is circled.
+  const circleAt = circled ? values.findLastIndex((v) => !!v) : -1;
   return (
     <div
       style={{
@@ -54,7 +56,7 @@ function Stacked({ values, align, circled = false }: { values: string[]; align: 
           key={i}
           style={{ lineHeight: values.length > 2 ? "8px" : "11px", fontSize: values.length > 2 ? 7.5 : undefined, whiteSpace: "nowrap" }}
         >
-          {circled && v ? (
+          {i === circleAt ? (
             // A pallet that is not full: circled, as written on paper.
             <span
               style={{
