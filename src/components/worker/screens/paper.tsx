@@ -136,13 +136,11 @@ export function PaperScreen({
     const unit = normalizeUnit(it.unit);
     const total = itemTotalText(unit, it.targetQty, qtys);
     // While filling in only: how far the counted pallets are from the TOTAL. The printed sheet doesn't show it.
-    const check = it.targetQty
-      ? countStatus(
-          qtys.reduce((a, b) => a + b, 0),
-          it.targetQty,
-          unit,
-        )
-      : null;
+    const check = countStatus(
+      qtys.reduce((a, b) => a + b, 0),
+      it.targetQty,
+      unit,
+    );
     return itemRowMarks(it.name.trim(), unit, it.targetQty, qtys).map((m, j) => {
       const totalRow = j === (qtys.length > 1 ? 1 : 0);
       return { first: j === 0, total: totalRow ? total : "", check: totalRow ? check : null, circled: !!m.circled };
@@ -574,12 +572,12 @@ export function PaperScreen({
                     <span
                       className={cn(
                         "font-extrabold",
-                        st.state === "ok" && "text-success",
+                        (st.state === "ok" || (st.state === "none" && st.counted > 0)) && "text-success",
                         st.state === "short" && "text-warning",
                         st.state === "over" && "text-danger",
                       )}
                     >
-                      {st.label}
+                      {st.state === "none" && st.counted > 0 ? `${st.label} ✓` : st.label}
                     </span>
                   </div>
                 );
@@ -618,10 +616,11 @@ export function PaperScreen({
 
 /** Beside the red TOTAL while filling in: what is still needed, or a tick once the count matches. */
 function TotalCheck({ check }: { check: CountStatus | null | undefined }) {
-  if (!check || check.state === "none") return null;
+  // With no TOTAL typed, the TOTAL written is the sum of the pallets, so it always matches.
+  if (!check || (check.state === "none" && check.counted <= 0)) return null;
   const [text, tone, title] =
-    check.state === "ok"
-      ? ["✓", "bg-success-bg text-success border-success-border", "Total met"]
+    check.state === "ok" || check.state === "none"
+      ? ["✓", "bg-success-bg text-success border-success-border", check.state === "ok" ? "Total met" : "Total of the pallets typed"]
       : check.state === "short"
         ? [`${check.diff} left`, "bg-warning-bg text-warning-ink border-warning-border", `${check.diff} more to reach the total`]
         : [`${check.diff} over`, "bg-danger-bg text-danger-ink border-danger-border", `${check.diff} more than the total`];
