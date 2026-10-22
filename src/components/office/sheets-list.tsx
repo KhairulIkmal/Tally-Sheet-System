@@ -171,7 +171,7 @@ export function SheetsList({
 
         <div className={cn("mx-7 mb-5 flex min-h-0 flex-1 flex-col overflow-hidden rounded-[10px] border border-line bg-surface", pending && "opacity-70")}>
           <div className="flex min-h-0 flex-1 flex-col overflow-x-auto">
-            <div className="flex min-h-0 min-w-[960px] flex-1 flex-col">
+            <div className="flex min-h-0 min-w-[1040px] flex-1 flex-col">
               <div className="grid h-11 flex-none items-center border-b border-line bg-surface-sunken text-xs font-bold tracking-[.06em] text-muted" style={{ gridTemplateColumns: COLS }}>
                 <span />
                 <button type="button" onClick={() => setAsc(!asc)} className="pl-3.5 text-left">
@@ -185,7 +185,7 @@ export function SheetsList({
                 <span className="pl-6">PREPARED BY</span>
                 <span>STATUS</span>
               </div>
-              <div className="min-h-0 flex-1 overflow-y-auto">
+              <div className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto">
                 {rows.map((s) => {
                   const fresh = !!lastSeen && s.submittedAt > lastSeen;
                   const chip = STATUS_CHIP[s.status];
