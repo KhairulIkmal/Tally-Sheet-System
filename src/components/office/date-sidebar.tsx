@@ -22,6 +22,11 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
   return <div className="mb-3 text-xs font-bold tracking-[.08em] text-muted">{children}</div>;
 }
 
+/** Whole days from a to b (both YYYY-MM-DD). */
+function daysBetween(a: KlDate, b: KlDate): number {
+  return Math.round((Date.parse(b) - Date.parse(a)) / 86_400_000);
+}
+
 export function DateSidebar({
   filter,
   month,
@@ -39,7 +44,10 @@ export function DateSidebar({
 }) {
   // First click of a range; the second click completes it.
   const [anchor, setAnchor] = useState<KlDate | null>(null);
+  // While picking the second day: the day under the mouse, to preview the range.
+  const [hover, setHover] = useState<KlDate | null>(null);
   const { from, to } = filter;
+  const preview = anchor && hover && hover !== anchor ? (anchor < hover ? [anchor, hover] : [hover, anchor]) : null;
 
   function pickDay(day: KlDate) {
     if (anchor && anchor !== day) {
@@ -113,7 +121,7 @@ export function DateSidebar({
           </span>
         ))}
       </div>
-      <div className="grid grid-cols-7 gap-y-1" role="grid" aria-label={monthLabel(month)}>
+      <div className="grid grid-cols-7 gap-y-1" role="grid" aria-label={monthLabel(month)} onMouseLeave={() => setHover(null)}>
         {monthGrid(month).flatMap((week, w) =>
           week.map((day, i) => {
             if (!day) return <span key={`${w}-${i}`} />;
@@ -121,26 +129,46 @@ export function DateSidebar({
             const count = dayCounts[day] ?? 0;
             const isEnd = day === from || day === to || day === anchor;
             const inBand = !!from && !!to && day > from && day < to;
+            const inPreview = !!preview && day >= preview[0] && day <= preview[1] && day !== anchor;
+            // Each picked tile fills a beat after the one before it, from the start of the range.
+            const step = from && (isEnd || inBand) && day !== anchor ? Math.min(31, daysBetween(from, day)) : 0;
+            const delay = { animationDelay: `${step * 28}ms`, transitionDelay: `${step * 28}ms` };
             return (
               <button
                 key={day}
                 type="button"
                 disabled={future}
                 onClick={() => pickDay(day)}
+                onMouseEnter={() => anchor && setHover(day)}
                 aria-pressed={isEnd || inBand}
                 aria-label={`${day}${count ? `, ${count} sheet${count === 1 ? "" : "s"}` : ""}`}
                 className={cn(
-                  "flex h-11 flex-col items-center justify-center text-[15px] leading-none",
-                  isEnd ? "rounded-md bg-primary text-white" : inBand ? "bg-primary-soft" : "rounded-md hover:bg-canvas",
-                  // Join the band to the ends of the range.
-                  isEnd && from !== to && day === from && "rounded-r-none",
-                  isEnd && from !== to && day === to && "rounded-l-none",
+                  "relative flex h-11 flex-col items-center justify-center text-[15px] leading-none transition-colors duration-200",
+                  isEnd ? "text-white" : !inBand && "rounded-md hover:bg-canvas",
                   day === today ? "font-extrabold" : "font-semibold",
                   future && "text-placeholder hover:bg-transparent",
                 )}
+                style={isEnd ? { transitionDelay: delay.transitionDelay } : undefined}
               >
-                {Number(day.slice(8))}
-                <span className={cn("mt-1 h-2.5 text-[10px] font-bold", isEnd ? "text-white/85" : "text-primary")}>{count || ""}</span>
+                {isEnd || inBand ? (
+                  <span
+                    // A new range replays the fill.
+                    key={`${from}~${to}`}
+                    aria-hidden
+                    style={delay}
+                    className={cn(
+                      "animate-tile-in absolute inset-0",
+                      isEnd ? "rounded-md bg-primary" : "bg-primary-soft",
+                      // Join the band to the ends of the range.
+                      isEnd && from !== to && day === from && "rounded-r-none",
+                      isEnd && from !== to && day === to && "rounded-l-none",
+                      day === anchor && "animate-tile-pulse",
+                    )}
+                  />
+                ) : null}
+                {inPreview ? <span aria-hidden className="absolute inset-0 rounded-md border-2 border-dashed border-primary/45 bg-primary-soft/50" /> : null}
+                <span className="relative">{Number(day.slice(8))}</span>
+                <span className={cn("relative mt-1 h-2.5 text-[10px] font-bold", isEnd ? "text-white/85" : "text-primary")}>{count || ""}</span>
               </button>
             );
           }),
