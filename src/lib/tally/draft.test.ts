@@ -114,19 +114,16 @@ describe("pltCounts", () => {
 });
 
 describe("validateHeader", () => {
-  it("requires the fields of the chosen form", () => {
+  it("lets every field be blank, the date too", () => {
     const d = newDraft("lorry");
     d.header.date = "";
-    expect(Object.keys(validateHeader("lorry", d.header)).sort()).toEqual(["date", "doNo", "lorryNo", "transferTo"]);
+    expect(validateHeader("lorry", d.header)).toEqual({});
   });
 
-  it("checks the container number shape and the date", () => {
+  it("takes any container number, but only a real date", () => {
     const d = newDraft("container");
-    Object.assign(d.header, { contractNo: "C", containerNo: "TGHU123", sealNo: "S", siNo: "SI", disport: "PK", date: "31/02/27" });
-    const errors = validateHeader("container", d.header);
-    expect(errors.containerNo).toMatch(/4 letters/);
-    expect(errors.date).toBe("Use DD/MM/YY");
-    d.header.containerNo = "TGHU 1234567";
+    Object.assign(d.header, { containerNo: "TGHU123", date: "31/02/27" });
+    expect(validateHeader("container", d.header)).toEqual({ date: "Use DD/MM/YY" });
     d.header.date = "14/10/26";
     expect(validateHeader("container", d.header)).toEqual({});
   });

@@ -263,8 +263,6 @@ export function pltCounts(draft: Pick<Draft, "items" | "pltAdjust">): Record<Plt
 
 // ── header validation ───────────────────────────────────────────────────
 
-export const CONTAINER_NO_PATTERN = /^[A-Z]{4}\s?\d{7}$/;
-
 export type HeaderErrors = Partial<Record<keyof DraftHeader, string>>;
 
 export function headerFields(form: SheetForm): (keyof DraftHeader)[] {
@@ -273,14 +271,12 @@ export function headerFields(form: SheetForm): (keyof DraftHeader)[] {
     : ["transferTo", "doNo", "lorryNo", "date"];
 }
 
-export function validateHeader(form: SheetForm, header: DraftHeader): HeaderErrors {
+/**
+ * Header fields are free text and may be left blank (decided 2026-10-22).
+ * Only a typed date must be a real date; a blank one is sent as today.
+ */
+export function validateHeader(_form: SheetForm, header: DraftHeader): HeaderErrors {
   const errors: HeaderErrors = {};
-  for (const key of headerFields(form)) {
-    if (!header[key].trim()) errors[key] = "Required";
-  }
-  if (form === "container" && header.containerNo.trim() && !CONTAINER_NO_PATTERN.test(header.containerNo.trim())) {
-    errors.containerNo = "Must be 4 letters + 7 digits (e.g. TGHU 1234567)";
-  }
   if (header.date.trim() && !isValidPaperDate(header.date.trim())) {
     errors.date = "Use DD/MM/YY";
   }

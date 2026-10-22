@@ -8,7 +8,7 @@ import { BottomBar, Button, FieldLabel, Scroll, TextField } from "../ui";
 const FIELDS: Record<SheetForm, { key: keyof DraftHeader; label: string; hint?: string; numeric?: boolean }[]> = {
   container: [
     { key: "contractNo", label: "Contract No" },
-    { key: "containerNo", label: "Container No", hint: "4 letters + 7 digits" },
+    { key: "containerNo", label: "Container No", hint: "e.g. TGHU 1234567" },
     { key: "sealNo", label: "Seal No" },
     { key: "siNo", label: "SI No" },
     { key: "disport", label: "Disport" },

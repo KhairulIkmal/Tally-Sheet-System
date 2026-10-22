@@ -22,6 +22,20 @@ exception when others then
   return sqlstate;
 end;
 $$;
+-- Runs p_sql and rolls it back: 'ok' when it succeeded, else the error code. For a check that must
+-- succeed without leaving a row behind for the later tests.
+create function pg_temp.try_rolled_back(p_sql text) returns text language plpgsql as $$
+begin
+  begin
+    execute p_sql;
+    raise exception 'rolled back' using errcode = 'P0001';
+  exception when sqlstate 'P0001' then
+    return 'ok';
+  end;
+exception when others then
+  return sqlstate;
+end;
+$$;
 create function pg_temp.keep(p_key text, p_value jsonb) returns void language sql as $$
   insert into r (k, v) values (p_key, p_value) on conflict (k) do update set v = excluded.v;
 $$;
@@ -76,7 +90,7 @@ select pg_temp.keep('s1', tally.submit_sheet(pg_temp.sheet('11111111-1111-4111-8
 select pg_temp.keep('s1_again', tally.submit_sheet(pg_temp.sheet('11111111-1111-4111-8111-111111111111')));
 select pg_temp.keep('s2', tally.submit_sheet(pg_temp.sheet('22222222-2222-4222-8222-222222222222')));
 select pg_temp.keep('bad_form', to_jsonb(pg_temp.try($$ select tally.submit_sheet(pg_temp.sheet('33333333-3333-4333-8333-333333333333') || '{"form":"ship"}') $$)));
-select pg_temp.keep('no_header', to_jsonb(pg_temp.try($$
+select pg_temp.keep('no_header', to_jsonb(pg_temp.try_rolled_back($$
   select tally.submit_sheet(jsonb_set(pg_temp.sheet('33333333-3333-4333-8333-333333333333'), '{header,lorryNo}', '""')) $$)));
 select pg_temp.keep('no_plt_type', to_jsonb(pg_temp.try($$
   select tally.submit_sheet(jsonb_set(pg_temp.sheet('33333333-3333-4333-8333-333333333333'), '{items,0,pallets,0,pltType}', 'null')) $$)));
@@ -135,7 +149,7 @@ select is((pg_temp.got('s1_again') ->> 'ref'), (pg_temp.got('s1') ->> 'ref'), 'r
 select is((pg_temp.got('s1_again') ->> 'duplicate')::boolean, true, '... and says it was a duplicate');
 select isnt((pg_temp.got('s2') ->> 'ref'), (pg_temp.got('s1') ->> 'ref'), 'a new clientId gets the next reference');
 select is(pg_temp.got('bad_form') #>> '{}', '22023', 'unknown form is rejected');
-select is(pg_temp.got('no_header') #>> '{}', '23514', 'lorry sheet without a lorry no is rejected');
+select is(pg_temp.got('no_header') #>> '{}', 'ok', 'lorry sheet without a lorry no is accepted (header fields are optional)');
 select is(pg_temp.got('no_plt_type') #>> '{}', '22023', 'lorry pallet without a PLT type is rejected');
 select is(pg_temp.got('bad_date') #>> '{}', '22023', 'non-ISO date is rejected');
 select is(pg_temp.got('bad_sig') #>> '{}', '23514', 'a signature that is not a PNG data URL is rejected');

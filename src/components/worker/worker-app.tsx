@@ -288,7 +288,7 @@ export function WorkerApp({ user, history, sheets }: { user: WorkerUser; history
   }
 
   // Steps the worker can jump to: the header always; the rest once there is an item.
-  const canJump = (i: number) => i === 0 || (i <= 4 && items.length > 0 && !!draft && !!vehicleNo(draft));
+  const canJump = (i: number) => i === 0 || (i <= 4 && items.length > 0 && !!draft);
 
   const back: Partial<Record<Screen, Screen>> = {
     type: "home",
