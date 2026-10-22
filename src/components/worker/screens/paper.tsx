@@ -427,14 +427,21 @@ export function PaperScreen({
                             return (
                               <div
                                 key={li}
-                                title={marks[i]?.circled ? "Last pallet of this item" : undefined}
+                                title={marks[i]?.circled && l.qty ? "Last pallet of this item" : undefined}
                                 className={cn(
-                                  "flex items-center",
+                                  "relative flex items-center",
                                   li > 0 && "border-t border-dashed border-ink/25",
-                                  // A pallet that is not full is circled, as on paper.
-                                  marks[i]?.circled && "m-1 rounded-full text-danger ring-2 ring-danger",
+                                  marks[i]?.circled && l.qty && "text-danger",
                                 )}
                               >
+                                {/* The item's last pallet is circled, as on paper: only lines with a qty, drawn over the
+                                    cell so the line keeps the same height as Expired, Prod and Batch beside it. */}
+                                {marks[i]?.circled && l.qty ? (
+                                  <span
+                                    aria-hidden
+                                    className="pointer-events-none absolute inset-x-1 inset-y-1 rounded-full ring-2 ring-danger"
+                                  />
+                                ) : null}
                                 {source && source !== l.qty ? (
                                   <button
                                     type="button"
@@ -461,7 +468,7 @@ export function PaperScreen({
                           value={r.unit}
                           list="paper-units"
                           aria-label={`Pallet ${i + 1} unit`}
-                          className="h-11 w-[52px] flex-none border-l border-ink/15 bg-transparent px-1 text-center text-xs font-bold text-muted uppercase outline-none focus:bg-primary-soft"
+                          className="h-11 w-[52px] flex-none self-center border-l border-ink/15 bg-transparent px-1 text-center text-xs font-bold text-muted uppercase outline-none focus:bg-primary-soft"
                           onChange={(e) => onItems((its) => setRowUnit(its, i, e.target.value.toUpperCase().slice(0, 10)))}
                           onBlur={(e) => onItems((its) => setRowUnit(its, i, normalizeUnit(e.target.value)))}
                         />
