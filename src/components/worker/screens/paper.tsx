@@ -584,7 +584,7 @@ export function PaperScreen({
                         st.state === "over" && "text-danger",
                       )}
                     >
-                      {st.state === "none" && st.counted > 0 ? `${st.label} ✓` : st.label}
+                      {st.state === "none" && st.counted > 0 ? `${st.counted} / ${st.label} ✓` : st.label}
                     </span>
                   </div>
                 );
