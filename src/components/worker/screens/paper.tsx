@@ -8,6 +8,7 @@ import { isValidPaperDate, normalizeDate } from "@/lib/tally/dates";
 import {
   blankLine,
   countStatus,
+  type CountStatus,
   formatQty,
   itemQty,
   palletQty,
@@ -134,11 +135,18 @@ export function PaperScreen({
     const qtys = it.pallets.map(palletQty);
     const unit = normalizeUnit(it.unit);
     const total = itemTotalText(unit, it.targetQty, qtys);
-    return itemRowMarks(it.name.trim(), unit, it.targetQty, qtys).map((m, j) => ({
-      first: j === 0,
-      total: j === (qtys.length > 1 ? 1 : 0) ? total : "",
-      circled: !!m.circled,
-    }));
+    // While filling in only: how far the counted pallets are from the TOTAL. The printed sheet doesn't show it.
+    const check = it.targetQty
+      ? countStatus(
+          qtys.reduce((a, b) => a + b, 0),
+          it.targetQty,
+          unit,
+        )
+      : null;
+    return itemRowMarks(it.name.trim(), unit, it.targetQty, qtys).map((m, j) => {
+      const totalRow = j === (qtys.length > 1 ? 1 : 0);
+      return { first: j === 0, total: totalRow ? total : "", check: totalRow ? check : null, circled: !!m.circled };
+    });
   });
   const isLorry = form === "lorry";
   const t = totals(items);
@@ -368,7 +376,12 @@ export function PaperScreen({
                           onClick={() => setNameRow(i)}
                         >
                           {marks[i]?.total ? (
-                            <span className="text-[13px] font-extrabold tracking-[.03em] text-danger">{marks[i].total}</span>
+                            <span className="flex min-w-0 items-center gap-1.5">
+                              <span className="text-[13px] font-extrabold tracking-[.03em] whitespace-nowrap text-danger">
+                                {marks[i].total}
+                              </span>
+                              <TotalCheck check={marks[i].check} />
+                            </span>
                           ) : (
                             <span className="text-lg font-bold text-faint">〃</span>
                           )}
@@ -400,7 +413,10 @@ export function PaperScreen({
                             ) : null}
                           </div>
                           {marks[i]?.first && marks[i].total && r.name.trim() ? (
-                            <div className="-mt-1 px-2 pb-1 text-[11px] font-bold tracking-[.03em] text-danger">{marks[i].total}</div>
+                            <div className="-mt-1 flex items-center gap-1.5 px-2 pb-1">
+                              <span className="text-[11px] font-bold tracking-[.03em] text-danger">{marks[i].total}</span>
+                              <TotalCheck check={marks[i].check} />
+                            </div>
                           ) : null}
                         </>
                       )}
@@ -597,5 +613,25 @@ export function PaperScreen({
         </Button>
       </BottomBar>
     </>
+  );
+}
+
+/** Beside the red TOTAL while filling in: what is still needed, or a tick once the count matches. */
+function TotalCheck({ check }: { check: CountStatus | null | undefined }) {
+  if (!check || check.state === "none") return null;
+  const [text, tone, title] =
+    check.state === "ok"
+      ? ["✓", "bg-success-bg text-success border-success-border", "Total met"]
+      : check.state === "short"
+        ? [`${check.diff} left`, "bg-warning-bg text-warning-ink border-warning-border", `${check.diff} more to reach the total`]
+        : [`${check.diff} over`, "bg-danger-bg text-danger-ink border-danger-border", `${check.diff} more than the total`];
+  return (
+    <span
+      title={title}
+      aria-label={title}
+      className={cn("inline-flex h-5 flex-none items-center rounded-full border px-1.5 text-[11px] font-extrabold whitespace-nowrap", tone)}
+    >
+      {text}
+    </span>
   );
 }
