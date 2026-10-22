@@ -150,3 +150,20 @@ export function storeFor(user: CurrentUser): TallyStore {
 export function homePathFor(user: CurrentUser): string {
   return hasRole(user, "office") && !hasRole(user, "worker") ? "/office" : hasRole(user, "worker") ? "/worker" : "/office";
 }
+
+/**
+ * requireOffice() plus a page's reads, started together instead of one after
+ * the other (saves a Supabase round trip per page). The reads are safe to
+ * start before the role check: RLS limits them to what the caller may see,
+ * and the result is only returned once requireOffice() has passed.
+ */
+export async function readAsOffice<T>(read: (store: TallyStore) => Promise<T>): Promise<[CurrentUser, T]> {
+  if (isDemoMode()) {
+    const user = await requireOffice();
+    return [user, await read(storeFor(user))];
+  }
+  const reading = read(supabaseStore());
+  reading.catch(() => {}); // a redirect from requireOffice() wins; don't leave this rejection unhandled
+  const user = await requireOffice();
+  return [user, await reading];
+}
