@@ -57,7 +57,7 @@ import { ReviewScreen } from "./screens/review";
 import { SignatureScreen } from "./screens/signature";
 import { PreviewScreen } from "./screens/preview";
 import { SuccessScreen } from "./screens/success";
-import { PaperScreen } from "./screens/paper";
+import { PaperScreen, type PaperFix } from "./screens/paper";
 import { sampleDraft } from "@/lib/tally/sample";
 
 type Screen =
@@ -103,6 +103,8 @@ export function WorkerApp({ user, history, sheets }: { user: WorkerUser; history
   // Set when the worker leaves the review to fix something: "Save" and "Back" then return to the review.
   const [fromReview, setFromReview] = useState(false);
   const [focusPallet, setFocusPallet] = useState<number | null>(null);
+  // Fix from the review in paper mode: the sheet row (0-based) and cells to mark.
+  const [paperFix, setPaperFix] = useState<PaperFix | null>(null);
   const [pick, setPick] = useState<PickState>(blankPick());
   const [headerErrors, setHeaderErrors] = useState<HeaderErrors>({});
   const [outbox, setOutbox] = useState<OutboxEntry[]>([]);
@@ -251,6 +253,7 @@ export function WorkerApp({ user, history, sheets }: { user: WorkerUser; history
     setScreen(s);
     setSubmitError("");
     setFocusPallet(null);
+    if (s !== "paper") setPaperFix(null);
     if (s === "review" || s === "home" || s === "type" || s === "paper") setFromReview(false);
   }
 
@@ -605,6 +608,9 @@ export function WorkerApp({ user, history, sheets }: { user: WorkerUser; history
             })
           }
           onNext={paperNext}
+          fix={paperFix}
+          onFixDone={() => setPaperFix(null)}
+          onBackToReview={() => go("review")}
         />
       );
     } else if (screen === "picker") {
@@ -715,7 +721,13 @@ export function WorkerApp({ user, history, sheets }: { user: WorkerUser; history
           draft={draft}
           warnings={warnings}
           onEditHeader={() => (mode === "paper" ? go("paper") : fixFromReview(() => go("header")))}
-          onEditItem={(i, pallet) => (mode === "paper" ? go("paper") : fixFromReview(() => openItem(i, pallet ?? null)))}
+          onEditItem={(i, pallet, fields) => {
+            if (mode !== "paper") return fixFromReview(() => openItem(i, pallet ?? null));
+            const row = ranges[i].start - 1 + (pallet ?? 0);
+            const label = `Pallet ${row + 1}${fields?.length ? `: fill in ${fields.map((f) => f[0].toUpperCase() + f.slice(1)).join(", ")}` : ""}`;
+            go("paper");
+            setPaperFix({ row, fields: pallet === undefined ? undefined : fields, label, seq: Date.now() });
+          }}
           onEditMaterials={() => (mode === "paper" ? go("paper") : fixFromReview(() => go("materials")))}
           onSign={() => go("sign")}
         />

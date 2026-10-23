@@ -147,7 +147,7 @@ describe("reviewWarnings", () => {
     expect(w.map((x) => x.message)).toEqual(["A: short 2 CTN", "Pallet 2: Batch empty"]);
     expect(w.every((x) => x.severity === "warn")).toBe(true);
     // The pallet warning points at the pallet to open from the review.
-    expect(w[1]).toMatchObject({ itemIndex: 0, palletIndex: 1 });
+    expect(w[1]).toMatchObject({ itemIndex: 0, palletIndex: 1, fields: ["batch"] });
     expect(w[0].palletIndex).toBeUndefined();
   });
 

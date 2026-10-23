@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Calculator, Plus, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { PLT_TYPES, normalizeUnit, type SheetForm, MAX_PALLETS } from "@/lib/tally/constants";
@@ -19,6 +19,7 @@ import {
   type DraftItem,
   type DraftLine,
   type HeaderErrors,
+  type LineField,
 } from "@/lib/tally/draft";
 import {
   addRow,
@@ -61,6 +62,19 @@ const HEADER: Record<SheetForm, { key: keyof DraftHeader; label: string; numeric
   ],
 };
 
+/** Fix from the review: which sheet row (0-based) and which cells to mark. */
+export interface PaperFix {
+  row: number;
+  /** The cells to fill; none marks the whole row. */
+  fields?: LineField[];
+  label: string;
+  /** Changes on every Fix tap, so the same row scrolls again. */
+  seq: number;
+}
+
+/** A cell to fix: amber, outlined, until it is filled. */
+const fixCell = "bg-warning-bg outline-2 -outline-offset-2 outline-warning";
+
 const cell = "border border-ink/25 p-0 align-top";
 const input =
   "block h-11 w-full min-w-0 bg-transparent px-2 text-[15px] font-semibold uppercase outline-none placeholder:font-medium placeholder:text-placeholder focus:bg-primary-soft";
@@ -87,6 +101,9 @@ export function PaperScreen({
   onHeader,
   onItems,
   onNext,
+  fix = null,
+  onFixDone,
+  onBackToReview,
 }: {
   /** For the footer (materials, remark, PLT totals, signature). */
   draft: Draft;
@@ -103,9 +120,31 @@ export function PaperScreen({
   onHeader: (key: keyof DraftHeader, value: string) => void;
   onItems: (fn: (items: DraftItem[]) => DraftItem[]) => void;
   onNext: () => void;
+  /** Opened from Fix on the review: the row and cells to mark. */
+  fix?: PaperFix | null;
+  onFixDone?: () => void;
+  onBackToReview?: () => void;
 }) {
   const [autoFill, setAutoFill] = useState(false);
+  // A cell from Fix stays marked while it is still empty or wrong.
+  const needsFix = (i: number, k: LineField) => {
+    if (!fix || fix.row !== i || !fix.fields?.includes(k)) return false;
+    return rows[i]?.pallet.lines.some((l) => {
+      const v = l[k].trim();
+      return k === "qty" ? !v || v === "0" : k === "batch" ? !v : !v || !isValidPaperDate(v);
+    });
+  };
   const { zoom, setZoom, fit, scrollRef, sheetRef } = usePaperZoom();
+  // Scroll the row from Fix into the middle and put the cursor in its first marked cell.
+  useEffect(() => {
+    if (!fix) return;
+    const t = window.setTimeout(() => {
+      const tr = sheetRef.current?.querySelector<HTMLElement>(`tr[data-row="${fix.row}"]`);
+      tr?.scrollIntoView({ block: "center", inline: "nearest", behavior: "smooth" });
+      tr?.querySelector<HTMLInputElement>("[data-fix] input")?.focus({ preventScroll: true });
+    }, 120);
+    return () => window.clearTimeout(t);
+  }, [fix, sheetRef]);
   // 〃 held and dragged down fills every row the finger passes; rows past the
   // end of the sheet are added first.
   const fill = useFillDrag(scrollRef, (from, to, spec) =>
@@ -214,9 +253,11 @@ export function PaperScreen({
           return (
             <div
               key={li}
+              data-fix={needsFix(i, k as LineField) || undefined}
               className={cn(
                 "flex items-center",
                 li > 0 && "border-t border-dashed border-ink/25",
+                needsFix(i, k as LineField) && fixCell,
                 spec && fill.covers(spec, i) && fillCell,
               )}
             >
@@ -342,7 +383,14 @@ export function PaperScreen({
                   const above = i > 0 ? rows[i - 1] : null;
                   const noName = !r.name.trim();
                   return (
-                    <tr key={p.id} data-row={i} className={cn(del.covers(i) && deleteRowMark)}>
+                    <tr
+                      key={p.id}
+                      data-row={i}
+                      className={cn(
+                        del.covers(i) && deleteRowMark,
+                        fix?.row === i && !fix.fields?.length && "outline-2 -outline-offset-2 outline-warning",
+                      )}
+                    >
                       <td
                         className={cn(cell, "sticky left-0 z-10 bg-surface text-center align-middle font-condensed text-xl font-extrabold")}
                       >
@@ -477,8 +525,10 @@ export function PaperScreen({
                                     "relative flex items-center",
                                     li > 0 && "border-t border-dashed border-ink/25",
                                     li === circleAt && "text-danger",
+                                    needsFix(i, "qty") && fixCell,
                                     fill.covers({ kind: "line", field: "qty", li }, i) && fillCell,
                                   )}
+                                  data-fix={needsFix(i, "qty") || undefined}
                                 >
                                   {/* The item's last pallet is circled, as on paper: only the last batch's qty, drawn over the
                                     cell so the line keeps the same height as Expired, Prod and Batch beside it. */}
@@ -658,6 +708,26 @@ export function PaperScreen({
           </div>
         </div>
         <ZoomControls zoom={zoom} setZoom={setZoom} fit={fit} />
+        {fix ? (
+          <div className="absolute inset-x-3 top-3 z-20 mx-auto flex max-w-[560px] items-center gap-2 rounded-xl border border-warning-border bg-warning-bg py-1.5 pr-1.5 pl-3.5 text-sm font-bold text-warning-ink shadow-[0_8px_24px_rgba(0,0,0,.15)]">
+            <span className="min-w-0 flex-1 truncate">
+              {fix.fields?.length && !fix.fields.some((k) => needsFix(fix.row, k)) ? `${fix.label.split(":")[0]}: fixed ✓` : fix.label}
+            </span>
+            {onBackToReview ? (
+              <button type="button" onClick={onBackToReview} className="h-9 flex-none rounded-lg bg-primary px-3 text-white">
+                Back to review
+              </button>
+            ) : null}
+            <button
+              type="button"
+              aria-label="Close"
+              onClick={onFixDone}
+              className="grid size-9 flex-none place-items-center rounded-lg hover:bg-warning-border/50"
+            >
+              ×
+            </button>
+          </div>
+        ) : null}
         {del.range ? (
           <div
             role="status"

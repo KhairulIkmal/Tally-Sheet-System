@@ -2,7 +2,7 @@
 
 import { cn } from "@/lib/utils";
 import { MATERIALS, PLT_TYPES, materialLabel } from "@/lib/tally/constants";
-import { countStatus, formatQty, itemQty, palletQty, palletRanges, pltCounts, totals, type Draft, type Warning } from "@/lib/tally/draft";
+import { countStatus, formatQty, itemQty, palletQty, palletRanges, pltCounts, totals, type Draft, type Warning, type LineField } from "@/lib/tally/draft";
 import { BottomBar, Button, Scroll } from "../ui";
 
 const STATUS_TEXT = { none: "text-ink", ok: "text-success", short: "text-warning", over: "text-danger" } as const;
@@ -19,7 +19,8 @@ export function ReviewScreen({
   warnings: Warning[];
   onEditHeader: () => void;
   /** Opens the item's pallets, scrolled to one pallet when given. */
-  onEditItem: (i: number, pallet?: number) => void;
+  /** Opens an item to fix; `fields` are the cells a warning is about. */
+  onEditItem: (i: number, pallet?: number, fields?: LineField[]) => void;
   onEditMaterials: () => void;
   onSign: () => void;
 }) {
@@ -65,7 +66,7 @@ export function ReviewScreen({
             <div className={cn("flex-1 text-sm/[1.35] font-semibold", w.severity === "error" ? "text-danger-ink" : "text-warning-ink")}>{w.message}</div>
             <button
               type="button"
-              onClick={() => (w.itemIndex === null ? onEditMaterials() : onEditItem(w.itemIndex, w.palletIndex))}
+              onClick={() => (w.itemIndex === null ? onEditMaterials() : onEditItem(w.itemIndex, w.palletIndex, w.fields))}
               className="py-2 text-sm font-bold text-primary"
             >
               Fix

@@ -294,7 +294,12 @@ export interface Warning {
   itemIndex: number | null;
   /** The pallet within that item, when the problem is on one pallet. */
   palletIndex?: number;
+  /** The cells to fix on that pallet, so the paper view can mark them. */
+  fields?: LineField[];
 }
+
+export type LineField = "qty" | "batch" | "expired" | "prod";
+const FIELD_OF: Record<string, LineField> = { Qty: "qty", Batch: "batch", Expired: "expired", Prod: "prod" };
 
 /**
  * Everything the review screen flags. "error" blocks submit (an invalid
@@ -337,6 +342,7 @@ export function reviewWarnings(draft: Draft): Warning[] {
           message: `Pallet ${no}: ${[...bad].join(", ")} is not a valid date`,
           itemIndex: i,
           palletIndex: pi,
+          fields: [...bad].map((f) => FIELD_OF[f]),
         });
       }
       if (missing.size) {
@@ -346,6 +352,7 @@ export function reviewWarnings(draft: Draft): Warning[] {
           message: `Pallet ${no}: ${[...missing].join(", ")} empty`,
           itemIndex: i,
           palletIndex: pi,
+          fields: [...missing].map((f) => FIELD_OF[f]),
         });
       }
     });
