@@ -113,7 +113,8 @@ export function draftToPayload(draft: Draft, device: string): SubmitPayload {
       pallets: it.pallets.map((p) => ({
         pltType: isLorry ? p.pltType : null,
         contractNo: isLorry ? up(p.contractNo) : "",
-        remark: up(p.remark),
+        // Remarks are free notes, kept in the case they were typed.
+        remark: p.remark.trim(),
         lines: p.lines.map((l) => ({
           qty: l.qty.trim() === "" ? null : toQty(l.qty),
           batch: up(l.batch),
@@ -127,7 +128,7 @@ export function draftToPayload(draft: Draft, device: string): SubmitPayload {
       ? Object.fromEntries(CHECKS.map((k) => [k, { qty: draft.checks[k].qty ?? 0, note: up(draft.checks[k].note) }]))
       : {},
     pltCounts: isLorry ? pltCounts(draft) : {},
-    remark: up(draft.remark),
+    remark: draft.remark.trim(),
     signature: draft.signature ?? "",
     signedAt: draft.signedAt ?? new Date().toISOString(),
     device: device.slice(0, 160),
