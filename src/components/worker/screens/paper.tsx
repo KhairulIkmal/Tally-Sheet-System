@@ -47,12 +47,13 @@ import { DittoHandle, deleteRowMark, fillCell, useDeleteDrag, useFillDrag } from
 /** Header boxes in the printed order: two columns, left then right. */
 const HEADER: Record<SheetForm, { key: keyof DraftHeader; label: string; numeric?: boolean }[]> = {
   container: [
+    // Two columns, as on the paper: Contract, Container, Seal on the left; SI, Disport, Date on the right.
     { key: "contractNo", label: "Contract No" },
-    { key: "date", label: "Date", numeric: true },
-    { key: "containerNo", label: "Container No" },
-    { key: "sealNo", label: "Seal No" },
     { key: "siNo", label: "SI No" },
+    { key: "containerNo", label: "Container No" },
     { key: "disport", label: "Disport" },
+    { key: "sealNo", label: "Seal No" },
+    { key: "date", label: "Date", numeric: true },
   ],
   lorry: [
     { key: "transferTo", label: "Transfer To" },

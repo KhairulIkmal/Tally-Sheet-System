@@ -211,12 +211,13 @@ export function PaperSheet({ data, page = 1, highlightMixed = false }: { data: P
       >
         {isContainer ? (
           <>
+            {/* As on the paper form: Contract, Container, Seal down the left; SI, Disport, Date down the right. */}
             <HeaderField label="CONTRACT NO" value={h.contractNo} labelWidth={92} />
-            <HeaderField label="DATE" value={h.date} labelWidth={70} />
+            <HeaderField label="SI NO" value={h.siNo} labelWidth={70} />
             <HeaderField label="CONTAINER NO" value={h.containerNo} labelWidth={92} />
-            <HeaderField label="SEAL NO" value={h.sealNo} labelWidth={70} />
-            <HeaderField label="SI NO" value={h.siNo} labelWidth={92} />
             <HeaderField label="DISPORT" value={h.disport} labelWidth={70} />
+            <HeaderField label="SEAL NO" value={h.sealNo} labelWidth={92} />
+            <HeaderField label="DATE" value={h.date} labelWidth={70} />
           </>
         ) : (
           <>
