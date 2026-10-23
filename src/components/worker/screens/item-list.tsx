@@ -4,6 +4,7 @@ import { useState } from "react";
 import { ArrowUp, Pencil, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { countStatus, formatQty, formatRange, itemQty, palletRanges, totals, type DraftItem } from "@/lib/tally/draft";
+import { MAX_PALLETS } from "@/lib/tally/constants";
 import { BottomBar, Button, Scroll } from "../ui";
 
 const STATUS_TEXT = { none: "text-ink", ok: "text-success", short: "text-warning", over: "text-danger" } as const;
@@ -113,10 +114,14 @@ export function ItemListScreen({
             </div>
           );
         })}
-        <Button variant="dashed" size="lg" className="flex-none rounded-[14px] text-lg" onClick={onAdd}>
+        <Button variant="dashed" size="lg" className="flex-none rounded-[14px] text-lg" disabled={t.pallets >= MAX_PALLETS} onClick={onAdd}>
           <Plus className="size-6" /> Add item
         </Button>
-        <div className="text-center text-[13px] font-medium text-faint">The next item starts at Pallet {t.pallets + 1}</div>
+        <div className="text-center text-[13px] font-medium text-faint">
+          {t.pallets >= MAX_PALLETS
+            ? `This sheet is full: ${MAX_PALLETS} pallets. Start a new sheet for more.`
+            : `The next item starts at Pallet ${t.pallets + 1} · ${MAX_PALLETS - t.pallets} of ${MAX_PALLETS} left`}
+        </div>
       </Scroll>
       <BottomBar>
         <Button className="w-full" disabled={items.length === 0} onClick={onDone}>

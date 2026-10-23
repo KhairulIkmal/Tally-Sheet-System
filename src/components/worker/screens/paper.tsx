@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Calculator, Plus, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { PLT_TYPES, normalizeUnit, type SheetForm } from "@/lib/tally/constants";
+import { PLT_TYPES, normalizeUnit, type SheetForm, MAX_PALLETS } from "@/lib/tally/constants";
 import { isValidPaperDate, normalizeDate } from "@/lib/tally/dates";
 import {
   blankLine,
@@ -61,8 +61,6 @@ const HEADER: Record<SheetForm, { key: keyof DraftHeader; label: string; numeric
   ],
 };
 
-const ROWS_PER_PAGE = 25;
-
 const cell = "border border-ink/25 p-0 align-top";
 const input =
   "block h-11 w-full min-w-0 bg-transparent px-2 text-[15px] font-semibold uppercase outline-none placeholder:font-medium placeholder:text-placeholder focus:bg-primary-soft";
@@ -113,8 +111,9 @@ export function PaperScreen({
   const fill = useFillDrag(scrollRef, (from, to, spec) =>
     onItems((its) => {
       let next = its;
-      while (toRows(next).length <= to) next = addRow(next);
-      return fillDown(next, from, to, spec);
+      const last = Math.min(to, MAX_PALLETS - 1);
+      while (toRows(next).length <= last) next = addRow(next);
+      return fillDown(next, from, last, spec);
     }),
   );
   // A pallet row that continues the item above shows the paper's blank (or TOTAL) until tapped.
@@ -150,7 +149,9 @@ export function PaperScreen({
   const isLorry = form === "lorry";
   const t = totals(items);
   // Blank rows up to the end of the page, like the printed form.
-  const blanks = Math.max(1, Math.ceil((rows.length + 1) / ROWS_PER_PAGE) * ROWS_PER_PAGE - rows.length);
+  // Blank rows up to the 25th: a sheet is one paper form and never has more.
+  const blanks = Math.max(0, MAX_PALLETS - rows.length);
+  const full = rows.length >= MAX_PALLETS;
 
   function setLine(i: number, li: number, k: LineKey, value: string) {
     onItems((its) =>
@@ -164,7 +165,7 @@ export function PaperScreen({
   function addRowsTo(index: number) {
     onItems((its) => {
       let next = its;
-      while (toRows(next).length <= index) next = addRow(next);
+      while (toRows(next).length <= Math.min(index, MAX_PALLETS - 1)) next = addRow(next);
       return next;
     });
   }
@@ -313,7 +314,9 @@ export function PaperScreen({
               <button
                 type="button"
                 onClick={() => setAutoFill(true)}
-                className="flex h-10 items-center gap-2 rounded-lg border-[1.5px] border-primary px-3.5 text-sm font-bold text-primary hover:bg-primary-soft"
+                disabled={filled >= MAX_PALLETS}
+                title={filled >= MAX_PALLETS ? `This sheet is full: ${MAX_PALLETS} pallets` : undefined}
+                className="flex h-10 items-center gap-2 rounded-lg border-[1.5px] border-primary px-3.5 text-sm font-bold text-primary hover:bg-primary-soft disabled:cursor-not-allowed disabled:opacity-40"
               >
                 <Calculator className="size-4" /> Auto-fill item
               </button>
@@ -605,6 +608,13 @@ export function PaperScreen({
                     </tr>
                   );
                 })}
+                {full ? (
+                  <tr>
+                    <td colSpan={isLorry ? 10 : 8} className={cn(cell, "bg-surface-sunken px-3 py-2.5 text-sm font-semibold text-muted")}>
+                      This sheet is full: {MAX_PALLETS} pallets, the same as the paper form. Start a new sheet for more.
+                    </td>
+                  </tr>
+                ) : null}
               </tbody>
             </table>
             <div className="mt-2 text-right text-sm font-bold text-muted">
@@ -673,6 +683,7 @@ export function PaperScreen({
           form={form}
           history={history}
           nextStart={filled + 1}
+          room={MAX_PALLETS - filled}
           defaults={{ pltType: lastFilled?.pltType ?? "L", contractNo: lastFilled?.contractNo ?? "" }}
           onClose={() => setAutoFill(false)}
           onAdd={(item) => {

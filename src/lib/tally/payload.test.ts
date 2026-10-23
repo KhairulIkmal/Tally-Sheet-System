@@ -56,6 +56,21 @@ describe("draftToPayload", () => {
   });
 });
 
+describe("pallet limit", () => {
+  it("accepts 25 pallets and refuses 26: a sheet is one paper form", () => {
+    const d = lorryDraft();
+    const full = buildPallets(Array.from({ length: 25 }, () => 4), { pltType: "C", contractNo: "x" });
+    full.forEach((p) => (p.lines[0] = { qty: "4", batch: "b", expired: "", prod: "" }));
+    d.items = [{ ...d.items[0], targetQty: null, pallets: full }];
+    d.pltAdjust = { L: 0, E: 0, C: 0, O: 0 };
+    expect(submitPayloadSchema.safeParse(draftToPayload(d, "x")).success).toBe(true);
+    d.items[0].pallets = [...full, { ...full[0], id: "extra" }];
+    const r = submitPayloadSchema.safeParse(draftToPayload(d, "x"));
+    expect(r.success).toBe(false);
+    expect(JSON.stringify(r.error?.issues)).toContain("at most 25 pallets");
+  });
+});
+
 describe("paper layout", () => {
   it("prints a mixed pallet as one row with stacked lines", () => {
     const paper = paperFromDraft(lorryDraft(), "Mohd Hafiz");

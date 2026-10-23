@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { ArrowUp, CalendarDays, X } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { MAX_LINES_PER_PALLET, type SheetForm } from "@/lib/tally/constants";
+import { MAX_LINES_PER_PALLET, MAX_PALLETS, type SheetForm } from "@/lib/tally/constants";
 import { calendarInputToPaperDate, isValidPaperDate, normalizeDate } from "@/lib/tally/dates";
 import {
   blankLine,
@@ -327,6 +327,8 @@ export function PalletDetailsScreen({
         <Button
           variant="secondary"
           className="text-base"
+          disabled={items.reduce((n, it) => n + it.pallets.length, 0) >= MAX_PALLETS}
+          title={`A sheet holds ${MAX_PALLETS} pallets`}
           onClick={() =>
             onUpdate((it, all) => {
               const last = it.pallets[it.pallets.length - 1] ?? previousPallet(all, itemIndex, 0);

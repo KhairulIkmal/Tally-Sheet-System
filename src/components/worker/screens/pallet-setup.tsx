@@ -1,7 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { PLT_TYPES, type PltType, type SheetForm } from "@/lib/tally/constants";
+import { PLT_TYPES, type PltType, type SheetForm, MAX_PALLETS } from "@/lib/tally/constants";
 import type { PickState } from "../pick";
 import { BottomBar, Button, PalletBadge, Scroll, TextField } from "../ui";
 
@@ -41,6 +41,7 @@ export function PalletSetupScreen({
   form,
   pick,
   qtys,
+  room,
   nextStart,
   onChange,
   onCreate,
@@ -49,6 +50,8 @@ export function PalletSetupScreen({
   pick: PickState;
   /** Preview of the pallets that will be created ("" = qty to fill later). */
   qtys: (number | "")[];
+  /** Pallets the sheet still has space for. */
+  room: number;
   nextStart: number;
   onChange: (patch: Partial<PickState>) => void;
   onCreate: () => void;
@@ -57,6 +60,10 @@ export function PalletSetupScreen({
   const unit = pick.unit || "CTN";
   const total = parseInt(pick.total, 10) || 0;
   const count = qtys.length;
+  // The split the total asks for, before the sheet's limit.
+  const wanted = per > 0 && total > 0 ? Math.floor(total / per) + (total % per ? 1 : 0) : count;
+  const cutShort = wanted > count;
+  const left = cutShort ? total - qtys.reduce<number>((a, q) => a + (q || 0), 0) : 0;
   const range = count ? `Pallet ${nextStart}${count > 1 ? `–${nextStart + count - 1}` : ""}` : `Starts at Pallet ${nextStart}`;
 
   return (
@@ -69,6 +76,16 @@ export function PalletSetupScreen({
         {total > 0 && !per ? (
           <div className="rounded-[10px] bg-primary-soft px-3.5 py-2.5 text-sm font-semibold text-primary">
             No qty per pallet: 1 pallet is started. On the next screen type each pallet&apos;s qty and add more with + Pallet. The total is checked against {total} {unit}.
+          </div>
+        ) : null}
+
+        {room < 1 ? (
+          <div role="alert" className="rounded-[10px] border border-danger-border bg-danger-bg px-3.5 py-2.5 text-sm font-semibold text-danger-ink">
+            This sheet is full: {MAX_PALLETS} pallets. Start a new sheet for more.
+          </div>
+        ) : cutShort ? (
+          <div role="alert" className="rounded-[10px] border border-warning-border bg-warning-bg px-3.5 py-2.5 text-sm font-semibold text-warning-ink">
+            A sheet holds {MAX_PALLETS} pallets, so only {count} fit here (up to Pallet {MAX_PALLETS}). The other {left} {unit} go on a new sheet.
           </div>
         ) : null}
 
@@ -107,7 +124,8 @@ export function PalletSetupScreen({
             <div className="flex justify-between bg-success-bg px-3.5 py-2.5 text-base font-bold text-success">
               <span>Total</span>
               <span>
-                {total} / {total} {unit} ✓{count > 12 ? ` (${count - 12} more)` : ""}
+                {total - left} / {total} {unit} {cutShort ? "" : "✓"}
+                {count > 12 ? ` (${count - 12} more)` : ""}
               </span>
             </div>
           ) : null}

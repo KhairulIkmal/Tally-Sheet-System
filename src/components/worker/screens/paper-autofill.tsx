@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { PLT_TYPE_NAMES, PLT_TYPES, QUICK_UNITS, normalizeUnit, type PltType, type SheetForm } from "@/lib/tally/constants";
+import { PLT_TYPE_NAMES, PLT_TYPES, QUICK_UNITS, normalizeUnit, type PltType, type SheetForm, MAX_PALLETS } from "@/lib/tally/constants";
 import { buildPallets, newId, setupPallets, type DraftItem } from "@/lib/tally/draft";
 import type { ItemSuggestion } from "../pick";
 import { Button } from "../ui";
@@ -20,6 +20,7 @@ export function AutoFillPanel({
   form,
   history,
   nextStart,
+  room,
   defaults,
   onAdd,
   onClose,
@@ -28,6 +29,8 @@ export function AutoFillPanel({
   history: ItemSuggestion[];
   /** Pallet number the first new row gets. */
   nextStart: number;
+  /** Pallets the sheet still has space for. */
+  room: number;
   defaults: { pltType: PltType; contractNo: string };
   onAdd: (item: DraftItem) => void;
   onClose: () => void;
@@ -39,7 +42,11 @@ export function AutoFillPanel({
   const [pltType, setPltType] = useState<PltType>(defaults.pltType);
   const [contractNo, setContractNo] = useState(defaults.contractNo);
 
-  const qtys = useMemo(() => setupPallets(parseInt(total, 10) || 0, parseInt(per, 10) || 0), [total, per]);
+  const qtys = useMemo(() => setupPallets(parseInt(total, 10) || 0, parseInt(per, 10) || 0, room), [total, per, room]);
+  const t = parseInt(total, 10) || 0;
+  const p = parseInt(per, 10) || 0;
+  const wanted = p > 0 && t > 0 ? Math.floor(t / p) + (t % p ? 1 : 0) : qtys.length;
+  const left = wanted > qtys.length ? t - qtys.reduce<number>((a, q) => a + (q || 0), 0) : 0;
   const ready = !!name.trim() && qtys.length > 0;
   const end = nextStart + qtys.length - 1;
 
@@ -179,6 +186,15 @@ export function AutoFillPanel({
             : "Enter the total. Add the qty per pallet to split it into pallets."}
         </div>
 
+        {left > 0 ? (
+          <div
+            role="alert"
+            className="rounded-[10px] border border-warning-border bg-warning-bg px-3 py-2.5 text-sm font-semibold text-warning-ink"
+          >
+            A sheet holds {MAX_PALLETS} pallets, so only {qtys.length} fit (up to Pallet {MAX_PALLETS}). The other {left}{" "}
+            {normalizeUnit(unit)} go on a new sheet.
+          </div>
+        ) : null}
         <Button className="w-full" disabled={!ready} onClick={add}>
           Add {qtys.length || ""} row{qtys.length === 1 ? "" : "s"} to the sheet
         </Button>

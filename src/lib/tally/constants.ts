@@ -34,7 +34,8 @@ export const ROWS_PER_PAGE = 25;
 
 /** Hard limits, matched by the database checks. */
 export const MAX_ITEMS = 50;
-export const MAX_PALLETS = 200;
+/** A sheet is one paper form: 25 pallet rows, never more. */
+export const MAX_PALLETS = 25;
 export const MAX_LINES_PER_PALLET = 6;
 
 export const FORM_LABEL: Record<SheetForm, string> = {

@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { signOut } from "@/lib/auth/actions";
 import { cn } from "@/lib/utils";
 import { submitSheetAction } from "@/lib/data/actions";
-import { normalizeUnit, type SheetForm } from "@/lib/tally/constants";
+import { normalizeUnit, type SheetForm, MAX_PALLETS } from "@/lib/tally/constants";
 import { formatDateTime } from "@/lib/tally/dates";
 import {
   buildPallets,
@@ -243,8 +243,8 @@ export function WorkerApp({ user, history, sheets }: { user: WorkerUser; history
   }, [history, recentItems]);
 
   const setupQtys = useMemo((): (number | "")[] => {
-    return setupPallets(parseInt(pick.total, 10) || 0, parseInt(pick.per, 10) || 0);
-  }, [pick]);
+    return setupPallets(parseInt(pick.total, 10) || 0, parseInt(pick.per, 10) || 0, MAX_PALLETS - totals(items).pallets);
+  }, [pick, items]);
 
   // ── navigation ──────────────────────────────────────────────────────
   function go(s: Screen) {
@@ -624,6 +624,7 @@ export function WorkerApp({ user, history, sheets }: { user: WorkerUser; history
           form={draft.form}
           pick={pick}
           qtys={setupQtys}
+          room={MAX_PALLETS - totals(items).pallets}
           nextStart={nextStart}
           onChange={(patch) => setPick((p) => ({ ...p, ...patch }))}
           onCreate={createItem}

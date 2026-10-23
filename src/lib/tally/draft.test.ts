@@ -176,4 +176,9 @@ describe("setupPallets", () => {
   it("needs a total", () => {
     expect(setupPallets(0, 32)).toEqual([]);
   });
+  it("only creates the pallets the sheet still has room for", () => {
+    expect(setupPallets(150, 32, 3)).toEqual([32, 32, 32]);
+    expect(setupPallets(80, 0, 1)).toEqual([""]);
+    expect(setupPallets(80, 32, 0)).toEqual([]);
+  });
 });
