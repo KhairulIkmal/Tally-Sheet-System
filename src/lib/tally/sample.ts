@@ -19,6 +19,17 @@ const LORRY_ITEMS: [string, string, number, number[], string, string, string, Pl
   ["16KG LS SHTG BLUE LB", "CTN", 60, [60], "07/04/27", "08/04/26", "01202", ["O"]],
 ];
 
+// Full lorry: every one of the 25 rows used, all PLT types, two contracts.
+const LORRY_FULL_ITEMS: [string, string, number, number[], string, string, string, PltType[]][] = [
+  ["24X480G DAISY MARG", "CTN", 200, [40, 40, 40, 40, 40], "14/05/27", "13/05/26", "0381505203", ["L", "L", "L", "L", "C"]],
+  ["12X1KG DAISY MARG", "CTN", 216, [54, 54, 54, 54], "07/11/28", "08/05/26", "0260805103", ["L"]],
+  ["18KG DAISY MARG-TIN", "TIN", 192, [48, 48, 48, 48], "02/05/27", "03/05/26", "03305", ["E"]],
+  ["36X240G DAISY MARG", "CTN", 160, [40, 40, 40, 40], "16/05/27", "17/05/26", "1261705203", ["L"]],
+  ["2X4.8KG DAISY MARG", "CTN", 150, [32, 32, 32, 32, 22], "11/03/27", "12/03/26", "08613021", ["L", "L", "L", "L", "O"]],
+  ["16KG LS SHTG BLUE LB", "CTN", 120, [60, 60], "07/04/27", "08/04/26", "01202", ["C"]],
+  ["6X2.5KG DAISY MARG", "CTN", 52, [52], "07/10/28", "08/04/26", "0460804203", ["L"]],
+];
+
 const items = (rows: [string, string, number, number[], string, string, string[], PltType[], string][]): DraftItem[] =>
   rows.map(([name, unit, targetQty, qtys, expired, prod, batches, types, contractNo]) => ({
     id: newId(),
@@ -37,10 +48,30 @@ const items = (rows: [string, string, number, number[], string, string, string[]
 
 /**
  * A complete sheet that only needs signing, for demos: /worker?sample=1 opens
- * a container sheet and /worker?sample=lorry a lorry one. It replaces the
- * draft on this phone.
+ * a container sheet, /worker?sample=lorry a lorry one and
+ * /worker?sample=lorry-full a lorry one with all 25 rows and every box at the
+ * foot filled. It replaces the draft on this phone.
  */
-export function sampleDraft(now: Date = new Date(), form: "container" | "lorry" = "container"): Draft {
+export function sampleDraft(now: Date = new Date(), form: "container" | "lorry" | "lorry-full" = "container"): Draft {
+  if (form === "lorry-full") {
+    const d = newDraft("lorry", now);
+    Object.assign(d.header, { transferTo: "SHAH ALAM DC", doNo: "DO-2610-0458", lorryNo: "JTR 4821", date: todayPaperDate(now) });
+    d.items = items(LORRY_FULL_ITEMS.map(([n, u, t, q, e, p, b, ty], i) => [n, u, t, q, e, p, [b], ty, i < 4 ? "LS-24117" : "LS-24118"]));
+    // The last pallet carries two batches, like a mixed pallet on paper.
+    const mixed = d.items[d.items.length - 1].pallets[0];
+    mixed.lines = [
+      { ...mixed.lines[0], qty: "32" },
+      { ...mixed.lines[0], qty: "20", batch: "0460804204" },
+    ];
+    mixed.remark = "MIXED BATCH";
+    d.items[1].pallets[3].remark = "WRAP TORN, REWRAPPED";
+    d.checks.SAMPLE = { qty: 2, note: "FOR QC" };
+    d.checks["EMPTY CTN"] = { qty: 5, note: "SPARE FOR DC" };
+    d.checks.OTHERS = { qty: 1, note: "PALLET JACK" };
+    d.remark = "LORRY ARRIVED 2.30PM, LOADED BY BAY 3";
+    return d;
+  }
+
   if (form === "lorry") {
     const d = newDraft("lorry", now);
     Object.assign(d.header, { transferTo: "SHAH ALAM DC", doNo: "DO-2610-0457", lorryNo: "JTR 4821", date: todayPaperDate(now) });
