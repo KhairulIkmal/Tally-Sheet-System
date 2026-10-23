@@ -123,13 +123,14 @@ export function WorkerApp({ user, history, sheets }: { user: WorkerUser; history
     /* eslint-disable react-hooks/set-state-in-effect -- one-time read of device storage after mount */
     let d = loadDraft(user.id);
     let opened: Screen = "home";
-    // /worker?sample=1 loads a complete sheet that only needs signing (for demos).
+    // /worker?sample=1 (container) or ?sample=lorry loads a complete sheet that only needs signing (for demos).
     const url = new URL(window.location.href);
-    if (url.searchParams.get("sample") === "1") {
+    const sample = url.searchParams.get("sample");
+    if (sample === "1" || sample === "lorry") {
       url.searchParams.delete("sample");
       window.history.replaceState(null, "", url.pathname + url.search);
       if (!d || (!d.items.length && !vehicleNo(d)) || window.confirm("Load the sample sheet? The current draft will be replaced.")) {
-        d = sampleDraft();
+        d = sampleDraft(new Date(), sample === "lorry" ? "lorry" : "container");
         opened = "review";
       }
     }

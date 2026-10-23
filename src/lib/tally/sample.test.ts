@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { reviewWarnings, totals, validateHeader } from "./draft";
+import { pltCounts, reviewWarnings, totals, validateHeader } from "./draft";
 import { sampleDraft } from "./sample";
 
 describe("sampleDraft", () => {
@@ -9,5 +9,14 @@ describe("sampleDraft", () => {
     expect(reviewWarnings(d)).toEqual([]);
     expect(totals(d.items).pallets).toBe(15);
     expect(d.signature).toBeNull();
+  });
+
+  it("has a lorry version: valid header, PLT types counted, no review warnings", () => {
+    const d = sampleDraft(new Date("2026-10-20T02:00:00Z"), "lorry");
+    expect(d.form).toBe("lorry");
+    expect(validateHeader("lorry", d.header)).toEqual({});
+    expect(reviewWarnings(d)).toEqual([]);
+    expect(totals(d.items).pallets).toBe(9);
+    expect(pltCounts(d)).toEqual({ L: 5, E: 2, C: 1, O: 1 });
   });
 });
