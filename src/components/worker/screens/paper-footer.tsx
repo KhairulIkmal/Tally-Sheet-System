@@ -42,7 +42,7 @@ export function PaperFooter({ draft, signerName, onEdit }: { draft: Draft; signe
       <input
         value={draft.remark}
         aria-label={label}
-        className={cn(lineInput, "normal-case")}
+        className={lineInput}
         onChange={(e) => {
           const v = e.target.value.slice(0, 300);
           onEdit((d) => void (d.remark = v));

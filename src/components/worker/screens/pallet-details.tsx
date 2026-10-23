@@ -312,10 +312,10 @@ export function PalletDetailsScreen({
                   aria-label={`Pallet ${no} remark`}
                   autoComplete="off"
                   onChange={(e) => {
-                    const v = e.target.value.slice(0, 60);
+                    const v = e.target.value.toUpperCase().slice(0, 60);
                     setPallet(i, (pl) => void (pl.remark = v));
                   }}
-                  className="h-12 w-full rounded-[10px] border-[1.5px] border-field bg-surface-sunken px-3 text-[15px] font-semibold text-ink outline-none focus:border-primary focus:bg-surface"
+                  className="h-12 w-full rounded-[10px] border-[1.5px] border-field bg-surface-sunken px-3 text-[15px] font-semibold text-ink uppercase outline-none focus:border-primary focus:bg-surface"
                 />
               </div>
             </div>

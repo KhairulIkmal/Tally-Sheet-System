@@ -586,13 +586,12 @@ export function PaperScreen({
                         <input
                           value={p.remark}
                           aria-label={`Pallet ${i + 1} remark`}
-                          className={cn(input, "normal-case")}
+                          className={input}
                           onChange={(e) =>
                             onItems((its) =>
                               updateRowPallet(its, i, (x) => ({
                                 ...x,
-                                // A remark is a free note: kept as typed, not in capitals.
-                                remark: e.target.value,
+                                remark: e.target.value.toUpperCase(),
                               })),
                             )
                           }
