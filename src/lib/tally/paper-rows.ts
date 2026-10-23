@@ -172,3 +172,13 @@ export function fillDown(items: DraftItem[], from: number, to: number, spec: Fil
   }
   return fromRows(rows, items);
 }
+
+/** Rows from..to (either order) taken out; the pallets below move up, as when one row is deleted. */
+export function removeRows(items: DraftItem[], from: number, to: number): DraftItem[] {
+  const rows = toRows(items);
+  const a = Math.max(0, Math.min(from, to));
+  const b = Math.min(rows.length - 1, Math.max(from, to));
+  if (b < a) return items;
+  rows.splice(a, b - a + 1);
+  return fromRows(rows, items);
+}

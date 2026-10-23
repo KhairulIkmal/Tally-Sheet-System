@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { buildPallets, type DraftItem } from "./draft";
-import { addRow, appendItem, dittoField, dittoItem, fillDown, fromRows, removeRow, renameRow, setRowUnit, toRows, unnamedRows, updateRowPallet } from "./paper-rows";
+import { addRow, appendItem, dittoField, dittoItem, fillDown, fromRows, removeRows, removeRow, renameRow, setRowUnit, toRows, unnamedRows, updateRowPallet } from "./paper-rows";
 
 function item(name: string, qtys: number[], extra: Partial<DraftItem> = {}): DraftItem {
   return {
@@ -110,5 +110,18 @@ describe("fillDown (〃 held and dragged)", () => {
     const items = blankRows(3);
     expect(fillDown(items, 0, 2, { kind: "line", field: "qty", li: 0 })).toBe(items);
     expect(fillDown(items, 1, 2, { kind: "line", field: "qty", li: 0 })).toBe(items);
+  });
+});
+
+describe("removeRows (🗑 held and dragged)", () => {
+  it("takes out a run of rows in either direction and joins what is left", () => {
+    const items = [item("A", [1, 2, 3]), item("B", [4, 5])];
+    expect(names(removeRows(items, 1, 3))).toEqual(["A×1", "B×1"]);
+    expect(names(removeRows(items, 3, 1))).toEqual(["A×1", "B×1"]);
+    expect(toRows(removeRows(items, 1, 3)).map((r) => r.pallet.lines[0].qty)).toEqual(["1", "5"]);
+  });
+
+  it("stops at the last row", () => {
+    expect(names(removeRows([item("A", [1, 2])], 1, 9))).toEqual(["A×1"]);
   });
 });

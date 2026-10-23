@@ -26,6 +26,7 @@ import {
   dittoField,
   dittoItem,
   fillDown,
+  removeRows,
   type FillSpec,
   dittoSource,
   removeRow,
@@ -40,7 +41,7 @@ import { itemRowMarks, itemTotalText } from "@/lib/tally/sheet";
 import { PaperFooter } from "./paper-footer";
 import { AutoFillPanel } from "./paper-autofill";
 import { ZoomControls, usePaperZoom } from "./paper-zoom";
-import { DittoHandle, fillCell, useFillDrag } from "./paper-fill";
+import { DittoHandle, deleteRowMark, fillCell, useDeleteDrag, useFillDrag } from "./paper-fill";
 
 /** Header boxes in the printed order: two columns, left then right. */
 const HEADER: Record<SheetForm, { key: keyof DraftHeader; label: string; numeric?: boolean }[]> = {
@@ -167,6 +168,16 @@ export function PaperScreen({
       return next;
     });
   }
+
+  const del = useDeleteDrag(scrollRef, (from, to) => {
+    const a = Math.min(from, to);
+    const b = Math.max(from, to);
+    const anyFilled = rows
+      .slice(a, b + 1)
+      .some((r) => r.pallet.lines.some((l) => l.qty || l.batch || l.expired || l.prod) || !!r.pallet.remark || !!r.name.trim());
+    if (anyFilled && !window.confirm(`Delete pallets ${a + 1}–${b + 1}? The pallets below move up ${b - a + 1} numbers.`)) return;
+    onItems((its) => removeRows(its, a, b));
+  });
 
   function deleteRow(i: number) {
     const p = rows[i].pallet;
@@ -314,7 +325,7 @@ export function PaperScreen({
                   const above = i > 0 ? rows[i - 1] : null;
                   const noName = !r.name.trim();
                   return (
-                    <tr key={p.id} data-row={i}>
+                    <tr key={p.id} data-row={i} className={cn(del.covers(i) && deleteRowMark)}>
                       <td
                         className={cn(cell, "sticky left-0 z-10 bg-surface text-center align-middle font-condensed text-xl font-extrabold")}
                       >
@@ -539,10 +550,12 @@ export function PaperScreen({
                           </button>
                           <button
                             type="button"
-                            title="Delete row"
                             aria-label={`Delete pallet ${i + 1}`}
-                            onClick={() => deleteRow(i)}
-                            className="grid size-9 place-items-center rounded-md text-muted hover:bg-danger-bg hover:text-danger"
+                            title="Delete row. Hold and drag up or down to delete several rows."
+                            onPointerDown={(e) => del.start(e, i, () => deleteRow(i))}
+                            // Taps are handled on pointer up; keyboard presses come here.
+                            onClick={(e) => e.detail === 0 && deleteRow(i)}
+                            className="grid size-9 cursor-grab touch-none place-items-center rounded-md text-muted select-none hover:bg-danger-bg hover:text-danger active:cursor-grabbing"
                           >
                             <Trash2 className="size-4" />
                           </button>
@@ -621,6 +634,15 @@ export function PaperScreen({
           </div>
         </div>
         <ZoomControls zoom={zoom} setZoom={setZoom} fit={fit} />
+        {del.range ? (
+          <div
+            role="status"
+            className="pointer-events-none absolute top-3 left-1/2 z-30 -translate-x-1/2 rounded-full bg-danger px-4 py-2 text-sm font-bold whitespace-nowrap text-white shadow-[0_8px_24px_rgba(0,0,0,.25)]"
+          >
+            Delete pallet {del.range.from + 1}
+            {del.range.to > del.range.from ? `–${del.range.to + 1}` : ""} · let go to delete
+          </div>
+        ) : null}
         {fill.drag ? (
           <div
             role="status"
