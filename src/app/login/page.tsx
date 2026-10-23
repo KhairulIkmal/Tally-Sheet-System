@@ -132,7 +132,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
         <header className="flex items-center justify-between px-6 pt-6 lg:px-0 lg:pt-9">
           <div className="flex items-center gap-3">
             <span className="grid size-11 place-items-center rounded-xl bg-white p-1 shadow-[0_8px_24px_rgba(0,0,0,.35)]">
-              <LamSoonLogo className="h-full w-auto" />
+              <LamSoonLogo className="size-9 object-contain" />
             </span>
             <div className="leading-tight">
               <div className="text-[15px] font-bold">Lam Soon PSG</div>
