@@ -169,20 +169,34 @@ export function PaperScreen({
     });
   }
 
+  // Deleting can't be undone, so anything with writing on it is confirmed twice.
+  const hasWriting = (i: number) => {
+    const r = rows[i];
+    return !!r.name.trim() || !!r.pallet.remark || r.pallet.lines.some((l) => l.qty || l.batch || l.expired || l.prod);
+  };
+  const reallyDelete = (what: string) => window.confirm(`Are you sure? ${what} will be removed for good. This cannot be undone.`);
+
   const del = useDeleteDrag(scrollRef, (from, to) => {
     const a = Math.min(from, to);
     const b = Math.max(from, to);
-    const anyFilled = rows
-      .slice(a, b + 1)
-      .some((r) => r.pallet.lines.some((l) => l.qty || l.batch || l.expired || l.prod) || !!r.pallet.remark || !!r.name.trim());
-    if (anyFilled && !window.confirm(`Delete pallets ${a + 1}–${b + 1}? The pallets below move up ${b - a + 1} numbers.`)) return;
+    const n = b - a + 1;
+    const filled = Array.from({ length: n }, (_, k) => a + k).filter(hasWriting).length;
+    const what = `Pallets ${a + 1}–${b + 1}`;
+    if (
+      !window.confirm(
+        `Delete ${n} pallets (${a + 1}–${b + 1})?${filled ? ` ${filled} of them have writing on them.` : ""} The pallets below move up ${n} numbers.`,
+      )
+    )
+      return;
+    if (filled && !reallyDelete(what)) return;
     onItems((its) => removeRows(its, a, b));
   });
 
   function deleteRow(i: number) {
-    const p = rows[i].pallet;
-    const filled = p.lines.some((l) => l.qty || l.batch || l.expired || l.prod) || !!p.remark;
-    if (filled && !window.confirm(`Delete pallet ${i + 1}? The pallets below move up one number.`)) return;
+    if (hasWriting(i)) {
+      if (!window.confirm(`Delete pallet ${i + 1}? The pallets below move up one number.`)) return;
+      if (!reallyDelete(`Pallet ${i + 1}`)) return;
+    }
     onItems((its) => removeRow(its, i));
   }
 
