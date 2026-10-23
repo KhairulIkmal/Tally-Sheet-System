@@ -135,3 +135,40 @@ export function appendItem(items: DraftItem[], item: DraftItem): DraftItem[] {
   while (rows.length && isEmptyRow(rows[rows.length - 1])) rows.pop();
   return fromRows([...rows, ...toRows([item])], [...items, item]);
 }
+
+/** What a held-and-dragged 〃 fills down: one line field, the item, or the contract no. */
+export type FillSpec = { kind: "line"; field: DittoField; li: number } | { kind: "item" } | { kind: "contract" };
+
+/**
+ * 〃 held and dragged down, like a spreadsheet's fill handle: rows from..to
+ * all take the value on the row above `from`. A row with fewer lines than
+ * `li` gets it on its last line.
+ */
+export function fillDown(items: DraftItem[], from: number, to: number, spec: FillSpec): DraftItem[] {
+  const rows = toRows(items);
+  if (from < 1 || to < from) return items;
+  const source = rows[from - 1];
+  const last = Math.min(to, rows.length - 1);
+  if (spec.kind === "item") {
+    if (!key(source.name)) return items;
+    for (let i = from; i <= last; i++) rows[i] = { ...rows[i], name: source.name, unit: source.unit };
+    return fromRows(rows, items);
+  }
+  if (spec.kind === "contract") {
+    const value = source.pallet.contractNo;
+    if (!value) return items;
+    for (let i = from; i <= last; i++) rows[i] = { ...rows[i], pallet: { ...rows[i].pallet, contractNo: value } };
+    return fromRows(rows, items);
+  }
+  const value = dittoSource(items, from, spec.li, spec.field);
+  if (!value) return items;
+  for (let i = from; i <= last; i++) {
+    const lines = rows[i].pallet.lines;
+    const at = Math.min(spec.li, lines.length - 1);
+    rows[i] = {
+      ...rows[i],
+      pallet: { ...rows[i].pallet, lines: lines.map((l, j) => (j === at ? { ...l, [spec.field]: value } : l)) },
+    };
+  }
+  return fromRows(rows, items);
+}

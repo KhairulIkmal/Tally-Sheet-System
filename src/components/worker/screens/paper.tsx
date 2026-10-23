@@ -25,6 +25,8 @@ import {
   appendItem,
   dittoField,
   dittoItem,
+  fillDown,
+  type FillSpec,
   dittoSource,
   removeRow,
   renameRow,
@@ -38,6 +40,7 @@ import { itemRowMarks, itemTotalText } from "@/lib/tally/sheet";
 import { PaperFooter } from "./paper-footer";
 import { AutoFillPanel } from "./paper-autofill";
 import { ZoomControls, usePaperZoom } from "./paper-zoom";
+import { DittoHandle, fillCell, useFillDrag } from "./paper-fill";
 
 /** Header boxes in the printed order: two columns, left then right. */
 const HEADER: Record<SheetForm, { key: keyof DraftHeader; label: string; numeric?: boolean }[]> = {
@@ -59,20 +62,6 @@ const HEADER: Record<SheetForm, { key: keyof DraftHeader; label: string; numeric
 
 const ROWS_PER_PAGE = 25;
 
-/** 〃: copies one cell from the row above. Only shown when it would change something. */
-function Ditto({ what, value, pallet, onClick }: { what: string; value: string; pallet: number; onClick: () => void }) {
-  return (
-    <button
-      type="button"
-      title={`Copy ${what} from the row above: ${value}`}
-      aria-label={`Pallet ${pallet}: copy ${what} from the row above (${value})`}
-      onClick={onClick}
-      className="mr-0.5 grid h-9 w-8 flex-none place-items-center rounded-md text-lg font-extrabold text-primary hover:bg-primary-soft"
-    >
-      〃
-    </button>
-  );
-}
 const cell = "border border-ink/25 p-0 align-top";
 const input =
   "block h-11 w-full min-w-0 bg-transparent px-2 text-[15px] font-semibold uppercase outline-none placeholder:font-medium placeholder:text-placeholder focus:bg-primary-soft";
@@ -118,6 +107,15 @@ export function PaperScreen({
 }) {
   const [autoFill, setAutoFill] = useState(false);
   const { zoom, setZoom, fit, scrollRef, sheetRef } = usePaperZoom();
+  // 〃 held and dragged down fills every row the finger passes; rows past the
+  // end of the sheet are added first.
+  const fill = useFillDrag(scrollRef, (from, to, spec) =>
+    onItems((its) => {
+      let next = its;
+      while (toRows(next).length <= to) next = addRow(next);
+      return fillDown(next, from, to, spec);
+    }),
+  );
   // A pallet row that continues the item above shows the paper's blank (or TOTAL) until tapped.
   const [nameRow, setNameRow] = useState<number | null>(null);
   const rows = toRows(items);
@@ -186,8 +184,16 @@ export function PaperScreen({
           const field = DITTO.includes(k) ? k : null;
           const source = field ? dittoSource(items, i, li, field) : "";
           const canDitto = !!source && source !== l[k];
+          const spec: FillSpec | null = field ? { kind: "line", field, li } : null;
           return (
-            <div key={li} className={cn("flex items-center", li > 0 && "border-t border-dashed border-ink/25")}>
+            <div
+              key={li}
+              className={cn(
+                "flex items-center",
+                li > 0 && "border-t border-dashed border-ink/25",
+                spec && fill.covers(spec, i) && fillCell,
+              )}
+            >
               <input
                 value={l[k]}
                 aria-label={`Pallet ${i + 1} ${k}${p.lines.length > 1 ? ` line ${li + 1}` : ""}`}
@@ -208,16 +214,14 @@ export function PaperScreen({
                 }
                 onBlur={opts.date ? (e) => setLine(i, li, k, normalizeDate(e.target.value)) : undefined}
               />
-              {canDitto ? (
-                <button
-                  type="button"
-                  title={`Copy ${k} from the row above: ${source}`}
-                  aria-label={`Pallet ${i + 1}: copy ${k} from the row above (${source})`}
-                  onClick={() => onItems((its) => dittoField(its, i, li, field!))}
-                  className="mr-0.5 grid h-9 w-8 flex-none place-items-center rounded-md text-lg font-extrabold text-primary hover:bg-primary-soft"
-                >
-                  〃
-                </button>
+              {canDitto && spec ? (
+                <DittoHandle
+                  what={k}
+                  value={source}
+                  pallet={i + 1}
+                  onCopy={() => onItems((its) => dittoField(its, i, li, field!))}
+                  onStart={(e) => fill.start(e, spec, i, source, () => onItems((its) => dittoField(its, i, li, field!)))}
+                />
               ) : null}
             </div>
           );
@@ -310,7 +314,7 @@ export function PaperScreen({
                   const above = i > 0 ? rows[i - 1] : null;
                   const noName = !r.name.trim();
                   return (
-                    <tr key={p.id}>
+                    <tr key={p.id} data-row={i}>
                       <td
                         className={cn(cell, "sticky left-0 z-10 bg-surface text-center align-middle font-condensed text-xl font-extrabold")}
                       >
@@ -341,7 +345,7 @@ export function PaperScreen({
                       ) : null}
                       {isLorry ? (
                         <td className={cell}>
-                          <div className="flex items-center">
+                          <div className={cn("flex items-center", fill.covers({ kind: "contract" }, i) && fillCell)}>
                             <input
                               value={p.contractNo}
                               aria-label={`Pallet ${i + 1} contract no`}
@@ -356,12 +360,17 @@ export function PaperScreen({
                               }
                             />
                             {above?.pallet.contractNo && above.pallet.contractNo !== p.contractNo ? (
-                              <Ditto
+                              <DittoHandle
                                 what="contract no"
                                 value={above.pallet.contractNo}
                                 pallet={i + 1}
-                                onClick={() =>
+                                onCopy={() =>
                                   onItems((its) => updateRowPallet(its, i, (x) => ({ ...x, contractNo: above.pallet.contractNo })))
+                                }
+                                onStart={(e) =>
+                                  fill.start(e, { kind: "contract" }, i, above.pallet.contractNo, () =>
+                                    onItems((its) => updateRowPallet(its, i, (x) => ({ ...x, contractNo: above.pallet.contractNo }))),
+                                  )
                                 }
                               />
                             ) : null}
@@ -390,7 +399,7 @@ export function PaperScreen({
                           </button>
                         ) : (
                           <>
-                            <div className="flex items-center">
+                            <div className={cn("flex items-center", fill.covers({ kind: "item" }, i) && fillCell)}>
                               <input
                                 autoFocus={nameRow === i}
                                 onBlur={() => nameRow === i && setNameRow(null)}
@@ -406,11 +415,14 @@ export function PaperScreen({
                                 }}
                               />
                               {above?.name.trim() && above.name.trim() !== r.name.trim() ? (
-                                <Ditto
+                                <DittoHandle
                                   what="item"
                                   value={above.name.trim()}
                                   pallet={i + 1}
-                                  onClick={() => onItems((its) => dittoItem(its, i))}
+                                  onCopy={() => onItems((its) => dittoItem(its, i))}
+                                  onStart={(e) =>
+                                    fill.start(e, { kind: "item" }, i, above.name.trim(), () => onItems((its) => dittoItem(its, i)))
+                                  }
                                 />
                               ) : null}
                             </div>
@@ -437,6 +449,7 @@ export function PaperScreen({
                                     "relative flex items-center",
                                     li > 0 && "border-t border-dashed border-ink/25",
                                     li === circleAt && "text-danger",
+                                    fill.covers({ kind: "line", field: "qty", li }, i) && fillCell,
                                   )}
                                 >
                                   {/* The item's last pallet is circled, as on paper: only the last batch's qty, drawn over the
@@ -448,15 +461,18 @@ export function PaperScreen({
                                     />
                                   ) : null}
                                   {source && source !== l.qty ? (
-                                    <button
-                                      type="button"
-                                      title={`Copy qty from the row above: ${source}`}
-                                      aria-label={`Pallet ${i + 1}: copy qty from the row above (${source})`}
-                                      onClick={() => onItems((its) => dittoField(its, i, li, "qty"))}
-                                      className="ml-0.5 grid h-9 w-8 flex-none place-items-center rounded-md text-lg font-extrabold text-primary hover:bg-primary-soft"
-                                    >
-                                      〃
-                                    </button>
+                                    <DittoHandle
+                                      what="qty"
+                                      value={source}
+                                      pallet={i + 1}
+                                      className="ml-0.5"
+                                      onCopy={() => onItems((its) => dittoField(its, i, li, "qty"))}
+                                      onStart={(e) =>
+                                        fill.start(e, { kind: "line", field: "qty", li }, i, source, () =>
+                                          onItems((its) => dittoField(its, i, li, "qty")),
+                                        )
+                                      }
+                                    />
                                   ) : null}
                                   <input
                                     value={l.qty}
@@ -540,6 +556,7 @@ export function PaperScreen({
                   return (
                     <tr
                       key={`blank-${index}`}
+                      data-row={index}
                       onClick={() => addRowsTo(index)}
                       className="cursor-pointer text-faint hover:bg-primary-soft/60"
                     >
@@ -604,6 +621,15 @@ export function PaperScreen({
           </div>
         </div>
         <ZoomControls zoom={zoom} setZoom={setZoom} fit={fit} />
+        {fill.drag ? (
+          <div
+            role="status"
+            className="pointer-events-none absolute top-3 left-1/2 z-30 -translate-x-1/2 rounded-full bg-ink px-4 py-2 text-sm font-bold whitespace-nowrap text-white shadow-[0_8px_24px_rgba(0,0,0,.25)]"
+          >
+            〃 {fill.drag.value} → pallet {fill.drag.from + 1}
+            {fill.drag.to > fill.drag.from ? `–${fill.drag.to + 1}` : ""} · let go to copy
+          </div>
+        ) : null}
       </div>
 
       {autoFill ? (

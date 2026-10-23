@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { buildPallets, type DraftItem } from "./draft";
-import { addRow, appendItem, dittoField, dittoItem, fromRows, removeRow, renameRow, setRowUnit, toRows, unnamedRows, updateRowPallet } from "./paper-rows";
+import { addRow, appendItem, dittoField, dittoItem, fillDown, fromRows, removeRow, renameRow, setRowUnit, toRows, unnamedRows, updateRowPallet } from "./paper-rows";
 
 function item(name: string, qtys: number[], extra: Partial<DraftItem> = {}): DraftItem {
   return {
@@ -74,5 +74,41 @@ describe("paper rows", () => {
     expect(names(out)).toEqual(["A×1", "B×3"]);
     expect(out[1]).toMatchObject({ id: "id-B", targetQty: 86 });
     expect(out[1].pallets.map((p) => p.lines[0].qty)).toEqual(["32", "32", "22"]);
+  });
+});
+
+describe("fillDown (〃 held and dragged)", () => {
+  function blankRows(n: number) {
+    let items: DraftItem[] = [];
+    for (let k = 0; k < n; k++) items = addRow(items);
+    return items;
+  }
+
+  it("copies one field from the row above into every row down to where the finger stopped", () => {
+    let items = blankRows(5);
+    items = updateRowPallet(items, 0, (p) => ({ ...p, lines: [{ ...p.lines[0], batch: "B1", qty: "40" }] }));
+    const out = toRows(fillDown(items, 1, 3, { kind: "line", field: "batch", li: 0 }));
+    expect(out.map((r) => r.pallet.lines[0].batch)).toEqual(["B1", "B1", "B1", "B1", ""]);
+    // Only that field changes.
+    expect(out.map((r) => r.pallet.lines[0].qty)).toEqual(["40", "", "", "", ""]);
+  });
+
+  it("fills the item name (and unit) down, joining the rows into one item", () => {
+    let items = renameRow(blankRows(4), 0, "SUN OIL 5KG", "TIN");
+    items = fillDown(items, 1, 3, { kind: "item" });
+    expect(names(items)).toEqual(["SUN OIL 5KG×4"]);
+    expect(items[0].unit).toBe("TIN");
+  });
+
+  it("fills the contract no down", () => {
+    let items = updateRowPallet(blankRows(3), 0, (p) => ({ ...p, contractNo: "LS-9" }));
+    items = fillDown(items, 1, 2, { kind: "contract" });
+    expect(toRows(items).map((r) => r.pallet.contractNo)).toEqual(["LS-9", "LS-9", "LS-9"]);
+  });
+
+  it("does nothing from the first row, or when the row above is empty", () => {
+    const items = blankRows(3);
+    expect(fillDown(items, 0, 2, { kind: "line", field: "qty", li: 0 })).toBe(items);
+    expect(fillDown(items, 1, 2, { kind: "line", field: "qty", li: 0 })).toBe(items);
   });
 });
