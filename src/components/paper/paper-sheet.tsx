@@ -373,7 +373,9 @@ export function PaperSheet({ data, page = 1, highlightMixed = false }: { data: P
         </div>
       ) : null}
 
+      {/* Ref and page number: on screen only, the printed sheet stays as clean as the paper form. */}
       <div
+        data-noprint
         style={{
           position: "absolute",
           left: 40,
