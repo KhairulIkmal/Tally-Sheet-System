@@ -114,6 +114,37 @@ function Signature({ data }: { data: PaperData }) {
   );
 }
 
+/**
+ * REMARKS on two ruled lines: the text runs on from the first line onto the
+ * second, as when written by hand. The rules are borders (print without
+ * "background graphics"), the text sits on them with a matching line height.
+ */
+function RuledRemark({ label, labelWidth, text, step }: { label: string; labelWidth: number; text: string; step: number }) {
+  return (
+    <div style={{ display: "grid", gridTemplateColumns: `${labelWidth}px 10px 1fr`, alignItems: "start" }}>
+      <span style={{ lineHeight: `${step}px` }}>{label}</span>
+      <span style={{ lineHeight: `${step}px` }}>:</span>
+      <span style={{ position: "relative", height: step * 2 }}>
+        <span style={{ position: "absolute", inset: "0 0 auto", height: step, borderBottom: line }} />
+        <span style={{ position: "absolute", inset: `${step}px 0 auto`, height: step, borderBottom: line }} />
+        <span
+          style={{
+            position: "relative",
+            display: "block",
+            height: step * 2,
+            overflow: "hidden",
+            padding: "0 4px",
+            font: `500 10px/${step}px ${mono}`,
+            overflowWrap: "anywhere",
+          }}
+        >
+          {text}
+        </span>
+      </span>
+    </div>
+  );
+}
+
 function rowsFor(form: PaperData["form"], rows: PaperRow[], highlightMixed: boolean) {
   const cols =
     form === "container" ? "34px minmax(0,1fr) 46px 62px 62px 92px 86px" : "32px 34px 76px minmax(0,1fr) 38px 56px 56px 78px 62px";
@@ -265,14 +296,7 @@ export function PaperSheet({ data, page = 1, highlightMixed = false }: { data: P
           style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) 330px", gap: 28, marginTop: 16, fontSize: 10.5, fontWeight: 700 }}
         >
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            <div style={{ display: "grid", gridTemplateColumns: "72px 10px 1fr", alignItems: "end" }}>
-              <span>REMARKS</span>
-              <span>:</span>
-              <span style={{ borderBottom: line, font: `500 10px ${mono}`, padding: "0 4px 1px", minHeight: 14, overflow: "hidden" }}>
-                {data.remark}
-              </span>
-            </div>
-            <div style={{ marginLeft: 82, borderBottom: line, height: 14 }} />
+            <RuledRemark label="REMARKS" labelWidth={72} text={data.remark} step={22} />
             <div style={{ marginTop: 12 }}>COUNT &amp; PREPARED BY :</div>
             <Signature data={data} />
           </div>
@@ -326,14 +350,7 @@ export function PaperSheet({ data, page = 1, highlightMixed = false }: { data: P
                   </span>
                 </div>
               ))}
-              <div style={{ display: "grid", gridTemplateColumns: "76px 10px 1fr", alignItems: "end", gap: "0 4px" }}>
-                <span>REMARK</span>
-                <span>:</span>
-                <span style={{ borderBottom: line, font: `500 10px ${mono}`, padding: "0 4px 1px", minHeight: 14, overflow: "hidden" }}>
-                  {data.remark}
-                </span>
-              </div>
-              <div style={{ marginLeft: 94, borderBottom: line, height: 14 }} />
+              <RuledRemark label="REMARK" labelWidth={80} text={data.remark} step={20} />
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
               <div style={{ textAlign: "right", fontSize: 10.5, marginBottom: 2 }}>TOTAL NUMBER OF PLT</div>
