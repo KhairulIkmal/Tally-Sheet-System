@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Printer } from "lucide-react";
+import { ArrowLeft, Check, MoreHorizontal, Printer, Undo2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { setPrintedAction } from "@/lib/data/actions";
 import { MATERIALS, PLT_TYPES, materialLabel } from "@/lib/tally/constants";
@@ -21,6 +21,7 @@ export function SheetDetailView({ sheet }: { sheet: SheetDetail }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState("");
+  // After the print dialog closes: did it come out of the printer? (The browser can't tell.)
   const [askPrinted, setAskPrinted] = useState(false);
   const paper = paperFromSheet(sheet);
   const pages = pageCount(paper.rows.length);
@@ -90,37 +91,43 @@ export function SheetDetailView({ sheet }: { sheet: SheetDetail }) {
             </div>
             <div className="text-[28px] font-extrabold">{sheet.vehicleNo}</div>
             <div className="font-mono text-[15px] font-semibold text-muted">{sheet.ref}</div>
-            <div className="mt-1.5 grid grid-cols-[1fr_1.3fr] gap-2.5">
+            {printed ? (
+              <div className="mt-1.5 flex items-center gap-2.5 rounded-[10px] border border-line bg-surface-sunken py-2 pr-1.5 pl-3 text-sm font-semibold text-body">
+                <span className="grid size-6 flex-none place-items-center rounded-full bg-body text-white">
+                  <Check className="size-3.5" strokeWidth={3} />
+                </span>
+                <span className="min-w-0 flex-1 leading-tight">
+                  Printed by {sheet.printedByName ?? "office"}
+                  {sheet.printedAt ? <span className="block text-xs font-medium text-muted">{formatDateTime(sheet.printedAt)}</span> : null}
+                </span>
+                <UndoPrintedMenu disabled={pending} onUndo={() => togglePrinted(false)} />
+              </div>
+            ) : null}
+            <button
+              type="button"
+              onClick={() => {
+                setTimeout(() => {
+                  window.print();
+                  if (!printed) setAskPrinted(true);
+                }, 100);
+              }}
+              className={cn(
+                "mt-1.5 flex h-12 items-center justify-center gap-2 rounded-[10px] text-base font-bold",
+                printed ? "border-[1.5px] border-field bg-surface text-ink hover:bg-canvas" : "bg-primary text-white",
+              )}
+            >
+              <Printer className="size-5" />
+              {printed ? "Print again" : pages > 1 ? `Print (A4 · ${pages} pages)` : "Print (A4)"}
+            </button>
+            {!printed ? (
               <button
                 type="button"
                 disabled={pending}
-                onClick={() => togglePrinted(!printed)}
-                className={cn(
-                  "h-12 rounded-[10px] border-[1.5px] text-[15px] font-bold disabled:opacity-50",
-                  printed ? "border-chip bg-chip text-body" : "border-field bg-surface text-ink",
-                )}
+                onClick={() => togglePrinted(true)}
+                className="self-center text-sm font-semibold text-muted underline-offset-2 hover:text-primary hover:underline disabled:opacity-50"
               >
-                {printed ? "✓ Printed" : "Mark as printed"}
+                Printed it elsewhere? Mark as printed
               </button>
-              <button
-                type="button"
-                onClick={() => {
-                  if (!printed) setAskPrinted(true);
-                  setTimeout(() => window.print(), 100);
-                }}
-                className="flex h-12 items-center justify-center gap-2 rounded-[10px] bg-primary text-base font-bold text-white"
-              >
-                <Printer className="size-5" />
-                {pages > 1 ? `Print (A4 · ${pages} pages)` : "Print (A4)"}
-              </button>
-            </div>
-            {askPrinted && !printed ? (
-              <div className="flex items-center gap-2.5 rounded-[10px] border border-warning-border bg-warning-bg px-3 py-2.5 text-sm font-semibold text-warning-ink">
-                <span className="flex-1">Printed it? Mark it so other staff know.</span>
-                <button type="button" onClick={() => togglePrinted(true)} className="font-bold text-primary">
-                  Mark as printed
-                </button>
-              </div>
             ) : null}
             {error ? <div role="alert" className="rounded-lg bg-danger-bg px-3 py-2 text-sm font-semibold text-danger-ink">{error}</div> : null}
           </div>
@@ -178,9 +185,119 @@ export function SheetDetailView({ sheet }: { sheet: SheetDetail }) {
         </aside>
       </div>
 
+      {askPrinted && !printed ? <PrintedDialog pending={pending} onYes={() => togglePrinted(true)} onNo={() => setAskPrinted(false)} /> : null}
+
       <div data-print-area className="hidden">
         <PaperPages data={paper} />
       </div>
     </>
+  );
+}
+
+/** Asked once the print dialog closes: only the person at the printer knows whether it came out. */
+function PrintedDialog({ pending, onYes, onNo }: { pending: boolean; onYes: () => void; onNo: () => void }) {
+  const yes = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    yes.current?.focus();
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onNo();
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [onNo]);
+  return (
+    <div
+      data-noprint
+      className="fixed inset-0 z-50 grid place-items-center bg-[rgba(6,16,36,.45)] p-4"
+      onMouseDown={(e) => e.target === e.currentTarget && onNo()}
+    >
+      <div role="dialog" aria-modal="true" aria-labelledby="printed-q" className="w-full max-w-[380px] rounded-2xl bg-surface p-6 shadow-[0_24px_60px_rgba(0,0,0,.3)]">
+        <span className="grid size-12 place-items-center rounded-xl bg-primary-soft text-primary">
+          <Printer className="size-6" />
+        </span>
+        <h2 id="printed-q" className="mt-4 text-xl font-extrabold">
+          Did it print OK?
+        </h2>
+        <p className="mt-1 text-[15px] font-medium text-muted">Mark it as printed so other staff know this sheet is done.</p>
+        <div className="mt-6 grid grid-cols-2 gap-2.5">
+          <button type="button" onClick={onNo} className="h-12 rounded-[10px] border-[1.5px] border-field text-[15px] font-bold hover:bg-canvas">
+            Not yet
+          </button>
+          <button ref={yes} type="button" disabled={pending} onClick={onYes} className="h-12 rounded-[10px] bg-primary text-[15px] font-bold text-white disabled:opacity-60">
+            Yes, printed
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/** ⋯ on the Printed row: putting a sheet back to Submitted asks first, since everyone sees it. */
+function UndoPrintedMenu({ disabled, onUndo }: { disabled: boolean; onUndo: () => void }) {
+  const [open, setOpen] = useState(false);
+  const [confirm, setConfirm] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    const close = () => {
+      setOpen(false);
+      setConfirm(false);
+    };
+    const onDown = (e: MouseEvent) => !ref.current?.contains(e.target as Node) && close();
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && close();
+    document.addEventListener("mousedown", onDown);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDown);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
+  return (
+    <div ref={ref} className="relative">
+      <button
+        type="button"
+        aria-label="More"
+        aria-haspopup="menu"
+        aria-expanded={open}
+        onClick={() => setOpen((v) => !v)}
+        className="grid size-9 place-items-center rounded-lg text-muted hover:bg-canvas hover:text-ink"
+      >
+        <MoreHorizontal className="size-5" />
+      </button>
+      {open ? (
+        <div role="menu" className="absolute top-[calc(100%+6px)] right-0 z-40 w-[270px] rounded-xl border border-line bg-surface p-1.5 shadow-[0_16px_40px_rgba(16,24,40,.18)]">
+          {confirm ? (
+            <div className="p-2.5">
+              <div className="text-[15px] font-bold">Mark as not printed?</div>
+              <p className="mt-0.5 text-sm font-medium text-muted">It goes back to Submitted for all office staff.</p>
+              <div className="mt-3 flex justify-end gap-2">
+                <button type="button" onClick={() => setConfirm(false)} className="h-9 rounded-lg px-3 text-sm font-bold hover:bg-canvas">
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  disabled={disabled}
+                  onClick={() => {
+                    setOpen(false);
+                    setConfirm(false);
+                    onUndo();
+                  }}
+                  className="h-9 rounded-lg bg-danger px-3 text-sm font-bold text-white disabled:opacity-60"
+                >
+                  Mark not printed
+                </button>
+              </div>
+            </div>
+          ) : (
+            <button
+              type="button"
+              role="menuitem"
+              onClick={() => setConfirm(true)}
+              className="flex h-10 w-full items-center gap-2.5 rounded-lg px-2.5 text-left text-sm font-semibold text-body hover:bg-canvas"
+            >
+              <Undo2 className="size-4 text-muted" /> Mark as not printed
+            </button>
+          )}
+        </div>
+      ) : null}
+    </div>
   );
 }
