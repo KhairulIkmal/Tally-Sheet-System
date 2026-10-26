@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState, useTransition } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Container, Search, Truck } from "lucide-react";
+import { Container, FileCheck2, Printer, Search, Truck } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatDateTime } from "@/lib/tally/dates";
 import type { SheetSummary } from "@/lib/tally/sheet";
@@ -131,8 +131,8 @@ export function SheetsList({
             onChange={(status) => setFilter({ status })}
             options={[
               { value: "all", label: "All", count: statusCounts.all },
-              { value: "submitted", label: "Submitted", count: statusCounts.submitted, tone: "text-success" },
-              { value: "printed", label: "Printed", count: statusCounts.printed, tone: "text-body" },
+              { value: "submitted", label: "Submitted", count: statusCounts.submitted, icon: FileCheck2, tone: "text-success" },
+              { value: "printed", label: "Printed", count: statusCounts.printed, icon: Printer, tone: "text-body" },
             ]}
             activeClass={filter.status === "printed" ? "border-body bg-chip text-body" : "border-success bg-success-bg text-success"}
           />
