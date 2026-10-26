@@ -13,7 +13,7 @@ export default async function OfficeLayout({ children }: { children: React.React
       <header data-noprint className="flex h-[64px] flex-none items-center gap-7 bg-[#15181d] px-7 text-white">
         <Link href="/office" className="flex items-center gap-2.5 text-xl font-extrabold">
           <LamSoonLogo className="h-9 w-auto" />
-          Tally Sheet
+          Tally Sheet Count
         </Link>
         <OfficeNav />
         <span className="flex-1" />
