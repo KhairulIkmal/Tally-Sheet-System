@@ -21,6 +21,15 @@ describe("sampleDraft", () => {
     expect(pltCounts(d)).toEqual({ L: 5, E: 2, C: 1, O: 1 });
   });
 
+  it("has a full container version: all 25 rows, short pallets mid-item, every material, no review warnings", () => {
+    const d = sampleDraft(new Date("2026-10-20T02:00:00Z"), "container-full");
+    expect(d.form).toBe("container");
+    expect(reviewWarnings(d)).toEqual([]);
+    expect(totals(d.items).pallets).toBe(MAX_PALLETS);
+    expect(d.items[1].pallets.map((p) => p.lines[0].qty)).toEqual(["40", "40", "22", "40", "40"]);
+    expect(Object.values(d.materials).every((n) => n > 0)).toBe(true);
+  });
+
   it("has a full lorry version: all 25 rows, every PLT type, every check, no review warnings", () => {
     const d = sampleDraft(new Date("2026-10-20T02:00:00Z"), "lorry-full");
     expect(d.form).toBe("lorry");

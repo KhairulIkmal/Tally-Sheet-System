@@ -123,10 +123,10 @@ export function WorkerApp({ user, history, sheets }: { user: WorkerUser; history
     /* eslint-disable react-hooks/set-state-in-effect -- one-time read of device storage after mount */
     let d = loadDraft(user.id);
     let opened: Screen = "home";
-    // /worker?sample=1 (container), ?sample=lorry or ?sample=lorry-full loads a complete sheet that only needs signing (for demos).
+    // /worker?sample=1 (container), ?sample=container-full, ?sample=lorry or ?sample=lorry-full loads a complete sheet that only needs signing (for demos).
     const url = new URL(window.location.href);
     const sample = url.searchParams.get("sample");
-    if (sample === "1" || sample === "lorry" || sample === "lorry-full") {
+    if (sample === "1" || sample === "container-full" || sample === "lorry" || sample === "lorry-full") {
       url.searchParams.delete("sample");
       window.history.replaceState(null, "", url.pathname + url.search);
       if (!d || (!d.items.length && !vehicleNo(d)) || window.confirm("Load the sample sheet? The current draft will be replaced.")) {

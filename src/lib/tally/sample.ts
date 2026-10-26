@@ -30,6 +30,17 @@ const LORRY_FULL_ITEMS: [string, string, number, number[], string, string, strin
   ["6X2.5KG DAISY MARG", "CTN", 52, [52], "07/10/28", "08/04/26", "0460804203", ["L"]],
 ];
 
+// Full container: all 25 rows, with short pallets in the middle of an item as well as at its end.
+const CONTAINER_FULL_ITEMS: [string, string, number, number[], string, string, string[]][] = [
+  ["36X240G DAISY MARG", "CTN", 200, [40, 40, 40, 40, 40], "16/04/27", "17/04/26", ["1261704203", "1161704203"]],
+  ["24X480G DAISY MARG", "CTN", 182, [40, 40, 22, 40, 40], "14/04/27", "13/04/26", ["0381504203", "0361504203"]],
+  ["12X1KG DAISY MARG", "CTN", 134, [54, 26, 54], "07/10/28", "08/04/26", ["0260804103"]],
+  ["18KG DAISY MARG-TIN", "TIN", 150, [48, 48, 48, 6], "02/04/27", "03/04/26", ["03303"]],
+  ["6X2.5KG DAISY MARG", "CTN", 100, [48, 4, 48], "07/10/28", "08/04/26", ["0460804203"]],
+  ["2X4.8KG DAISY MARG", "CTN", 118, [32, 32, 22, 32], "11/02/27", "12/02/26", ["08612021", "09612021"]],
+  ["16KG LS SHTG BLUE LB", "CTN", 40, [40], "07/04/27", "08/04/26", ["01202"]],
+];
+
 const items = (rows: [string, string, number, number[], string, string, string[], PltType[], string][]): DraftItem[] =>
   rows.map(([name, unit, targetQty, qtys, expired, prod, batches, types, contractNo]) => ({
     id: newId(),
@@ -50,9 +61,43 @@ const items = (rows: [string, string, number, number[], string, string, string[]
  * A complete sheet that only needs signing, for demos: /worker?sample=1 opens
  * a container sheet, /worker?sample=lorry a lorry one and
  * /worker?sample=lorry-full a lorry one with all 25 rows and every box at the
- * foot filled. It replaces the draft on this phone.
+ * foot filled, and /worker?sample=container-full the same for a container
+ * (with short pallets in the middle of items). It replaces the draft on this phone.
  */
-export function sampleDraft(now: Date = new Date(), form: "container" | "lorry" | "lorry-full" = "container"): Draft {
+export function sampleDraft(now: Date = new Date(), form: "container" | "container-full" | "lorry" | "lorry-full" = "container"): Draft {
+  if (form === "container-full") {
+    const d = newDraft("container", now);
+    Object.assign(d.header, {
+      contractNo: "8900003295",
+      containerNo: "TGCU 2174712",
+      sealNo: "PK 2353315",
+      siNo: "8106101",
+      disport: "MUARA, BRUNEI",
+      date: todayPaperDate(now),
+    });
+    d.items = items(CONTAINER_FULL_ITEMS.map(([n, u, t, q, e, p, b]) => [n, u, t, q, e, p, b, ["L"], ""]));
+    // The last pallet carries two batches, like a mixed pallet on paper.
+    const mixed = d.items[d.items.length - 1].pallets[0];
+    mixed.lines = [
+      { ...mixed.lines[0], qty: "24" },
+      { ...mixed.lines[0], qty: "16", batch: "01203" },
+    ];
+    mixed.remark = "MIXED BATCH";
+    d.items[1].pallets[2].remark = "SHORT, BAL NEXT PLT";
+    Object.assign(d.materials, {
+      SAMPLE: 2,
+      "EMPTY CTN": 5,
+      "PE BAG": 3,
+      "WOODEN FRAME": 1,
+      PLYWOOD: 2,
+      LINER: 1,
+      "LAYER PAD": 25,
+      "AIR BAG": 4,
+      POLYFOAM: 11,
+    });
+    d.remark = "2 CTN 12X1KG DAISY MARG TAKEN FOR SAMPLE BY QC";
+    return d;
+  }
   if (form === "lorry-full") {
     const d = newDraft("lorry", now);
     Object.assign(d.header, { transferTo: "SHAH ALAM DC", doNo: "DO-2610-0458", lorryNo: "JTR 4821", date: todayPaperDate(now) });
