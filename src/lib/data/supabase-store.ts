@@ -94,7 +94,6 @@ export function supabaseStore(): TallyStore {
     },
 
     async listSheets(filter: SheetFilter, limit) {
-      if (filter.form === "none" || filter.status === "none") return [];
       const supabase = await createClient();
       let query = supabase.from("sheets").select(SUMMARY_COLUMNS).order("submitted_at", { ascending: false }).limit(limit);
       const bounds = rangeBounds(filter);

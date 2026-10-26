@@ -8,14 +8,6 @@ import type { KlDate, SheetFilter } from "@/lib/data/types";
 
 const WEEKDAYS = ["M", "T", "W", "T", "F", "S", "S"];
 
-/** "all" when both are on, "none" when neither is, else the one that is. */
-export function toggleOne<T extends string>(current: "all" | "none" | T, value: T, both: [T, T]): "all" | "none" | T {
-  const on = new Set<T>(current === "all" ? both : current === "none" ? [] : [current as T]);
-  if (on.has(value)) on.delete(value);
-  else on.add(value);
-  return on.size === 2 ? "all" : on.size === 1 ? [...on][0] : "none";
-}
-
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return <div className="mb-3 text-xs font-bold tracking-[.08em] text-muted">{children}</div>;
 }

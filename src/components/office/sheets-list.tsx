@@ -3,14 +3,15 @@
 import { useEffect, useMemo, useState, useTransition } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Check, Container, Search, Truck, type LucideIcon } from "lucide-react";
+import { Container, Search, Truck } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatDateTime } from "@/lib/tally/dates";
 import type { SheetSummary } from "@/lib/tally/sheet";
 import type { KlDate, SheetFilter } from "@/lib/data/types";
 import { filterParams, rangeLabel } from "@/lib/data/filters";
 import { FormBadge } from "@/components/worker/ui";
-import { DateSidebar, toggleOne } from "./date-sidebar";
+import { DateSidebar } from "./date-sidebar";
+import { FilterChip } from "./filter-chip";
 
 const SEEN_KEY = "tally:office-last-seen";
 const COLS = "6px 124px 128px minmax(120px,1fr) minmax(120px,1fr) 84px 136px minmax(140px,1fr) 160px";
@@ -20,34 +21,22 @@ export const STATUS_CHIP = {
   printed: { label: "Printed", className: "bg-chip text-body" },
 } as const;
 
-type Status = "submitted" | "printed";
-
-const STATUS_TOGGLES: { value: Status; label: string; on: string; box: string }[] = [
-  { value: "submitted", label: "Submitted", on: "border-success bg-success-bg/60 text-success", box: "bg-success" },
-  { value: "printed", label: "Printed", on: "border-body bg-chip/60 text-body", box: "bg-body" },
-];
-
-type Form = "container" | "lorry";
-
-// Each form keeps its own colour, as on the list's FORM badges.
-const FORM_TOGGLES: { value: Form; label: string; icon: LucideIcon; on: string; box: string }[] = [
-  { value: "container", label: "Container", icon: Container, on: "border-container bg-container-bg/60 text-container", box: "bg-container" },
-  { value: "lorry", label: "Lorry", icon: Truck, on: "border-lorry bg-lorry-bg/60 text-lorry", box: "bg-lorry" },
-];
-
-const FORM_LABEL = { all: "Container & Lorry", container: "Container only", lorry: "Lorry only", none: "No form ticked" } as const;
+const FORM_LABEL = { all: "Container & Lorry", container: "Container only", lorry: "Lorry only" } as const;
 
 export function SheetsList({
   sheets,
   filter,
   statusCounts,
+  formCounts,
   month,
   today,
   dayCounts,
 }: {
   sheets: SheetSummary[];
   filter: SheetFilter;
-  statusCounts: Record<Status, number>;
+  /** Per status within the picked form, and per form within the picked status. */
+  statusCounts: Record<"all" | "submitted" | "printed", number>;
+  formCounts: Record<"all" | "container" | "lorry", number>;
   month: string;
   today: KlDate;
   dayCounts: Record<KlDate, number>;
@@ -136,53 +125,28 @@ export function SheetsList({
         </div>
 
         <div className="flex flex-wrap items-center gap-3 px-7 pb-3.5">
-          {STATUS_TOGGLES.map((t) => {
-            const on = filter.status === "all" || filter.status === t.value;
-            return (
-              <button
-                key={t.value}
-                type="button"
-                aria-pressed={on}
-                onClick={() => setFilter({ status: toggleOne<Status>(filter.status, t.value, ["submitted", "printed"]) })}
-                className={cn(
-                  "flex h-12 items-center gap-2.5 rounded-lg border-2 pr-2 pl-3.5 text-[15px] font-bold",
-                  on ? t.on : "border-field bg-surface text-muted hover:bg-canvas",
-                )}
-              >
-                <span className={cn("flex size-5 items-center justify-center rounded", on ? `${t.box} text-white` : "border-2 border-field")}>
-                  {on ? <Check className="size-3.5" strokeWidth={3.5} /> : null}
-                </span>
-                {t.label}
-                <span className="ml-1 flex h-8 min-w-8 items-center justify-center rounded-md border border-line bg-surface px-2 text-sm text-ink">
-                  {statusCounts[t.value]}
-                </span>
-              </button>
-            );
-          })}
-          {/* Form sits next to status (not in the sidebar) so it is in view on small screens too. */}
-          <span aria-hidden className="mx-1 h-8 w-px bg-line" />
-          {FORM_TOGGLES.map((t) => {
-            const on = filter.form === "all" || filter.form === t.value;
-            const Icon = t.icon;
-            return (
-              <button
-                key={t.value}
-                type="button"
-                aria-pressed={on}
-                onClick={() => setFilter({ form: toggleOne<Form>(filter.form, t.value, ["container", "lorry"]) })}
-                className={cn(
-                  "flex h-12 items-center gap-2.5 rounded-lg border-2 pr-3.5 pl-3.5 text-[15px] font-bold",
-                  on ? t.on : "border-field bg-surface text-muted hover:bg-canvas",
-                )}
-              >
-                <span className={cn("flex size-5 items-center justify-center rounded", on ? `${t.box} text-white` : "border-2 border-field")}>
-                  {on ? <Check className="size-3.5" strokeWidth={3.5} /> : null}
-                </span>
-                <Icon aria-hidden className="size-[18px]" strokeWidth={2.2} />
-                {t.label}
-              </button>
-            );
-          })}
+          <FilterChip
+            label="Status"
+            value={filter.status}
+            onChange={(status) => setFilter({ status })}
+            options={[
+              { value: "all", label: "All", count: statusCounts.all },
+              { value: "submitted", label: "Submitted", count: statusCounts.submitted, tone: "text-success" },
+              { value: "printed", label: "Printed", count: statusCounts.printed, tone: "text-body" },
+            ]}
+            activeClass={filter.status === "printed" ? "border-body bg-chip text-body" : "border-success bg-success-bg text-success"}
+          />
+          <FilterChip
+            label="Form"
+            value={filter.form}
+            onChange={(form) => setFilter({ form })}
+            options={[
+              { value: "all", label: "All", count: formCounts.all },
+              { value: "container", label: "Container", count: formCounts.container, icon: Container, tone: "text-container" },
+              { value: "lorry", label: "Lorry", count: formCounts.lorry, icon: Truck, tone: "text-lorry" },
+            ]}
+            activeClass={filter.form === "lorry" ? "border-lorry bg-lorry-bg text-lorry" : "border-container bg-container-bg text-container"}
+          />
           {!isDefault || q ? (
             <button
               type="button"
@@ -258,26 +222,8 @@ export function SheetsList({
                 })}
                 {rows.length === 0 ? (
                   <div className="flex flex-col items-center gap-1.5 px-5 py-16 text-center">
-                    {filter.form === "none" || filter.status === "none" ? (
-                      <>
-                        <div className="text-lg font-bold">Nothing ticked</div>
-                        <div className="text-[15px] font-medium text-muted">
-                          Tick at least one {filter.form === "none" ? "form (Container or Lorry)" : "status (Submitted or Printed)"} to see sheets.
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => setFilter(filter.form === "none" ? { form: "all" } : { status: "all" })}
-                          className="mt-2 rounded-lg border border-field px-4 py-2 text-[15px] font-bold text-primary hover:bg-canvas"
-                        >
-                          Tick both
-                        </button>
-                      </>
-                    ) : (
-                      <>
-                        <div className="text-lg font-bold">No matching sheets</div>
-                        <div className="text-[15px] font-medium text-muted">Pick other days on the calendar, or change the search.</div>
-                      </>
-                    )}
+                    <div className="text-lg font-bold">No matching sheets</div>
+                    <div className="text-[15px] font-medium text-muted">Pick other days on the calendar, or change the search.</div>
                   </div>
                 ) : null}
               </div>
