@@ -1,14 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { Check, ChevronLeft, ChevronRight, Container, Truck, X, type LucideIcon } from "lucide-react";
+import { ChevronLeft, ChevronRight, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { addDays, addMonths, monthGrid, monthLabel, rangeLabel } from "@/lib/data/filters";
 import type { KlDate, SheetFilter } from "@/lib/data/types";
 
 const WEEKDAYS = ["M", "T", "W", "T", "F", "S", "S"];
-
-type Form = "container" | "lorry";
 
 /** "all" when both or neither are on, else the one that is. */
 export function toggleOne<T extends string>(current: "all" | T, value: T, both: [T, T]): "all" | T {
@@ -71,28 +69,6 @@ export function DateSidebar({
     ["7 days", { from: addDays(today, -6), to: today }],
     ["This month", { from: `${thisMonth}-01`, to: today }],
     ["All dates", { from: null, to: null }],
-  ];
-
-  // Each form keeps its own colour, as on the list's FORM badges.
-  const forms: { value: Form; label: string; note: string; icon: LucideIcon; card: string; tile: string; box: string }[] = [
-    {
-      value: "container",
-      label: "Container",
-      note: "Export shipment",
-      icon: Container,
-      card: "border-container-mark/50 bg-container-bg/60",
-      tile: "bg-container text-white",
-      box: "border-container bg-container text-white",
-    },
-    {
-      value: "lorry",
-      label: "Lorry",
-      note: "Local transfer",
-      icon: Truck,
-      card: "border-lorry-mark/50 bg-lorry-bg/60",
-      tile: "bg-lorry text-white",
-      box: "border-lorry bg-lorry text-white",
-    },
   ];
 
   return (
@@ -203,45 +179,6 @@ export function DateSidebar({
               )}
             >
               {label}
-            </button>
-          );
-        })}
-      </div>
-
-      <div className="my-5 border-t border-line" />
-
-      <SectionLabel>FORM</SectionLabel>
-      <div className="flex flex-col gap-2">
-        {forms.map(({ value, label, note, icon: Icon, card, tile, box }) => {
-          const on = filter.form === "all" || filter.form === value;
-          return (
-            <button
-              key={value}
-              type="button"
-              role="checkbox"
-              aria-checked={on}
-              onClick={() => onChange({ form: toggleOne<Form>(filter.form, value, ["container", "lorry"]) })}
-              className={cn(
-                "group flex items-center gap-3 rounded-xl border p-2.5 pr-3.5 text-left transition-colors",
-                on ? card : "border-line bg-surface hover:border-field hover:bg-surface-sunken",
-              )}
-            >
-              <span className={cn("grid size-10 flex-none place-items-center rounded-lg transition-colors", on ? tile : "bg-chip text-faint")}>
-                <Icon className="size-5" strokeWidth={2.2} />
-              </span>
-              <span className="min-w-0 flex-1 leading-tight">
-                <span className={cn("block text-[15px] font-bold", on ? "text-ink" : "text-muted")}>{label}</span>
-                <span className="block text-xs font-medium text-faint">{note}</span>
-              </span>
-              <span
-                aria-hidden
-                className={cn(
-                  "grid size-5 flex-none place-items-center rounded-md border-[1.5px] transition-colors",
-                  on ? box : "border-field bg-surface group-hover:border-muted",
-                )}
-              >
-                {on ? <Check className="size-3.5" strokeWidth={3} /> : null}
-              </span>
             </button>
           );
         })}

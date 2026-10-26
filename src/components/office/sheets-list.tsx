@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState, useTransition } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Check, Search } from "lucide-react";
+import { Check, Container, Search, Truck, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatDateTime } from "@/lib/tally/dates";
 import type { SheetSummary } from "@/lib/tally/sheet";
@@ -25,6 +25,14 @@ type Status = "submitted" | "printed";
 const STATUS_TOGGLES: { value: Status; label: string; on: string; box: string }[] = [
   { value: "submitted", label: "Submitted", on: "border-success bg-success-bg/60 text-success", box: "bg-success" },
   { value: "printed", label: "Printed", on: "border-body bg-chip/60 text-body", box: "bg-body" },
+];
+
+type Form = "container" | "lorry";
+
+// Each form keeps its own colour, as on the list's FORM badges.
+const FORM_TOGGLES: { value: Form; label: string; icon: LucideIcon; on: string; box: string }[] = [
+  { value: "container", label: "Container", icon: Container, on: "border-container bg-container-bg/60 text-container", box: "bg-container" },
+  { value: "lorry", label: "Lorry", icon: Truck, on: "border-lorry bg-lorry-bg/60 text-lorry", box: "bg-lorry" },
 ];
 
 const FORM_LABEL = { all: "Container & Lorry", container: "Container only", lorry: "Lorry only" } as const;
@@ -148,6 +156,30 @@ export function SheetsList({
                 <span className="ml-1 flex h-8 min-w-8 items-center justify-center rounded-md border border-line bg-surface px-2 text-sm text-ink">
                   {statusCounts[t.value]}
                 </span>
+              </button>
+            );
+          })}
+          {/* Form sits next to status (not in the sidebar) so it is in view on small screens too. */}
+          <span aria-hidden className="mx-1 h-8 w-px bg-line" />
+          {FORM_TOGGLES.map((t) => {
+            const on = filter.form === "all" || filter.form === t.value;
+            const Icon = t.icon;
+            return (
+              <button
+                key={t.value}
+                type="button"
+                aria-pressed={on}
+                onClick={() => setFilter({ form: toggleOne<Form>(filter.form, t.value, ["container", "lorry"]) })}
+                className={cn(
+                  "flex h-12 items-center gap-2.5 rounded-lg border-2 pr-3.5 pl-3.5 text-[15px] font-bold",
+                  on ? t.on : "border-field bg-surface text-muted hover:bg-canvas",
+                )}
+              >
+                <span className={cn("flex size-5 items-center justify-center rounded", on ? `${t.box} text-white` : "border-2 border-field")}>
+                  {on ? <Check className="size-3.5" strokeWidth={3.5} /> : null}
+                </span>
+                <Icon aria-hidden className="size-[18px]" strokeWidth={2.2} />
+                {t.label}
               </button>
             );
           })}
