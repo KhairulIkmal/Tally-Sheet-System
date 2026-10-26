@@ -61,9 +61,16 @@ it("rangeLabel", () => {
   expect(rangeLabel(null, null, NOW)).toBe("All dates");
 });
 
-it("toggleOne keeps at least one on", () => {
+it("toggleOne can turn both off", () => {
   const both: ["container", "lorry"] = ["container", "lorry"];
   expect(toggleOne("all", "lorry", both)).toBe("container");
   expect(toggleOne("container", "lorry", both)).toBe("all");
-  expect(toggleOne("container", "container", both)).toBe("all");
+  expect(toggleOne("container", "container", both)).toBe("none");
+  expect(toggleOne("none", "lorry", both)).toBe("lorry");
+});
+
+it("keeps 'none' in the URL", () => {
+  const f = parseFilter({ form: "none", status: "none" }, NOW);
+  expect(f).toMatchObject({ form: "none", status: "none" });
+  expect(filterParams(f, NOW).toString()).toBe("form=none&status=none");
 });

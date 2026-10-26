@@ -30,8 +30,9 @@ export interface SheetFilter {
   /** Inclusive day range; both null = all dates. */
   from: KlDate | null;
   to: KlDate | null;
-  form: "all" | "container" | "lorry";
-  status: "all" | "submitted" | "printed";
+  /** "none" when both toggles are off: the list is empty. */
+  form: "all" | "container" | "lorry" | "none";
+  status: "all" | "submitted" | "printed" | "none";
   q: string;
 }
 

@@ -60,8 +60,8 @@ export function parseFilter(params: Record<string, string | string[] | undefined
   return {
     from,
     to,
-    form: form === "container" || form === "lorry" ? form : "all",
-    status: status === "submitted" || status === "printed" ? status : "all",
+    form: form === "container" || form === "lorry" || form === "none" ? form : "all",
+    status: status === "submitted" || status === "printed" || status === "none" ? status : "all",
     q: (one("q") ?? "").slice(0, 60),
   };
 }

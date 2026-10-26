@@ -35,7 +35,7 @@ const FORM_TOGGLES: { value: Form; label: string; icon: LucideIcon; on: string; 
   { value: "lorry", label: "Lorry", icon: Truck, on: "border-lorry bg-lorry-bg/60 text-lorry", box: "bg-lorry" },
 ];
 
-const FORM_LABEL = { all: "Container & Lorry", container: "Container only", lorry: "Lorry only" } as const;
+const FORM_LABEL = { all: "Container & Lorry", container: "Container only", lorry: "Lorry only", none: "No form ticked" } as const;
 
 export function SheetsList({
   sheets,
@@ -258,8 +258,26 @@ export function SheetsList({
                 })}
                 {rows.length === 0 ? (
                   <div className="flex flex-col items-center gap-1.5 px-5 py-16 text-center">
-                    <div className="text-lg font-bold">No matching sheets</div>
-                    <div className="text-[15px] font-medium text-muted">Pick other days on the calendar, or change the search.</div>
+                    {filter.form === "none" || filter.status === "none" ? (
+                      <>
+                        <div className="text-lg font-bold">Nothing ticked</div>
+                        <div className="text-[15px] font-medium text-muted">
+                          Tick at least one {filter.form === "none" ? "form (Container or Lorry)" : "status (Submitted or Printed)"} to see sheets.
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setFilter(filter.form === "none" ? { form: "all" } : { status: "all" })}
+                          className="mt-2 rounded-lg border border-field px-4 py-2 text-[15px] font-bold text-primary hover:bg-canvas"
+                        >
+                          Tick both
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <div className="text-lg font-bold">No matching sheets</div>
+                        <div className="text-[15px] font-medium text-muted">Pick other days on the calendar, or change the search.</div>
+                      </>
+                    )}
                   </div>
                 ) : null}
               </div>
