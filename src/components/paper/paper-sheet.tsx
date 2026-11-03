@@ -103,10 +103,7 @@ function Signature({ data }: { data: PaperData }) {
   return (
     <>
       <div style={{ width: 230, height: 44, display: "flex", alignItems: "flex-end", justifyContent: "center" }}>
-        {data.signature ? (
-          // eslint-disable-next-line @next/next/no-img-element -- a data: URL signature, not a static asset
-          <img src={data.signature} alt="Signature" style={{ maxHeight: 42, maxWidth: 220, objectFit: "contain" }} />
-        ) : null}
+        {data.signature ? <BoldSignature src={data.signature} /> : null}
       </div>
       <div style={{ width: 230, borderBottom: "1.5px dotted #111" }} />
       <div style={{ fontSize: 9, fontWeight: 400, marginTop: 4 }}>{data.signedBy}</div>
@@ -142,6 +139,32 @@ function RuledRemark({ label, labelWidth, text, step }: { label: string; labelWi
         </span>
       </span>
     </div>
+  );
+}
+
+/**
+ * The pad's strokes come out thin once shrunk to the signature line, so the
+ * image is stacked with copies nudged each way. Plain images, not a CSS filter,
+ * so it prints the same and also thickens sheets signed earlier.
+ */
+const INK_NUDGE = ["0.5px, 0", "-0.5px, 0", "0, 0.5px", "0, -0.5px"];
+
+function BoldSignature({ src }: { src: string }) {
+  return (
+    <span style={{ position: "relative", display: "inline-block", lineHeight: 0 }}>
+      {/* eslint-disable-next-line @next/next/no-img-element -- a data: URL signature, not a static asset */}
+      <img src={src} alt="Signature" style={{ maxHeight: 42, maxWidth: 220, objectFit: "contain" }} />
+      {INK_NUDGE.map((n) => (
+        // eslint-disable-next-line @next/next/no-img-element -- a data: URL signature, not a static asset
+        <img
+          key={n}
+          src={src}
+          alt=""
+          aria-hidden
+          style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "contain", transform: `translate(${n})` }}
+        />
+      ))}
+    </span>
   );
 }
 
