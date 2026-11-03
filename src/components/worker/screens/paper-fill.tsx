@@ -1,11 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { ArrowUp } from "lucide-react";
 import type { FillSpec } from "@/lib/tally/paper-rows";
 
 export interface FillDrag {
   spec: FillSpec;
-  /** First row being filled (the row the 〃 was held on). */
+  /** First row being filled (the row the button was held on). */
   from: number;
   /** Row under the finger: the fill runs down to here. */
   to: number;
@@ -90,7 +91,7 @@ function followRows(
 }
 
 /**
- * 〃 as a fill handle. A tap copies into its own row as before; holding it
+ * The "same" button as a fill handle. A tap copies into its own row as before; holding it
  * and dragging down copies the same value into every row the finger
  * passes, like a spreadsheet.
  */
@@ -131,7 +132,7 @@ export function useFillDrag(scrollRef: React.RefObject<HTMLDivElement | null>, o
 /** Outline on the cells a drag will fill. */
 export const fillCell = "bg-primary-soft outline-2 -outline-offset-2 outline-dashed outline-primary";
 
-/** The 〃 button: tap to copy from the row above, hold and drag down to copy into more rows. */
+/** The "same" button (as on the step-by-step view): tap to copy from the row above, hold and drag down to copy into more rows. */
 export function DittoHandle({
   what,
   value,
@@ -156,11 +157,12 @@ export function DittoHandle({
       // Taps are handled on pointer up (so a drag doesn't also copy once); keyboard presses come here.
       onClick={(e) => e.detail === 0 && onCopy()}
       className={
-        "grid h-9 w-8 flex-none cursor-grab touch-none place-items-center rounded-md text-lg font-extrabold text-primary select-none hover:bg-primary-soft active:cursor-grabbing " +
+        "flex h-9 w-8 flex-none cursor-grab touch-none flex-col items-center justify-center rounded-md text-[9px] leading-none font-bold text-primary select-none hover:bg-primary-soft active:cursor-grabbing " +
         (className ?? "mr-0.5")
       }
     >
-      〃
+      <ArrowUp aria-hidden className="size-3.5" strokeWidth={2.5} />
+      same
     </button>
   );
 }

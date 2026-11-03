@@ -146,7 +146,7 @@ export function PaperScreen({
     }, 120);
     return () => window.clearTimeout(t);
   }, [fix, sheetRef]);
-  // 〃 held and dragged down fills every row the finger passes; rows past the
+  // "same" held and dragged down fills every row the finger passes; rows past the
   // end of the sheet are added first.
   const fill = useFillDrag(scrollRef, (from, to, spec) =>
     onItems((its) => {
@@ -703,7 +703,7 @@ export function PaperScreen({
             ) : null}
             <PaperFooter draft={draft} signerName={signerName} onEdit={onEdit} />
             <p className="mt-1 text-xs font-medium text-muted">
-              Each row is filled on its own. Tap 〃 in a cell (Item, Contract, Qty, Batch, Expired, Prod) to copy just that value from the
+              Each row is filled on its own. Tap ↑ same in a cell (Item, Contract, Qty, Batch, Expired, Prod) to copy just that value from the
               row above. +B adds a second batch for a mixed pallet. Dates: type 160427 for 16/04/27.
             </p>
           </div>
@@ -743,7 +743,7 @@ export function PaperScreen({
             role="status"
             className="pointer-events-none absolute top-3 left-1/2 z-30 -translate-x-1/2 rounded-full bg-ink px-4 py-2 text-sm font-bold whitespace-nowrap text-white shadow-[0_8px_24px_rgba(0,0,0,.25)]"
           >
-            〃 {fill.drag.value} → pallet {fill.drag.from + 1}
+            ↑ {fill.drag.value} → pallet {fill.drag.from + 1}
             {fill.drag.to > fill.drag.from ? `–${fill.drag.to + 1}` : ""} · let go to copy
           </div>
         ) : null}
