@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { FileText, ListOrdered } from "lucide-react";
 import { signOut } from "@/lib/auth/actions";
 import { cn } from "@/lib/utils";
 import { submitSheetAction } from "@/lib/data/actions";
@@ -494,13 +495,19 @@ export function WorkerApp({ user, history, sheets }: { user: WorkerUser; history
             key={m}
             type="button"
             aria-pressed={mode === m}
+            aria-label={m === "steps" ? "Step by step" : "Paper view"}
+            title={m === "steps" ? "Step by step" : "Paper view"}
             onClick={() => {
               setMode(m);
               saveMode(user.id, m);
             }}
-            className={cn("px-3", m === "paper" && "border-l-[1.5px] border-field", mode === m ? "bg-solid text-on-solid" : "text-ink")}
+            className={cn(
+              "grid w-10 place-items-center",
+              m === "paper" && "border-l-[1.5px] border-field",
+              mode === m ? "bg-solid text-on-solid" : "text-ink",
+            )}
           >
-            {m === "steps" ? "Steps" : "Paper"}
+            {m === "steps" ? <ListOrdered aria-hidden className="size-5" /> : <FileText aria-hidden className="size-5" />}
           </button>
         ))}
       </div>
@@ -508,9 +515,11 @@ export function WorkerApp({ user, history, sheets }: { user: WorkerUser; history
       <button
         type="button"
         onClick={() => switchMode(toPaper ? "paper" : "steps")}
-        className="mr-1 flex h-9 items-center rounded-lg border-[1.5px] border-field px-3 text-sm font-bold text-primary hover:bg-primary-soft"
+        aria-label={toPaper ? "Switch to paper view" : "Switch to step by step"}
+        title={toPaper ? "Switch to paper view" : "Switch to step by step"}
+        className="mr-1 grid size-10 place-items-center rounded-lg border-[1.5px] border-field text-primary hover:bg-primary-soft"
       >
-        {toPaper ? "Paper view" : "Step by step"}
+        {toPaper ? <FileText aria-hidden className="size-5" /> : <ListOrdered aria-hidden className="size-5" />}
       </button>
     ) : null;
 
