@@ -14,11 +14,13 @@ import { PaperPages } from "@/components/paper/paper-sheet";
 import { PaperViewer } from "@/components/paper/paper-viewer";
 import { FormBadge } from "@/components/worker/ui";
 import { STATUS_CHIP } from "./sheets-list";
+import { useSheetsHref } from "./sheets-return";
 
 const EVENT_LABEL = { submitted: "Submitted and signed by", printed: "Marked printed by", unprinted: "Printed mark removed by" } as const;
 
 export function SheetDetailView({ sheet }: { sheet: SheetDetail }) {
   const router = useRouter();
+  const sheetsHref = useSheetsHref();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState("");
   // After the print dialog closes: did it come out of the printer? (The browser can't tell.)
@@ -73,7 +75,7 @@ export function SheetDetailView({ sheet }: { sheet: SheetDetail }) {
       <div data-noprint className="grid min-h-0 flex-1 grid-cols-[minmax(0,1fr)_440px]">
         <div className="flex min-h-0 flex-col bg-[#5b6270]">
           <div className="flex h-[52px] flex-none items-center gap-2 bg-[#4a5059] px-4 text-white">
-            <Link href="/office" className="flex h-9 items-center gap-1.5 rounded-lg bg-white/10 px-3 text-sm font-semibold">
+            <Link href={sheetsHref} className="flex h-9 items-center gap-1.5 rounded-lg bg-white/10 px-3 text-sm font-semibold">
               <ArrowLeft className="size-4" /> Sheets
             </Link>
             <span className="text-sm font-medium opacity-80">

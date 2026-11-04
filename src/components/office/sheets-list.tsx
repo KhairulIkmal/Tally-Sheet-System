@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState, useTransition } from "react";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Container, FileCheck2, Printer, Search, Truck } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatDateTime } from "@/lib/tally/dates";
@@ -12,6 +12,7 @@ import { filterParams, rangeLabel } from "@/lib/data/filters";
 import { FormBadge } from "@/components/worker/ui";
 import { DateSidebar } from "./date-sidebar";
 import { FilterChip } from "./filter-chip";
+import { rememberSheetsQuery } from "./sheets-return";
 
 const SEEN_KEY = "tally:office-last-seen";
 const COLS = "6px 124px 128px minmax(120px,1fr) minmax(120px,1fr) 84px 136px minmax(140px,1fr) 160px";
@@ -47,6 +48,10 @@ export function SheetsList({
   const [q, setQ] = useState(filter.q);
   const [lastSeen, setLastSeen] = useState<string | null>(null);
   const [asc, setAsc] = useState(false);
+
+  // Opening a sheet and coming back returns to this same list.
+  const query = useSearchParams().toString();
+  useEffect(() => rememberSheetsQuery(query), [query]);
 
   // "New" = submitted since this browser last opened the list.
   useEffect(() => {

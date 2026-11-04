@@ -4,6 +4,7 @@ import { useLayoutEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { useSheetsHref } from "./sheets-return";
 
 const LINKS = [
   { href: "/office", label: "Sheets", match: (p: string) => p === "/office" || p.startsWith("/office/sheets") },
@@ -17,6 +18,7 @@ const LINKS = [
  */
 export function OfficeNav() {
   const pathname = usePathname();
+  const sheetsHref = useSheetsHref();
   const [clicked, setClicked] = useState<{ href: string; from: string } | null>(null);
   // A click only counts until the page it started from changes.
   const target = clicked && clicked.from === pathname ? clicked.href : null;
@@ -61,7 +63,7 @@ export function OfficeNav() {
             ref={(el) => {
               linkRefs.current[i] = el;
             }}
-            href={l.href}
+            href={l.href === "/office" ? sheetsHref : l.href}
             aria-current={on ? "page" : undefined}
             onClick={() => setClicked({ href: l.href, from: pathname })}
             className={cn(
