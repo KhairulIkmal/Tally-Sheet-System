@@ -117,7 +117,8 @@ const modeKey = (userId: string) => `tally:mode:${userId}`;
 
 /** How this worker likes to fill the sheet: step by step, or on the paper layout. */
 export function loadMode(userId: string): FillMode {
-  return read<FillMode>(modeKey(userId)) === "paper" ? "paper" : "steps";
+  // Paper is the default; only someone who picked step by step stays on it.
+  return read<FillMode>(modeKey(userId)) === "steps" ? "steps" : "paper";
 }
 
 export function saveMode(userId: string, mode: FillMode): void {

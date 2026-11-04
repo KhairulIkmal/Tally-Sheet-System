@@ -98,7 +98,7 @@ export function WorkerApp({ user, history, sheets }: { user: WorkerUser; history
   const [screen, setScreen] = useState<Screen>("home");
   const [draft, setDraft] = useState<Draft | null>(null);
   const [form, setForm] = useState<SheetForm>("container");
-  const [mode, setMode] = useState<FillMode>("steps");
+  const [mode, setMode] = useState<FillMode>("paper");
   const [paperProblems, setPaperProblems] = useState<string[]>([]);
   const [cur, setCur] = useState(-1);
   // Set when the worker leaves the review to fix something: "Save" and "Back" then return to the review.
