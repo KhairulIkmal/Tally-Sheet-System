@@ -12,6 +12,27 @@ const lineInput =
 
 const toCount = (v: string) => Math.min(9999, parseInt(v.replace(/\D/g, ""), 10) || 0);
 
+/** REMARK(S) on two ruled lines, as on the paper: the writing runs on from the first to the second. */
+export function RuledRemarkInput({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
+  return (
+    <label className="grid grid-cols-[84px_10px_minmax(0,1fr)] items-start text-xs font-bold text-ink">
+      <span className="pt-3">{label}</span>
+      <span className="pt-3">:</span>
+      <span className="relative block h-[72px]">
+        <span aria-hidden className="absolute inset-x-0 top-0 h-9 border-b-2 border-ink/40" />
+        <span aria-hidden className="absolute inset-x-0 top-9 h-9 border-b-2 border-ink/40" />
+        <textarea
+          value={value}
+          aria-label={label}
+          rows={2}
+          className="absolute inset-0 resize-none overflow-y-auto bg-transparent px-1 text-[15px] leading-9 font-semibold uppercase outline-none focus:bg-primary-soft"
+          onChange={(e) => onChange(e.target.value.replace(/\s*\n\s*/g, " ").slice(0, 300))}
+        />
+      </span>
+    </label>
+  );
+}
+
 /**
  * The bottom of the paper form, laid out as printed: packing-material boxes
  * and remarks (container), or Sample / Empty CTN / Others, remark and the
@@ -37,25 +58,7 @@ export function PaperFooter({ draft, signerName, onEdit }: { draft: Draft; signe
   );
 
   const remark = (label: string) => (
-    <label className="grid grid-cols-[84px_10px_1fr] items-start text-xs font-bold">
-      <span className="pt-3">{label}</span>
-      <span className="pt-3">:</span>
-      {/* Two ruled lines, as on the paper: the writing runs on from the first to the second. */}
-      <span className="relative block h-[72px]">
-        <span aria-hidden className="absolute inset-x-0 top-0 h-9 border-b-2 border-ink/40" />
-        <span aria-hidden className="absolute inset-x-0 top-9 h-9 border-b-2 border-ink/40" />
-        <textarea
-          value={draft.remark}
-          aria-label={label}
-          rows={2}
-          className="absolute inset-0 resize-none overflow-y-auto bg-transparent px-1 text-[15px] leading-9 font-semibold uppercase outline-none focus:bg-primary-soft"
-          onChange={(e) => {
-            const v = e.target.value.replace(/\s*\n\s*/g, " ").slice(0, 300);
-            onEdit((d) => void (d.remark = v));
-          }}
-        />
-      </span>
-    </label>
+    <RuledRemarkInput label={label} value={draft.remark} onChange={(v) => onEdit((d) => void (d.remark = v))} />
   );
 
   if (draft.form === "container") {
