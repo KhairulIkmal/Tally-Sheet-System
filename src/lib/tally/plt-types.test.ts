@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { pltSummary, pltTypeName } from "./constants";
-import { autoPltCounts, pltCounts, upgradeDraftPlt } from "./draft";
+import { pltCellText, pltSummary, pltTypeName } from "./constants";
+import { autoPltCounts, buildPallets, pltCounts, reviewWarnings, upgradeDraftPlt } from "./draft";
 import { draftToPayload, submitPayloadSchema } from "./payload";
 import { sampleDraft } from "./sample";
 import { paperFromSheet, type SheetDetail } from "./sheet";
@@ -47,13 +47,47 @@ describe("a draft from an earlier version", () => {
     expect(upgradeDraftPlt(d).pltAdjust).toEqual({ L: 3, E: 0, C: 0, O: 0 });
   });
 
-  it("moves the note from under OTHERS to the first Others pallet without a remark", () => {
+  it("moves the note from under OTHERS to the first Others pallet without a type", () => {
     const d = sampleDraft(at, "lorry");
-    const other = d.items[3].pallets[0];
-    other.remark = "";
+    d.items[3].pallets[0].pltOther = "";
     const up = upgradeDraftPlt(Object.assign(d, { pltOtherNote: " wood " }));
-    expect(up.items[3].pallets[0].remark).toBe("WOOD");
+    expect(up.items[3].pallets[0].pltOther).toBe("WOOD");
     expect("pltOtherNote" in up).toBe(false);
+  });
+});
+
+describe("an Others pallet", () => {
+  it("shows what was written in its PLT TYPE cell, else OTHERS", () => {
+    expect(pltCellText("O", " plastic ")).toBe("PLASTIC");
+    expect(pltCellText("O", "")).toBe("OTHERS");
+    expect(pltCellText("O", null)).toBe("OTHERS");
+  });
+
+  it("ignores the writing once the pallet is another type", () => {
+    expect(pltCellText("E", "PLASTIC")).toBe("ECR");
+    const d = sampleDraft(at, "lorry");
+    Object.assign(d.items[0].pallets[0], { pltType: "E", pltOther: "PLASTIC" });
+    expect(draftToPayload(d, "x").items[0].pallets[0].pltOther).toBe("");
+  });
+
+  it("goes on the payload in capitals", () => {
+    const d = sampleDraft(at, "lorry");
+    Object.assign(d.items[0].pallets[0], { pltType: "O", pltOther: " wood " });
+    expect(draftToPayload(d, "x").items[0].pallets[0].pltOther).toBe("WOOD");
+  });
+
+  it("flags on the review when left empty, without stopping the signature", () => {
+    const d = sampleDraft(at, "lorry");
+    d.items[3].pallets[0].pltOther = "";
+    const w = reviewWarnings(d).find((x) => x.message.includes("type of Others pallet empty"));
+    expect(w?.severity).toBe("warn");
+    d.items[3].pallets[0].pltOther = "WOOD";
+    expect(reviewWarnings(d).some((x) => x.message.includes("type of Others pallet"))).toBe(false);
+  });
+
+  it("new pallets take the writing only when they are Others", () => {
+    expect(buildPallets([1], { pltType: "O", pltOther: "WOOD", contractNo: "" })[0].pltOther).toBe("WOOD");
+    expect(buildPallets([1], { pltType: "E", pltOther: "WOOD", contractNo: "" })[0].pltOther).toBe("");
   });
 });
 
@@ -78,7 +112,15 @@ describe("the printed sheet", () => {
       header: { contractNo: "", containerNo: "", sealNo: "", siNo: "", disport: "", transferTo: "", doNo: "", lorryNo: "" },
       items: [{ itemNo: 1, name: "X", unit: "CTN", targetQty: null }],
       pallets: [
-        { palletNo: 1, itemNo: 1, pltType: type, contractNo: "", remark: "", lines: [{ qty: 1, batch: "", expired: null, prod: null }] },
+        {
+          palletNo: 1,
+          itemNo: 1,
+          pltType: type,
+          pltOther: type === "O" ? "PLASTIC" : "",
+          contractNo: "",
+          remark: "",
+          lines: [{ qty: 1, batch: "", expired: null, prod: null }],
+        },
       ],
       materials: {},
       checks: {},
@@ -99,6 +141,10 @@ describe("the printed sheet", () => {
     expect(p.rows[0].pltType).toBe("L2WAY");
     expect(p.plt.map((x) => x.label)).toEqual(boxes);
     expect(p.plt[0].value).toBe("1");
+  });
+
+  it("writes an Others pallet's type on its row", () => {
+    expect(paperFromSheet(sheet({ L: 0, E: 0, C: 0, O: 1 }, "O")).rows[0].pltType).toBe("PLASTIC");
   });
 
   it("shows an old sheet the same way", () => {

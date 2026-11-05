@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { PLT_TYPE_NAMES, PLT_TYPES, QUICK_UNITS, normalizeUnit, type PltType, type SheetForm, MAX_PALLETS } from "@/lib/tally/constants";
+import { PltOtherInput } from "./pallet-setup";
 import { buildPallets, newId, setupPallets, type DraftItem } from "@/lib/tally/draft";
 import type { ItemSuggestion } from "../pick";
 import { Button } from "../ui";
@@ -31,7 +32,7 @@ export function AutoFillPanel({
   nextStart: number;
   /** Pallets the sheet still has space for. */
   room: number;
-  defaults: { pltType: PltType; contractNo: string };
+  defaults: { pltType: PltType; pltOther?: string; contractNo: string };
   onAdd: (item: DraftItem) => void;
   onClose: () => void;
 }) {
@@ -40,6 +41,8 @@ export function AutoFillPanel({
   const [total, setTotal] = useState("");
   const [per, setPer] = useState("");
   const [pltType, setPltType] = useState<PltType>(defaults.pltType);
+  const [pltOther, setPltOther] = useState(defaults.pltOther ?? "");
+  const [justChoseOther, setJustChoseOther] = useState(false);
   const [contractNo, setContractNo] = useState(defaults.contractNo);
 
   const qtys = useMemo(() => setupPallets(parseInt(total, 10) || 0, parseInt(per, 10) || 0, room), [total, per, room]);
@@ -59,7 +62,7 @@ export function AutoFillPanel({
       unit: normalizeUnit(unit),
       targetQty: t > 0 ? t : null,
       qtyPerPallet: parseInt(per, 10) || null,
-      pallets: buildPallets(qtys, { pltType, contractNo: contractNo.trim().toUpperCase() }),
+      pallets: buildPallets(qtys, { pltType, pltOther, contractNo: contractNo.trim().toUpperCase() }),
     });
   }
 
@@ -159,13 +162,23 @@ export function AutoFillPanel({
           <div className="grid grid-cols-2 gap-2">
             <label className="flex flex-col gap-1">
               <span className="text-xs font-bold text-muted">PLT TYPE</span>
-              <select value={pltType} onChange={(e) => setPltType(e.target.value as PltType)} className={cn(field, "normal-case")}>
+              <select
+                value={pltType}
+                onChange={(e) => {
+                  setJustChoseOther(e.target.value === "O");
+                  setPltType(e.target.value as PltType);
+                }}
+                className={cn(field, "normal-case")}
+              >
                 {PLT_TYPES.map((k) => (
                   <option key={k} value={k}>
                     {PLT_TYPE_NAMES[k]}
                   </option>
                 ))}
               </select>
+              {pltType === "O" ? (
+                <PltOtherInput value={pltOther} onChange={setPltOther} autoFocus={justChoseOther} className="h-10" />
+              ) : null}
             </label>
             <label className="flex flex-col gap-1">
               <span className="text-xs font-bold text-muted">CONTRACT NO</span>

@@ -1,7 +1,17 @@
 "use client";
 
+import { useState } from "react";
 import { cn } from "@/lib/utils";
-import { PLT_GROUPS, PLT_TYPE_NAMES, pltGroup, type PltGroup, type PltType, type SheetForm, MAX_PALLETS } from "@/lib/tally/constants";
+import {
+  PLT_GROUPS,
+  PLT_OTHER_MAX,
+  pltCellText,
+  pltGroup,
+  type PltGroup,
+  type PltType,
+  type SheetForm,
+  MAX_PALLETS,
+} from "@/lib/tally/constants";
 import type { PickState } from "../pick";
 import { BottomBar, Button, PalletBadge, Scroll, TextField } from "../ui";
 
@@ -11,9 +21,58 @@ const WAYS: { type: PltType; label: string }[] = [
 ];
 const GROUP_TYPE: Record<Exclude<PltGroup, "L">, PltType> = { E: "E", C: "C", O: "O" };
 
-/** L, E, C, O as on the paper form. A Lam Soon pallet then says which way: 4-way or 2-way. */
-export function PltTypeButtons({ value, onChange, size = "md" }: { value: PltType; onChange: (t: PltType) => void; size?: "md" | "sm" }) {
+/** Asks what kind of pallet an Others pallet is. */
+export function PltOtherInput({
+  value,
+  onChange,
+  autoFocus,
+  label = "Type of pallet",
+  className,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  autoFocus?: boolean;
+  label?: string;
+  className?: string;
+}) {
+  return (
+    <input
+      value={value}
+      autoFocus={autoFocus}
+      autoComplete="off"
+      enterKeyHint="done"
+      maxLength={PLT_OTHER_MAX}
+      placeholder="Type of pallet"
+      aria-label={label}
+      onChange={(e) => onChange(e.target.value.toUpperCase().slice(0, PLT_OTHER_MAX))}
+      className={cn(
+        "w-full min-w-0 rounded-[9px] border-[1.5px] border-primary bg-surface px-2.5 text-[15px] font-semibold text-ink uppercase outline-none placeholder:font-medium placeholder:normal-case focus:border-2",
+        className,
+      )}
+    />
+  );
+}
+
+/**
+ * L, E, C, O as on the paper form. A Lam Soon pallet then says which way, 4-way or 2-way,
+ * and choosing Others asks straight away what kind of pallet it is.
+ */
+export function PltTypeButtons({
+  value,
+  other,
+  onChange,
+  onOther,
+  size = "md",
+}: {
+  value: PltType;
+  other: string;
+  onChange: (t: PltType) => void;
+  onOther: (v: string) => void;
+  size?: "md" | "sm";
+}) {
   const group = pltGroup(value);
+  // Only a tap on O brings the keyboard up, not opening a screen that already has an Others pallet.
+  const [justChoseOther, setJustChoseOther] = useState(false);
   const gap = size === "md" ? "gap-1" : "gap-[3px]";
   const choice = (selected: boolean) =>
     selected ? "bg-primary text-white dark:text-[#0e1115]" : "border-[1.5px] border-field bg-surface text-ink";
@@ -26,7 +85,10 @@ export function PltTypeButtons({ value, onChange, size = "md" }: { value: PltTyp
             type="button"
             role="radio"
             aria-checked={group === g}
-            onClick={() => onChange(g === "L" ? (group === "L" ? value : "L4") : GROUP_TYPE[g])}
+            onClick={() => {
+              setJustChoseOther(g === "O");
+              onChange(g === "L" ? (group === "L" ? value : "L4") : GROUP_TYPE[g]);
+            }}
             className={cn(
               "flex items-center justify-center rounded-[9px] font-bold",
               size === "md" ? "h-[52px] text-xl" : "h-12 text-[17px]",
@@ -53,6 +115,7 @@ export function PltTypeButtons({ value, onChange, size = "md" }: { value: PltTyp
           ))}
         </div>
       ) : null}
+      {value === "O" ? <PltOtherInput value={other} onChange={onOther} autoFocus={justChoseOther} className="h-10" /> : null}
     </div>
   );
 }
@@ -147,7 +210,12 @@ export function PalletSetupScreen({
           <div className="grid grid-cols-[1fr_1.2fr] items-start gap-2.5">
             <div className="flex flex-col gap-1.5">
               <span className="text-sm font-bold text-body">PLT Type (default)</span>
-              <PltTypeButtons value={pick.pltType} onChange={(t) => onChange({ pltType: t })} />
+              <PltTypeButtons
+                value={pick.pltType}
+                other={pick.pltOther}
+                onChange={(t) => onChange({ pltType: t })}
+                onOther={(v) => onChange({ pltOther: v })}
+              />
             </div>
             <label className="flex flex-col gap-1.5">
               <span className="text-sm font-bold text-body">Contract No</span>
@@ -177,7 +245,7 @@ export function PalletSetupScreen({
                   {q === "" ? "Fill qty later" : partial ? "Remainder · not full" : "Full"}
                 </span>
                 <span className="min-w-4 text-center text-[13px] font-bold text-muted">
-                  {form === "lorry" ? PLT_TYPE_NAMES[pick.pltType] : ""}
+                  {form === "lorry" ? pltCellText(pick.pltType, pick.pltOther) : ""}
                 </span>
                 <span className="min-w-14 text-right text-xl font-bold">{q === "" ? "—" : q}</span>
               </div>

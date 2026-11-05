@@ -379,7 +379,7 @@ export function WorkerApp({ user, history, sheets }: { user: WorkerUser; history
 
   function openPicker() {
     const last = items[items.length - 1]?.pallets.at(-1);
-    setPick(blankPick({ pltType: last?.pltType ?? "L4", contractNo: last?.contractNo ?? "" }));
+    setPick(blankPick({ pltType: last?.pltType ?? "L4", pltOther: last?.pltOther ?? "", contractNo: last?.contractNo ?? "" }));
     go("picker");
   }
 
@@ -393,7 +393,7 @@ export function WorkerApp({ user, history, sheets }: { user: WorkerUser; history
       unit: normalizeUnit(pick.unit),
       targetQty: total > 0 ? total : null,
       qtyPerPallet: parseInt(pick.per, 10) || null,
-      pallets: buildPallets(setupQtys, { pltType: pick.pltType, contractNo: pick.contractNo.trim().toUpperCase() }),
+      pallets: buildPallets(setupQtys, { pltType: pick.pltType, pltOther: pick.pltOther, contractNo: pick.contractNo.trim().toUpperCase() }),
     };
     update((d) => {
       d.items.push(item);

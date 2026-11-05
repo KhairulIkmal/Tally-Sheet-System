@@ -15,6 +15,15 @@ export const PLT_TYPE_NAMES: Record<PltType, string> = {
 /** Sheets from before Lam Soon pallets were split into 4-way and 2-way say only "L". */
 export const OLD_LAM_SOON = "L";
 
+/** Longest "type of pallet" for an Others pallet: it is written in the narrow PLT TYPE cell. */
+export const PLT_OTHER_MAX = 20;
+
+/** What the PLT TYPE cell says: what an Others pallet was when the worker wrote it, else the full name. */
+export function pltCellText(code: string | null | undefined, other: string | null | undefined): string {
+  const written = (other ?? "").trim().toUpperCase();
+  return code === "O" && written ? written : pltTypeName(code);
+}
+
 /** The boxes of TOTAL NUMBER OF PLT, as on the paper form: both kinds of Lam Soon pallet count under L. */
 export type PltGroup = "L" | "E" | "C" | "O";
 export const PLT_GROUPS: readonly PltGroup[] = ["L", "E", "C", "O"];

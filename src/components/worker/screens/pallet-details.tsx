@@ -261,7 +261,13 @@ export function PalletDetailsScreen({
                 <div className="grid grid-cols-[1fr_1.1fr] items-start gap-2">
                   <div className="flex flex-col gap-1">
                     <span className="text-xs font-bold text-muted">PLT TYPE</span>
-                    <PltTypeButtons size="sm" value={p.pltType} onChange={(t) => setPallet(i, (pl) => void (pl.pltType = t))} />
+                    <PltTypeButtons
+                      size="sm"
+                      value={p.pltType}
+                      other={p.pltOther ?? ""}
+                      onChange={(t) => setPallet(i, (pl) => void (pl.pltType = t))}
+                      onOther={(v) => setPallet(i, (pl) => void (pl.pltOther = v))}
+                    />
                   </div>
                   <label className="flex flex-col gap-1">
                     <span className="text-xs font-bold text-muted">CONTRACT NO</span>
@@ -309,7 +315,7 @@ export function PalletDetailsScreen({
                 </button>
                 <input
                   value={p.remark}
-                  placeholder={form === "lorry" && p.pltType === "O" ? "Type of pallet" : "Remark"}
+                  placeholder="Remark"
                   aria-label={`Pallet ${no} remark`}
                   autoComplete="off"
                   onChange={(e) => {
@@ -336,6 +342,7 @@ export function PalletDetailsScreen({
               it.pallets.push({
                 id: newId(),
                 pltType: last?.pltType ?? "L4",
+                pltOther: last?.pltOther ?? "",
                 contractNo: last?.contractNo ?? "",
                 remark: "",
                 lines: [blankLine()],

@@ -133,7 +133,7 @@ export function supabaseStore(): TallyStore {
 
       const [items, pallets, lines, events] = await Promise.all([
         supabase.from("sheet_items").select("item_no, name, unit, target_qty").eq("sheet_id", id).order("item_no"),
-        supabase.from("sheet_pallets").select("pallet_no, item_no, plt_type, contract_no, remark").eq("sheet_id", id).order("pallet_no"),
+        supabase.from("sheet_pallets").select("pallet_no, item_no, plt_type, plt_other, contract_no, remark").eq("sheet_id", id).order("pallet_no"),
         supabase.from("pallet_lines").select("pallet_no, line_no, qty, batch, expired, prod").eq("sheet_id", id).order("pallet_no").order("line_no"),
         // Office only (RLS); a worker gets an empty list.
         supabase.from("sheet_events").select("event, at, actor_name").eq("sheet_id", id).order("at"),
@@ -174,6 +174,7 @@ export function supabaseStore(): TallyStore {
           palletNo: p.pallet_no,
           itemNo: p.item_no,
           pltType: p.plt_type ?? null,
+          pltOther: p.plt_other ?? "",
           contractNo: p.contract_no ?? "",
           remark: p.remark ?? "",
           lines: linesByPallet.get(p.pallet_no) ?? [],

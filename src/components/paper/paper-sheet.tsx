@@ -223,7 +223,14 @@ function rowsFor(form: PaperData["form"], rows: PaperRow[], highlightMixed: bool
         {form === "lorry" ? (
           <>
             <Cell center bold>
-              {r.pltType}
+              {/* Written by the worker for an Others pallet, so it may need a second line. */}
+              {r.pltType.length > 9 ? (
+                <span style={{ whiteSpace: "normal", fontSize: 7.5, lineHeight: "9px", textAlign: "center", overflowWrap: "anywhere" }}>
+                  {r.pltType}
+                </span>
+              ) : (
+                r.pltType
+              )}
             </Cell>
             <Cell>{r.contractNo}</Cell>
           </>

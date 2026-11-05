@@ -42,6 +42,7 @@ import { itemRowMarks, itemTotalText } from "@/lib/tally/sheet";
 import { PaperFooter } from "./paper-footer";
 import { AutoFillPanel } from "./paper-autofill";
 import { usePaperZoom } from "./paper-zoom";
+import { PltOtherInput } from "./pallet-setup";
 import { DittoHandle, deleteRowMark, fillCell, useDeleteDrag, useFillDrag } from "./paper-fill";
 
 /** Header boxes in the printed order: two columns, left then right. */
@@ -127,6 +128,8 @@ export function PaperScreen({
   onBackToReview?: () => void;
 }) {
   const [autoFill, setAutoFill] = useState(false);
+  // The row just changed to Others: its "type of pallet" box takes the cursor straight away.
+  const [askOther, setAskOther] = useState<string | null>(null);
   // A cell from Fix stays marked while it is still empty or wrong.
   const needsFix = (i: number, k: LineField) => {
     if (!fix || fix.row !== i || !fix.fields?.includes(k)) return false;
@@ -392,7 +395,7 @@ export function PaperScreen({
               <thead>
                 <tr className="bg-surface-sunken text-[11px] leading-tight font-bold tracking-[.04em] text-body">
                   <th className={cn(cell, "sticky left-0 z-10 w-12 bg-surface-sunken px-1 py-2 text-center")}>{isLorry ? "PLT NO" : "NO."}</th>
-                  {isLorry ? <th className={cn(cell, "min-w-[104px] px-2")}>PLT TYPE</th> : null}
+                  {isLorry ? <th className={cn(cell, "min-w-[136px] px-2")}>PLT TYPE</th> : null}
                   {isLorry ? <th className={cn(cell, "min-w-[120px] px-2")}>CONTRACT NO.</th> : null}
                   <th className={cn(cell, "min-w-[210px] px-2")}>{isLorry ? "ITEM (DESC)" : "ITEM (DESCRIPTION)"}</th>
                   <th className={cn(cell, "min-w-[124px] px-2")}>QTY</th>
@@ -428,14 +431,15 @@ export function PaperScreen({
                             value={p.pltType}
                             aria-label={`Pallet ${i + 1} PLT type`}
                             className="h-11 w-full bg-transparent px-1.5 text-[15px] font-bold outline-none focus:bg-primary-soft"
-                            onChange={(e) =>
+                            onChange={(e) => {
+                              setAskOther(e.target.value === "O" ? p.id : null);
                               onItems((its) =>
                                 updateRowPallet(its, i, (x) => ({
                                   ...x,
                                   pltType: e.target.value as typeof p.pltType,
                                 })),
-                              )
-                            }
+                              );
+                            }}
                           >
                             {PLT_TYPES.map((k) => (
                               <option key={k} value={k}>
@@ -443,6 +447,15 @@ export function PaperScreen({
                               </option>
                             ))}
                           </select>
+                          {p.pltType === "O" ? (
+                            <PltOtherInput
+                              value={p.pltOther ?? ""}
+                              label={`Pallet ${i + 1} type of pallet`}
+                              autoFocus={askOther === p.id}
+                              onChange={(v) => onItems((its) => updateRowPallet(its, i, (x) => ({ ...x, pltOther: v })))}
+                              className="h-10 rounded-none border-0 border-t border-dashed border-ink/25 px-1.5 focus:bg-primary-soft"
+                            />
+                          ) : null}
                         </td>
                       ) : null}
                       {isLorry ? (
@@ -612,7 +625,6 @@ export function PaperScreen({
                       <td className={cell}>
                         <input
                           value={p.remark}
-                          placeholder={isLorry && p.pltType === "O" ? "Type of pallet" : undefined}
                           aria-label={`Pallet ${i + 1} remark`}
                           className={input}
                           onChange={(e) =>
@@ -800,7 +812,7 @@ export function PaperScreen({
           history={history}
           nextStart={filled + 1}
           room={MAX_PALLETS - filled}
-          defaults={{ pltType: lastFilled?.pltType ?? "L4", contractNo: lastFilled?.contractNo ?? "" }}
+          defaults={{ pltType: lastFilled?.pltType ?? "L4", pltOther: lastFilled?.pltOther ?? "", contractNo: lastFilled?.contractNo ?? "" }}
           onClose={() => setAutoFill(false)}
           onAdd={(item) => {
             onItems((its) => appendItem(its, item));

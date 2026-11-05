@@ -2,6 +2,7 @@ import {
   CHECKS,
   MATERIALS,
   PLT_GROUPS,
+  PLT_OTHER_MAX,
   pltGroup,
   type PltGroup,
   type CheckKey,
@@ -27,6 +28,8 @@ export interface DraftLine {
 export interface DraftPallet {
   id: string;
   pltType: PltType;
+  /** What kind of pallet an Others (O) pallet is. */
+  pltOther?: string;
   contractNo: string;
   remark: string;
   lines: DraftLine[];
@@ -123,12 +126,12 @@ export function newDraft(form: SheetForm, now: Date = new Date()): Draft {
 /**
  * A draft saved on a phone by an earlier version. Its "L" pallets start as L4WAY, the first
  * choice, and the worker can change them. Corrections made while L4 and L2 had a box each go
- * under L, and a note from the line that was under OTHERS moves to the first Others pallet's remark.
+ * under L, and a note from the line that was under OTHERS moves to the first Others pallet.
  */
 export function upgradeDraftPlt(draft: Draft): Draft {
   const { pltOtherNote: oldNote, ...rest } = draft as Draft & { pltOtherNote?: string };
   const old = (draft.pltAdjust ?? {}) as Partial<Record<PltGroup | "L4" | "L2", number>>;
-  let note = (oldNote ?? "").trim().toUpperCase().slice(0, 60);
+  let note = (oldNote ?? "").trim().toUpperCase().slice(0, PLT_OTHER_MAX);
   return {
     ...rest,
     pltAdjust: { L: (old.L ?? 0) + (old.L4 ?? 0) + (old.L2 ?? 0), E: old.E ?? 0, C: old.C ?? 0, O: old.O ?? 0 },
@@ -136,10 +139,10 @@ export function upgradeDraftPlt(draft: Draft): Draft {
       ...it,
       pallets: it.pallets.map((p) => {
         const next = (p.pltType as string) === "L" ? { ...p, pltType: "L4" as const } : p;
-        if (!note || next.pltType !== "O" || next.remark.trim()) return next;
-        const remark = note;
+        if (!note || next.pltType !== "O" || next.pltOther?.trim()) return next;
+        const pltOther = note;
         note = "";
-        return { ...next, remark };
+        return { ...next, pltOther };
       }),
     })),
   };
@@ -241,11 +244,12 @@ export function setupPallets(total: number, perPallet: number, room = Infinity):
 
 export function buildPallets(
   qtys: (number | "")[],
-  defaults: { pltType: PltType; contractNo: string },
+  defaults: { pltType: PltType; pltOther?: string; contractNo: string },
 ): DraftPallet[] {
   return qtys.map((q) => ({
     id: newId(),
     pltType: defaults.pltType,
+    pltOther: defaults.pltType === "O" ? (defaults.pltOther ?? "") : "",
     contractNo: defaults.contractNo,
     remark: "",
     lines: [{ ...blankLine(), qty: q === "" ? "" : String(q) }],
@@ -271,7 +275,7 @@ export function copyPalletFrom(target: DraftPallet, source: DraftPallet): DraftP
   const keepQty = target.lines.length === 1 && source.lines.length === 1;
   const lines = source.lines.map((l) => ({ ...l }));
   if (keepQty) lines[0].qty = target.lines[0].qty || source.lines[0].qty;
-  return { ...target, pltType: source.pltType, contractNo: source.contractNo, lines };
+  return { ...target, pltType: source.pltType, pltOther: source.pltOther ?? "", contractNo: source.contractNo, lines };
 }
 
 // ── lorry PLT type totals ───────────────────────────────────────────────
@@ -370,6 +374,15 @@ export function reviewWarnings(draft: Draft): Warning[] {
           itemIndex: i,
           palletIndex: pi,
           fields: [...bad].map((f) => FIELD_OF[f]),
+        });
+      }
+      if (draft.form === "lorry" && p.pltType === "O" && !p.pltOther?.trim()) {
+        warnings.push({
+          kind: "plt",
+          severity: "warn",
+          message: `Pallet ${no}: type of Others pallet empty`,
+          itemIndex: i,
+          palletIndex: pi,
         });
       }
       if (missing.size) {

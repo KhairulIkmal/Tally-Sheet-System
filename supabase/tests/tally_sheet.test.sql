@@ -69,14 +69,14 @@ create function pg_temp.sheet(p_client uuid) returns jsonb language sql as $$
       jsonb_build_object('name', 'margarine 5kg', 'unit', 'ctn', 'targetQty', 52, 'qtyPerPallet', 32, 'pallets', jsonb_build_array(
         jsonb_build_object('pltType', 'L4', 'contractNo', 'ls-1', 'remark', '', 'lines', jsonb_build_array(
           jsonb_build_object('qty', 32, 'batch', 'b1', 'expired', '2027-04-16', 'prod', '2025-04-16'))),
-        jsonb_build_object('pltType', 'C', 'contractNo', 'ls-1', 'remark', 'mixed', 'lines', jsonb_build_array(
+        jsonb_build_object('pltType', 'C', 'pltOther', 'ignored', 'contractNo', 'ls-1', 'remark', 'mixed', 'lines', jsonb_build_array(
           jsonb_build_object('qty', 12, 'batch', 'b1', 'expired', '2027-04-16', 'prod', null),
           jsonb_build_object('qty', 8, 'batch', 'b2', 'expired', null, 'prod', null))))),
       jsonb_build_object('name', 'ghee 2kg', 'unit', 'tin', 'targetQty', null, 'qtyPerPallet', null, 'pallets', jsonb_build_array(
-        jsonb_build_object('pltType', 'L2', 'contractNo', '', 'remark', '', 'lines', jsonb_build_array(
+        jsonb_build_object('pltType', 'O', 'pltOther', ' plastic ', 'contractNo', '', 'remark', '', 'lines', jsonb_build_array(
           jsonb_build_object('qty', 72, 'batch', '', 'expired', null, 'prod', null)))))),
     'checks', jsonb_build_object('SAMPLE', jsonb_build_object('qty', 2, 'note', 'for qc'), 'OTHERS', jsonb_build_object('qty', '3', 'note', '')),
-    'pltCounts', jsonb_build_object('L4', 1, 'L2', 1, 'C', 1, 'X', 99),
+    'pltCounts', jsonb_build_object('L4', 1, 'O', 1, 'C', 1, 'X', 99),
     'pltOtherNote', ' plastic ',
     'remark', 'ok', 'signature', 'data:image/png;base64,AAAA', 'signedAt', '2026-10-14T07:00:00Z', 'device', 'pgtap'
   );
@@ -145,7 +145,7 @@ select pg_temp.keep('o_history', (select to_jsonb(h) - array['id', 'created_at',
 select pg_temp.keep('o_product_dup', to_jsonb(pg_temp.try($$
   select tally.save_history_item((select id from tally.item_history where name = 'GHEE 2KG TIN'), 'margarine 5kg', 'CTN', null, true) $$)));
 select pg_temp.keep('s1_row', (select to_jsonb(s) from tally.sheets s where id = (pg_temp.got('s1') ->> 'id')::uuid));
-select pg_temp.keep('s1_pallets', (select jsonb_agg(jsonb_build_array(pallet_no, item_no, plt_type, contract_no) order by pallet_no)
+select pg_temp.keep('s1_pallets', (select jsonb_agg(jsonb_build_array(pallet_no, item_no, plt_type, plt_other, contract_no) order by pallet_no)
                                    from tally.sheet_pallets where sheet_id = (pg_temp.got('s1') ->> 'id')::uuid));
 
 reset role;
@@ -190,12 +190,12 @@ select is(
     'form', 'lorry', 'sheet_date', '2026-10-14', 'contract_no', null, 'container_no', null, 'seal_no', null, 'si_no', null, 'disport', null,
     'transfer_to', 'SHAH ALAM DC', 'do_no', 'DO-1', 'lorry_no', 'WXY 1', 'remark', 'OK', 'materials', '{}'::jsonb,
     'checks', '{"SAMPLE": {"qty": 2, "note": "FOR QC"}, "EMPTY CTN": {"qty": 0, "note": ""}, "OTHERS": {"qty": 3, "note": ""}}'::jsonb,
-    'plt_counts', '{"L": 0, "L4": 1, "L2": 1, "E": 0, "C": 1, "O": 0}'::jsonb, 'plt_other_note', 'PLASTIC', 'total_pallets', 3, 'qty_by_unit', '{"CTN": 52, "TIN": 72}'::jsonb,
+    'plt_counts', '{"L": 0, "L4": 1, "L2": 0, "E": 0, "C": 1, "O": 1}'::jsonb, 'plt_other_note', 'PLASTIC', 'total_pallets', 3, 'qty_by_unit', '{"CTN": 52, "TIN": 72}'::jsonb,
     'prepared_by_name', 'Tally Tester 1', 'device', 'pgtap', 'status', 'printed', 'printed_by_name', 'Tally Tester 2'
   ),
   'stored sheet: upper-cased text, fixed keys only, totals computed, printed'
 );
-select is(pg_temp.got('s1_pallets'), '[[1, 1, "L4", "LS-1"], [2, 1, "C", "LS-1"], [3, 2, "L2", null]]'::jsonb, 'pallets numbered 1..n across items');
+select is(pg_temp.got('s1_pallets'), '[[1, 1, "L4", null, "LS-1"], [2, 1, "C", null, "LS-1"], [3, 2, "O", "PLASTIC", null]]'::jsonb, 'pallets numbered 1..n across items; only an Others pallet keeps its type');
 
 select * from finish();
 rollback;

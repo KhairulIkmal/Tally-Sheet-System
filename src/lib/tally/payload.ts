@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { CHECKS, MATERIALS, MAX_ITEMS, MAX_LINES_PER_PALLET, MAX_PALLETS, OLD_LAM_SOON, PLT_TYPES, normalizeUnit } from "./constants";
+import { CHECKS, MATERIALS, MAX_ITEMS, MAX_LINES_PER_PALLET, MAX_PALLETS, OLD_LAM_SOON, PLT_OTHER_MAX, PLT_TYPES, normalizeUnit } from "./constants";
 import { paperDateToIso } from "./dates";
 import { pltCounts, toQty, type Draft } from "./draft";
 
@@ -20,6 +20,7 @@ const lineSchema = z.object({
 const palletSchema = z.object({
   // The old "L" too: a phone may be holding a signed sheet from before the split, waiting to send.
   pltType: z.enum([OLD_LAM_SOON, ...PLT_TYPES] as [string, ...string[]]).nullable(),
+  pltOther: text(PLT_OTHER_MAX).default(""),
   contractNo: text(60),
   remark: text(60),
   lines: z.array(lineSchema).min(1).max(MAX_LINES_PER_PALLET),
@@ -114,6 +115,7 @@ export function draftToPayload(draft: Draft, device: string): SubmitPayload {
       qtyPerPallet: it.qtyPerPallet && it.qtyPerPallet > 0 ? it.qtyPerPallet : null,
       pallets: it.pallets.map((p) => ({
         pltType: isLorry ? p.pltType : null,
+        pltOther: isLorry && p.pltType === "O" ? up(p.pltOther ?? "") : "",
         contractNo: isLorry ? up(p.contractNo) : "",
         remark: up(p.remark),
         lines: p.lines.map((l) => ({

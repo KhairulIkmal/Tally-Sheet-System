@@ -7,16 +7,18 @@ export interface PickState {
   total: string;
   per: string;
   pltType: PltType;
+  pltOther: string;
   contractNo: string;
 }
 
-export function blankPick(defaults?: Partial<Pick<PickState, "pltType" | "contractNo">>): PickState {
+export function blankPick(defaults?: Partial<Pick<PickState, "pltType" | "pltOther" | "contractNo">>): PickState {
   return {
     name: "",
     unit: DEFAULT_UNIT,
     total: "",
     per: "",
     pltType: defaults?.pltType ?? "L4",
+    pltOther: defaults?.pltOther ?? "",
     contractNo: defaults?.contractNo ?? "",
   };
 }

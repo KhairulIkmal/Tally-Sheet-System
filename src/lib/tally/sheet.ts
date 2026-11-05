@@ -1,4 +1,4 @@
-import { CHECKS, MATERIALS, PLT_GROUPS, PLT_LABELS, ROWS_PER_PAGE, normalizeUnit, pltTypeName, storedPltCount, type SheetForm } from "./constants";
+import { CHECKS, MATERIALS, PLT_GROUPS, PLT_LABELS, ROWS_PER_PAGE, normalizeUnit, pltCellText, storedPltCount, type SheetForm } from "./constants";
 import { formatDateTime, isoToPaperDate } from "./dates";
 import { palletQty, pltCounts, totals, type Draft, type QtyByUnit } from "./draft";
 
@@ -37,6 +37,8 @@ export interface SheetPallet {
   itemNo: number;
   /** A PltType, or the old "L" on sheets from before the 4-way / 2-way split. */
   pltType: string | null;
+  /** What kind of pallet an Others pallet is. */
+  pltOther: string;
   contractNo: string;
   remark: string;
   lines: SheetLine[];
@@ -190,7 +192,7 @@ export function paperFromSheet(sheet: SheetDetail): PaperData {
       no: p.palletNo,
       ...marks.get(p.palletNo),
       item: marks.get(p.palletNo)?.item ?? "",
-      pltType: pltTypeName(p.pltType),
+      pltType: pltCellText(p.pltType, p.pltOther),
       contractNo: p.contractNo,
       remark: p.remark,
       lines: p.lines.map((l) => ({
@@ -223,7 +225,7 @@ export function paperFromDraft(draft: Draft, signerName: string, ref = "NOT SUBM
       rows.push({
         no: n,
         ...marks[j],
-        pltType: draft.form === "lorry" ? pltTypeName(p.pltType) : "",
+        pltType: draft.form === "lorry" ? pltCellText(p.pltType, p.pltOther) : "",
         contractNo: draft.form === "lorry" ? up(p.contractNo) : "",
         remark: up(p.remark),
         lines: p.lines.map((l) => ({ qty: l.qty.trim(), expired: l.expired.trim(), prod: l.prod.trim(), batch: up(l.batch) })),
