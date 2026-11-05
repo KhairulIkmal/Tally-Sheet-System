@@ -59,7 +59,10 @@ function followRows(
     const sc = scrollRef.current;
     if (sc) {
       const r = sc.getBoundingClientRect();
-      if (y > r.bottom - 56) sc.scrollTop += 14;
+      // The keyboard may still be closing: the edge is where the finger can reach.
+      const vv = window.visualViewport;
+      const bottom = vv ? Math.min(r.bottom, vv.offsetTop + vv.height) : r.bottom;
+      if (y > bottom - 56) sc.scrollTop += 14;
       else if (y < r.top + 40) sc.scrollTop -= 14;
     }
     track();
@@ -67,7 +70,11 @@ function followRows(
   };
   raf = requestAnimationFrame(tick);
   const onMove = (ev: PointerEvent) => {
-    if (Math.abs(ev.clientY - e.clientY) > 6) moved = true;
+    if (!moved && Math.abs(ev.clientY - e.clientY) > 6) {
+      moved = true;
+      // A drag needs the room: close the keyboard. A plain tap leaves it open to keep typing.
+      if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
+    }
     y = ev.clientY;
     track();
   };

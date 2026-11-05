@@ -48,7 +48,10 @@ export function usePaperZoom() {
   const lastRef = useRef<Element | null>(null);
   const swallowRef = useRef<Element | null>(null);
   const downOnControlRef = useRef(false);
+  /** When a finger last came down or lifted on the sheet. */
   const lastDownRef = useRef(0);
+  /** A finger is on the sheet: a drag closing the keyboard mustn't zoom out under it. */
+  const heldRef = useRef(false);
   const blurTimer = useRef(0);
 
   const apply = useCallback((z: number) => {
@@ -185,6 +188,8 @@ export function usePaperZoom() {
     const onResize = () => {
       const nowOpen = window.innerHeight - vv.height > KEYBOARD_MIN;
       const active = document.activeElement;
+      // The room made for the keyboard goes with it (a drag closes it and stays zoomed).
+      if (!nowOpen && scrollRef.current) scrollRef.current.style.paddingBottom = "";
       if (isField(active, scrollRef.current) && isCompact(fitRef.current)) {
         if (open && !nowOpen) release();
         else centre(active, "smooth");
@@ -234,6 +239,21 @@ export function usePaperZoom() {
 
   useEffect(() => () => window.clearTimeout(blurTimer.current), []);
 
+  // Anywhere: a finger dragged off the sheet still lifts.
+  useEffect(() => {
+    const lift = () => {
+      if (!heldRef.current) return;
+      heldRef.current = false;
+      lastDownRef.current = Date.now();
+    };
+    window.addEventListener("pointerup", lift, true);
+    window.addEventListener("pointercancel", lift, true);
+    return () => {
+      window.removeEventListener("pointerup", lift, true);
+      window.removeEventListener("pointercancel", lift, true);
+    };
+  }, []);
+
   const scrollProps = {
     onFocus(e: React.FocusEvent<HTMLDivElement>) {
       window.clearTimeout(blurTimer.current);
@@ -245,12 +265,13 @@ export function usePaperZoom() {
       blurTimer.current = window.setTimeout(() => {
         const fittedAlready = zoomRef.current <= fitRef.current + 0.01;
         const tapped = Date.now() - lastDownRef.current < TAP_MS;
-        if (!fittedAlready && !tapped && !isField(document.activeElement, scrollRef.current)) release();
+        if (!fittedAlready && !tapped && !heldRef.current && !isField(document.activeElement, scrollRef.current)) release();
       }, 250);
     },
     onPointerDownCapture(e: React.PointerEvent<HTMLDivElement>) {
       const target = e.target as Element;
       lastDownRef.current = Date.now();
+      heldRef.current = true;
       downOnControlRef.current = !!target.closest(CONTROL);
       swallowRef.current = null;
       const fitted = zoomRef.current <= fitRef.current + 0.01;
