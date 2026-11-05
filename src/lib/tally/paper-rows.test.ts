@@ -102,6 +102,7 @@ describe("fillDown (〃 held and dragged)", () => {
 
   it("fills the contract no down", () => {
     let items = updateRowPallet(blankRows(3), 0, (p) => ({ ...p, contractNo: "LS-9" }));
+    expect(fillDown(items, 1, 1, { kind: "plt" })).toBeDefined();
     items = fillDown(items, 1, 2, { kind: "contract" });
     expect(toRows(items).map((r) => r.pallet.contractNo)).toEqual(["LS-9", "LS-9", "LS-9"]);
   });

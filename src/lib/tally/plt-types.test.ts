@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { otherPalletList, pltCellText, pltSummary, pltTypeName } from "./constants";
-import { autoPltCounts, buildPallets, pltCounts, reviewWarnings, upgradeDraftPlt } from "./draft";
+import { autoPltCounts, buildPallets, pltCounts, reviewWarnings, samePltType, upgradeDraftPlt } from "./draft";
 import { draftToPayload, submitPayloadSchema } from "./payload";
+import { fillDown, toRows } from "./paper-rows";
 import { sampleDraft } from "./sample";
 import { paperFromDraft, paperFromSheet, type SheetDetail } from "./sheet";
 
@@ -53,6 +54,39 @@ describe("a draft from an earlier version", () => {
     const up = upgradeDraftPlt(Object.assign(d, { pltOtherNote: " wood " }));
     expect(up.items[3].pallets[0].pltOther).toBe("WOOD");
     expect("pltOtherNote" in up).toBe(false);
+  });
+});
+
+describe("same for the PLT type", () => {
+  it("copies the type, the way and what an Others pallet says, down the rows dragged over", () => {
+    const d = sampleDraft(at, "lorry");
+    const start = toRows(d.items);
+    start[0].pallet.pltType = "O";
+    start[0].pallet.pltOther = "PLASTIC";
+    const rows = toRows(fillDown(d.items, 1, 3, { kind: "plt" }));
+    for (const i of [1, 2, 3]) expect(rows[i].pallet).toMatchObject({ pltType: "O", pltOther: "PLASTIC" });
+    expect(rows[4].pallet.pltType).not.toBe("O");
+  });
+
+  it("copies the way", () => {
+    const d = sampleDraft(at, "lorry");
+    toRows(d.items)[0].pallet.pltType = "L2";
+    expect(toRows(fillDown(d.items, 1, 1, { kind: "plt" }))[1].pallet.pltType).toBe("L2");
+  });
+
+  it("keeps each row's own qty, batch and contract", () => {
+    const d = sampleDraft(at, "lorry");
+    const before = toRows(d.items)[1].pallet;
+    const after = toRows(fillDown(d.items, 1, 1, { kind: "plt" }))[1].pallet;
+    expect(after.lines).toEqual(before.lines);
+    expect(after.contractNo).toBe(before.contractNo);
+    expect(after.remark).toBe(before.remark);
+  });
+
+  it("counts as the same only with the same way and the same writing", () => {
+    expect(samePltType({ pltType: "L4" }, { pltType: "L4", pltOther: "OLD" })).toBe(true);
+    expect(samePltType({ pltType: "L4" }, { pltType: "L2" })).toBe(false);
+    expect(samePltType({ pltType: "O", pltOther: "A" }, { pltType: "O", pltOther: "B" })).toBe(false);
   });
 });
 

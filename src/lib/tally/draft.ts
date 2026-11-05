@@ -256,6 +256,11 @@ export function buildPallets(
   }));
 }
 
+/** Same PLT type, way included, and for an Others pallet the same type written. */
+export function samePltType(a: Pick<DraftPallet, "pltType" | "pltOther">, b: Pick<DraftPallet, "pltType" | "pltOther">): boolean {
+  return a.pltType === b.pltType && (a.pltType !== "O" || (a.pltOther ?? "").trim() === (b.pltOther ?? "").trim());
+}
+
 /** The pallet just above this one on the sheet (may belong to the previous item). */
 export function previousPallet(items: DraftItem[], itemIndex: number, palletIndex: number): DraftPallet | null {
   if (palletIndex > 0) return items[itemIndex].pallets[palletIndex - 1];

@@ -136,8 +136,8 @@ export function appendItem(items: DraftItem[], item: DraftItem): DraftItem[] {
   return fromRows([...rows, ...toRows([item])], [...items, item]);
 }
 
-/** What a held-and-dragged 〃 fills down: one line field, the item, or the contract no. */
-export type FillSpec = { kind: "line"; field: DittoField; li: number } | { kind: "item" } | { kind: "contract" };
+/** What a held-and-dragged 〃 fills down: one line field, the item, the contract no or the PLT type. */
+export type FillSpec = { kind: "line"; field: DittoField; li: number } | { kind: "item" } | { kind: "contract" } | { kind: "plt" };
 
 /**
  * 〃 held and dragged down, like a spreadsheet's fill handle: rows from..to
@@ -158,6 +158,11 @@ export function fillDown(items: DraftItem[], from: number, to: number, spec: Fil
     const value = source.pallet.contractNo;
     if (!value) return items;
     for (let i = from; i <= last; i++) rows[i] = { ...rows[i], pallet: { ...rows[i].pallet, contractNo: value } };
+    return fromRows(rows, items);
+  }
+  if (spec.kind === "plt") {
+    const { pltType, pltOther } = source.pallet;
+    for (let i = from; i <= last; i++) rows[i] = { ...rows[i], pallet: { ...rows[i].pallet, pltType, pltOther: pltOther ?? "" } };
     return fromRows(rows, items);
   }
   const value = dittoSource(items, from, spec.li, spec.field);

@@ -12,6 +12,7 @@ import {
   itemQty,
   palletQty,
   previousPallet,
+  samePltType,
   type DraftItem,
   type DraftLine,
   type DraftPallet,
@@ -260,7 +261,26 @@ export function PalletDetailsScreen({
               {form === "lorry" ? (
                 <div className="grid grid-cols-[1fr_1.1fr] items-start gap-2">
                   <div className="flex flex-col gap-1">
-                    <span className="text-xs font-bold text-muted">PLT TYPE</span>
+                    <div className="flex h-7 items-center justify-between">
+                      <span className="text-xs font-bold text-muted">PLT TYPE</span>
+                      {prev && !samePltType(prev, p) ? (
+                        <button
+                          type="button"
+                          aria-label="PLT type same as above"
+                          title="PLT type same as above"
+                          onClick={() =>
+                            setPallet(i, (pl) => {
+                              pl.pltType = prev.pltType;
+                              pl.pltOther = prev.pltOther ?? "";
+                            })
+                          }
+                          className="flex h-7 items-center gap-0.5 rounded-[7px] bg-canvas px-1.5 text-[11px] font-bold text-primary"
+                        >
+                          <ArrowUp aria-hidden className="size-3.5" strokeWidth={2.5} />
+                          same
+                        </button>
+                      ) : null}
+                    </div>
                     <PltTypeButtons
                       size="sm"
                       value={p.pltType}
@@ -270,7 +290,7 @@ export function PalletDetailsScreen({
                     />
                   </div>
                   <label className="flex flex-col gap-1">
-                    <span className="text-xs font-bold text-muted">CONTRACT NO</span>
+                    <span className="flex h-7 items-center text-xs font-bold text-muted">CONTRACT NO</span>
                     <input
                       value={p.contractNo}
                       autoComplete="off"
