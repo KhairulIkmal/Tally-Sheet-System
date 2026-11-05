@@ -262,10 +262,12 @@ export function usePaperZoom() {
     onBlur() {
       window.clearTimeout(blurTimer.current);
       // The keyboard's own Done button: the field lost focus with no tap on the sheet.
+      // Judged now, not when the timer runs: a delete confirm may hold the timer up for a long while.
+      const fromTouch = heldRef.current || Date.now() - lastDownRef.current < TAP_MS;
+      if (fromTouch) return;
       blurTimer.current = window.setTimeout(() => {
         const fittedAlready = zoomRef.current <= fitRef.current + 0.01;
-        const tapped = Date.now() - lastDownRef.current < TAP_MS;
-        if (!fittedAlready && !tapped && !heldRef.current && !isField(document.activeElement, scrollRef.current)) release();
+        if (!fittedAlready && !isField(document.activeElement, scrollRef.current)) release();
       }, 250);
     },
     onPointerDownCapture(e: React.PointerEvent<HTMLDivElement>) {

@@ -14,6 +14,18 @@ export interface FillDrag {
   value: string;
 }
 
+/**
+ * iPhones and iPads cancel a touch when the keyboard closes under it, which would
+ * end a drag on the spot. There the keyboard waits until the finger lifts.
+ */
+function isIOS(): boolean {
+  return /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+}
+
+function closeKeyboard() {
+  if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
+}
+
 const same = (a: FillSpec, b: FillSpec) =>
   a.kind === b.kind && (a.kind !== "line" || (b.kind === "line" && a.field === b.field && a.li === b.li));
 
@@ -37,6 +49,7 @@ function followRows(
   let y = e.clientY;
   let to = from;
   let moved = false;
+  const closeOnLift = isIOS();
   // Looks through anything floating over the sheet (the Done button, the hint) to the row beneath.
   const rowAt = (py: number) => {
     for (const el of document.elementsFromPoint(x, py)) {
@@ -61,9 +74,10 @@ function followRows(
       const r = sc.getBoundingClientRect();
       // The keyboard may still be closing: the edge is where the finger can reach.
       const vv = window.visualViewport;
+      const top = vv ? Math.max(r.top, vv.offsetTop) : r.top;
       const bottom = vv ? Math.min(r.bottom, vv.offsetTop + vv.height) : r.bottom;
       if (y > bottom - 56) sc.scrollTop += 14;
-      else if (y < r.top + 40) sc.scrollTop -= 14;
+      else if (y < top + 40) sc.scrollTop -= 14;
     }
     track();
     raf = requestAnimationFrame(tick);
@@ -73,7 +87,7 @@ function followRows(
     if (!moved && Math.abs(ev.clientY - e.clientY) > 6) {
       moved = true;
       // A drag needs the room: close the keyboard. A plain tap leaves it open to keep typing.
-      if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
+      if (!closeOnLift) closeKeyboard();
     }
     y = ev.clientY;
     track();
@@ -83,6 +97,7 @@ function followRows(
     window.removeEventListener("pointermove", onMove);
     window.removeEventListener("pointerup", onUp);
     window.removeEventListener("pointercancel", onCancel);
+    if (closeOnLift && moved) closeKeyboard();
     onDone(apply ? to : null, moved);
   };
   const onUp = (ev: PointerEvent) => {
