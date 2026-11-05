@@ -1,5 +1,5 @@
 import { CHECKS } from "@/lib/tally/constants";
-import type { Draft } from "@/lib/tally/draft";
+import { upgradeDraftPlt, type Draft } from "@/lib/tally/draft";
 import type { ItemSuggestion } from "./pick";
 import type { SubmitPayload } from "@/lib/tally/payload";
 
@@ -65,7 +65,7 @@ export function loadDraft(userId: string): Draft | null {
       qtyPerPallet: it.qtyPerPallet ?? null,
     };
   });
-  return d;
+  return upgradeDraftPlt(d);
 }
 
 export function saveDraft(userId: string, draft: Draft | null): boolean {

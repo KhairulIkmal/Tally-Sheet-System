@@ -1,13 +1,13 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { PLT_TYPES, type PltType, type SheetForm, MAX_PALLETS } from "@/lib/tally/constants";
+import { PLT_TYPE_NAMES, PLT_TYPES, type PltType, type SheetForm, MAX_PALLETS } from "@/lib/tally/constants";
 import type { PickState } from "../pick";
 import { BottomBar, Button, PalletBadge, Scroll, TextField } from "../ui";
 
 export function PltTypeButtons({ value, onChange, size = "md" }: { value: PltType; onChange: (t: PltType) => void; size?: "md" | "sm" }) {
   return (
-    <div className={cn("grid grid-cols-4", size === "md" ? "gap-1" : "gap-[3px]")} role="radiogroup" aria-label="PLT type">
+    <div className={cn("grid grid-cols-5", size === "md" ? "gap-1" : "gap-[3px]")} role="radiogroup" aria-label="PLT type">
       {PLT_TYPES.map((t) => (
         <button
           key={t}
@@ -16,12 +16,12 @@ export function PltTypeButtons({ value, onChange, size = "md" }: { value: PltTyp
           aria-checked={value === t}
           onClick={() => onChange(t)}
           className={cn(
-            "flex items-center justify-center rounded-[9px] font-bold",
-            size === "md" ? "h-[52px] text-xl" : "h-12 text-[17px]",
+            "flex min-w-0 items-center justify-center rounded-[9px] text-xs font-bold",
+            size === "md" ? "h-[52px]" : "h-12",
             value === t ? "bg-primary text-white dark:text-[#0e1115]" : "border-[1.5px] border-field bg-surface text-ink",
           )}
         >
-          {t}
+          {PLT_TYPE_NAMES[t]}
         </button>
       ))}
     </div>
@@ -90,7 +90,7 @@ export function PalletSetupScreen({
         ) : null}
 
         {form === "lorry" ? (
-          <div className="grid grid-cols-[1fr_1.2fr] gap-2.5">
+          <div className="flex flex-col gap-2.5">
             <div className="flex flex-col gap-1.5">
               <span className="text-sm font-bold text-body">PLT Type (default)</span>
               <PltTypeButtons value={pick.pltType} onChange={(t) => onChange({ pltType: t })} />
@@ -115,7 +115,7 @@ export function PalletSetupScreen({
                 <span className={cn("text-sm font-medium", partial ? "text-warning" : "text-muted")}>
                   {q === "" ? "Fill qty later" : partial ? "Remainder · not full" : "Full"}
                 </span>
-                <span className="min-w-4 text-center text-[13px] font-bold text-muted">{form === "lorry" ? pick.pltType : ""}</span>
+                <span className="min-w-4 text-center text-[13px] font-bold text-muted">{form === "lorry" ? PLT_TYPE_NAMES[pick.pltType] : ""}</span>
                 <span className="min-w-14 text-right text-xl font-bold">{q === "" ? "—" : q}</span>
               </div>
             );

@@ -1,6 +1,5 @@
 import "server-only";
 
-import type { PltType } from "@/lib/tally/constants";
 import { submitPayloadSchema, type SubmitPayload } from "@/lib/tally/payload";
 import type { SheetDetail, SheetSummary } from "@/lib/tally/sheet";
 import { rangeBounds } from "./filters";
@@ -64,7 +63,7 @@ function seedSheet(n: number, form: "container" | "lorry", at: number, status: "
   const pallets = [32, 32, 32, 22].map((q, i) => ({
     palletNo: i + 1,
     itemNo: 1,
-    pltType: (isLorry ? (i === 3 ? "C" : "L") : null) as PltType | null,
+    pltType: isLorry ? (i === 3 ? "C" : "L4") : null,
     contractNo: isLorry ? "LS-DOM-3318" : "",
     remark: q < 32 ? "LOOSE" : "",
     lines: [{ qty: q, batch: "B240915A", expired: "2027-04-16", prod: "2025-04-16" }],
@@ -97,7 +96,8 @@ function seedSheet(n: number, form: "container" | "lorry", at: number, status: "
     remark: "",
     materials: isLorry ? {} : { SAMPLE: 2, "LAYER PAD": 8 },
     checks: isLorry ? { SAMPLE: { qty: 2, note: "FOR QC" } } : {},
-    pltCounts: isLorry ? { L: 3, E: 0, C: 1, O: 0 } : {},
+    pltCounts: isLorry ? { L4: 3, L2: 0, E: 0, C: 1, O: 0 } : {},
+    pltOtherNote: "",
     signature: SEED_SIGNATURE,
     signedAt: iso,
     device: "Demo device",
@@ -173,6 +173,7 @@ function paperExampleSheet(n: number, at: number): SheetDetail {
     materials: { LINER: 1, POLYFOAM: 11 },
     checks: {},
     pltCounts: {},
+    pltOtherNote: "",
     signature: SEED_SIGNATURE,
     signedAt: iso,
     device: "Demo device",
@@ -262,7 +263,7 @@ export function demoStore(actor: { id: string; name: string; roles: string[] }):
         it.pallets.map((pl) => ({
           palletNo: ++n,
           itemNo: i + 1,
-          pltType: (isLorry ? pl.pltType : null) as PltType | null,
+          pltType: isLorry ? pl.pltType : null,
           contractNo: pl.contractNo,
           remark: pl.remark,
           lines: pl.lines.map((l) => ({ qty: l.qty, batch: l.batch, expired: l.expired, prod: l.prod })),
@@ -299,6 +300,7 @@ export function demoStore(actor: { id: string; name: string; roles: string[] }):
         materials: p.materials,
         checks: p.checks,
         pltCounts: p.pltCounts,
+        pltOtherNote: p.pltOtherNote,
         signature: p.signature,
         signedAt: p.signedAt,
         device: p.device,

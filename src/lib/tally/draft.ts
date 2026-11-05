@@ -67,6 +67,8 @@ export interface Draft {
   checks: Record<CheckKey, { qty: number; note: string }>;
   /** Manual corrections on top of the PLT-type counts worked out from the pallets. */
   pltAdjust: Record<PltType, number>;
+  /** What the OTHERS pallets were, written under their box on the form. */
+  pltOtherNote: string;
   remark: string;
   signature: string | null;
   signedAt: string | null;
@@ -109,12 +111,30 @@ export function newDraft(form: SheetForm, now: Date = new Date()): Draft {
       CheckKey,
       { qty: number; note: string }
     >,
-    pltAdjust: { L: 0, E: 0, C: 0, O: 0 },
+    pltAdjust: { L4: 0, L2: 0, E: 0, C: 0, O: 0 },
+    pltOtherNote: "",
     remark: "",
     signature: null,
     signedAt: null,
     startedAt: iso,
     updatedAt: iso,
+  };
+}
+
+/**
+ * A draft saved on a phone before Lam Soon pallets were split into 4-way and 2-way.
+ * Its "L" pallets start as L4WAY, the form's first choice, and the worker can change them.
+ */
+export function upgradeDraftPlt(draft: Draft): Draft {
+  const old = (draft.pltAdjust ?? {}) as Partial<Record<PltType | "L", number>>;
+  return {
+    ...draft,
+    pltOtherNote: draft.pltOtherNote ?? "",
+    pltAdjust: { L4: (old.L4 ?? 0) + (old.L ?? 0), L2: old.L2 ?? 0, E: old.E ?? 0, C: old.C ?? 0, O: old.O ?? 0 },
+    items: draft.items.map((it) => ({
+      ...it,
+      pallets: it.pallets.map((p) => ((p.pltType as string) === "L" ? { ...p, pltType: "L4" as const } : p)),
+    })),
   };
 }
 
@@ -250,7 +270,7 @@ export function copyPalletFrom(target: DraftPallet, source: DraftPallet): DraftP
 // ── lorry PLT type totals ───────────────────────────────────────────────
 
 export function autoPltCounts(items: DraftItem[]): Record<PltType, number> {
-  const counts: Record<PltType, number> = { L: 0, E: 0, C: 0, O: 0 };
+  const counts: Record<PltType, number> = { L4: 0, L2: 0, E: 0, C: 0, O: 0 };
   for (const it of items) for (const p of it.pallets) counts[p.pltType] += 1;
   return counts;
 }

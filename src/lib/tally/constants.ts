@@ -1,15 +1,35 @@
 /** The two paper forms. */
 export type SheetForm = "container" | "lorry";
 
-/** Pallet ownership on the lorry form: L - Lam Soon, E - ECR, C - Loscam, O - Others. */
-export type PltType = "L" | "E" | "C" | "O";
-export const PLT_TYPES: readonly PltType[] = ["L", "E", "C", "O"];
+/** Pallet type on the lorry form: Lam Soon 4-way or 2-way, ECR, Loscam, Others. */
+export type PltType = "L4" | "L2" | "E" | "C" | "O";
+export const PLT_TYPES: readonly PltType[] = ["L4", "L2", "E", "C", "O"];
+/** The full names, as written on the sheet. */
 export const PLT_TYPE_NAMES: Record<PltType, string> = {
-  L: "Lam Soon",
+  L4: "L4WAY",
+  L2: "L2WAY",
   E: "ECR",
-  C: "Loscam",
-  O: "Others",
+  C: "LOSCAM",
+  O: "OTHERS",
 };
+/** Sheets from before Lam Soon pallets were split into 4-way and 2-way say only "L". */
+export const OLD_LAM_SOON = "L";
+
+/** A stored PLT type's full name, including the old "L". */
+export function pltTypeName(code: string | null | undefined): string {
+  if (!code) return "";
+  return code === OLD_LAM_SOON ? "LAM SOON" : (PLT_TYPE_NAMES[code as PltType] ?? code);
+}
+
+/** "L4WAY 3 · OTHERS 1 (PLASTIC)" from a sheet's counts, in form order. */
+export function pltSummary(counts: Record<string, number>, otherNote: string): string {
+  return (
+    [OLD_LAM_SOON, ...PLT_TYPES]
+      .filter((k) => counts[k])
+      .map((k) => `${pltTypeName(k)} ${counts[k]}${k === "O" && otherNote.trim() ? ` (${otherNote.trim().toUpperCase()})` : ""}`)
+      .join(" · ") || "0"
+  );
+}
 
 /** Packing-material count boxes at the foot of the container form, in paper order. */
 export const MATERIALS = [

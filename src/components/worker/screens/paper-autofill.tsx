@@ -162,7 +162,7 @@ export function AutoFillPanel({
               <select value={pltType} onChange={(e) => setPltType(e.target.value as PltType)} className={cn(field, "normal-case")}>
                 {PLT_TYPES.map((k) => (
                   <option key={k} value={k}>
-                    {k} · {PLT_TYPE_NAMES[k]}
+                    {PLT_TYPE_NAMES[k]}
                   </option>
                 ))}
               </select>

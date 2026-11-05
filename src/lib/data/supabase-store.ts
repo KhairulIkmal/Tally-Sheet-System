@@ -3,7 +3,7 @@ import "server-only";
 import { createClient } from "@/lib/supabase/server";
 import type { SubmitPayload } from "@/lib/tally/payload";
 import type { SheetDetail, SheetSummary } from "@/lib/tally/sheet";
-import type { PltType, SheetForm } from "@/lib/tally/constants";
+import type { SheetForm } from "@/lib/tally/constants";
 import { rangeBounds, safeSearch } from "./filters";
 import { StoreError, type HistoryItem, type HistoryItemInput, type SheetFilter, type SubmitResult, type TallyStore } from "./types";
 
@@ -163,6 +163,7 @@ export function supabaseStore(): TallyStore {
         materials: s.materials ?? {},
         checks: s.checks ?? {},
         pltCounts: s.plt_counts ?? {},
+        pltOtherNote: s.plt_other_note ?? "",
         signature: s.signature,
         signedAt: s.signed_at,
         device: s.device ?? "",
@@ -172,7 +173,7 @@ export function supabaseStore(): TallyStore {
         pallets: (pallets.data ?? []).map((p) => ({
           palletNo: p.pallet_no,
           itemNo: p.item_no,
-          pltType: (p.plt_type as PltType | null) ?? null,
+          pltType: p.plt_type ?? null,
           contractNo: p.contract_no ?? "",
           remark: p.remark ?? "",
           lines: linesByPallet.get(p.pallet_no) ?? [],

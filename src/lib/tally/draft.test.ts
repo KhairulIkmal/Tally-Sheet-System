@@ -23,7 +23,7 @@ function item(name: string, qtys: number[], target: number | null = null, unit =
     unit,
     targetQty: target,
     qtyPerPallet: null,
-    pallets: buildPallets(qtys, { pltType: "L", contractNo: "LS-1" }).map((p) => ({
+    pallets: buildPallets(qtys, { pltType: "L4", contractNo: "LS-1" }).map((p) => ({
       ...p,
       lines: p.lines.map((l) => ({ ...l, batch: "B1", expired: "16/04/27", prod: "16/04/25" })),
     })),
@@ -93,7 +93,7 @@ describe("copyPalletFrom", () => {
   });
 
   it("copies every line of a mixed pallet", () => {
-    const [a, b] = buildPallets([12, 0], { pltType: "L", contractNo: "" });
+    const [a, b] = buildPallets([12, 0], { pltType: "L4", contractNo: "" });
     a.lines = [
       { qty: "12", batch: "A", expired: "", prod: "" },
       { qty: "8", batch: "B", expired: "", prod: "" },
@@ -107,9 +107,9 @@ describe("pltCounts", () => {
     const draft = newDraft("lorry");
     draft.items = [item("A", [1, 1, 1])];
     draft.items[0].pallets[2].pltType = "C";
-    expect(pltCounts(draft)).toEqual({ L: 2, E: 0, C: 1, O: 0 });
-    draft.pltAdjust = { L: -5, E: 1, C: 0, O: 0 };
-    expect(pltCounts(draft)).toEqual({ L: 0, E: 1, C: 1, O: 0 });
+    expect(pltCounts(draft)).toEqual({ L4: 2, L2: 0, E: 0, C: 1, O: 0 });
+    draft.pltAdjust = { L4: -5, L2: 2, E: 1, C: 0, O: 0 };
+    expect(pltCounts(draft)).toEqual({ L4: 0, L2: 2, E: 1, C: 1, O: 0 });
   });
 });
 
@@ -161,7 +161,7 @@ describe("reviewWarnings", () => {
   it("flags a lorry PLT total that doesn't match the pallets", () => {
     const d = newDraft("lorry");
     d.items = [item("A", [10, 10])];
-    d.pltAdjust.L = 1;
+    d.pltAdjust.L4 = 1;
     expect(reviewWarnings(d).map((x) => x.kind)).toContain("plt");
   });
 });

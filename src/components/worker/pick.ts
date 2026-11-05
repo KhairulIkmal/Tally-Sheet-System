@@ -16,7 +16,7 @@ export function blankPick(defaults?: Partial<Pick<PickState, "pltType" | "contra
     unit: DEFAULT_UNIT,
     total: "",
     per: "",
-    pltType: defaults?.pltType ?? "L",
+    pltType: defaults?.pltType ?? "L4",
     contractNo: defaults?.contractNo ?? "",
   };
 }

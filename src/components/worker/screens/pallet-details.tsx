@@ -258,7 +258,7 @@ export function PalletDetailsScreen({
               </div>
 
               {form === "lorry" ? (
-                <div className="grid grid-cols-[1fr_1.1fr] gap-2">
+                <div className="flex flex-col gap-2">
                   <div className="flex flex-col gap-1">
                     <span className="text-xs font-bold text-muted">PLT TYPE</span>
                     <PltTypeButtons size="sm" value={p.pltType} onChange={(t) => setPallet(i, (pl) => void (pl.pltType = t))} />
@@ -335,7 +335,7 @@ export function PalletDetailsScreen({
               const last = it.pallets[it.pallets.length - 1] ?? previousPallet(all, itemIndex, 0);
               it.pallets.push({
                 id: newId(),
-                pltType: last?.pltType ?? "L",
+                pltType: last?.pltType ?? "L4",
                 contractNo: last?.contractNo ?? "",
                 remark: "",
                 lines: [blankLine()],

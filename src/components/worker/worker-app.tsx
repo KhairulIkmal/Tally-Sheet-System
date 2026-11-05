@@ -379,7 +379,7 @@ export function WorkerApp({ user, history, sheets }: { user: WorkerUser; history
 
   function openPicker() {
     const last = items[items.length - 1]?.pallets.at(-1);
-    setPick(blankPick({ pltType: last?.pltType ?? "L", contractNo: last?.contractNo ?? "" }));
+    setPick(blankPick({ pltType: last?.pltType ?? "L4", contractNo: last?.contractNo ?? "" }));
     go("picker");
   }
 
@@ -714,6 +714,11 @@ export function WorkerApp({ user, history, sheets }: { user: WorkerUser; history
           onPltAdjust={(k, delta) =>
             update((d) => {
               d.pltAdjust[k] = (d.pltAdjust[k] ?? 0) + delta;
+            })
+          }
+          onPltOtherNote={(v) =>
+            update((d) => {
+              d.pltOtherNote = v;
             })
           }
           onRemark={(v) =>

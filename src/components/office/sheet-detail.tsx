@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { ArrowLeft, Check, MoreHorizontal, Printer, Undo2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { setPrintedAction } from "@/lib/data/actions";
-import { MATERIALS, PLT_TYPES, materialLabel } from "@/lib/tally/constants";
+import { MATERIALS, materialLabel, pltSummary } from "@/lib/tally/constants";
 import { formatDateTime, isoToPaperDate } from "@/lib/tally/dates";
 import { formatQty } from "@/lib/tally/draft";
 import { itemSummaries, pageCount, paperFromSheet, type SheetDetail } from "@/lib/tally/sheet";
@@ -51,7 +51,7 @@ export function SheetDetailView({ sheet }: { sheet: SheetDetail }) {
         ...Object.entries(sheet.checks)
           .filter(([, c]) => c.qty || c.note)
           .map(([k, c]) => `${materialLabel(k)} ${c.qty ?? 0}${c.note ? ` (${c.note})` : ""}`),
-        `PLT ${PLT_TYPES.filter((k) => sheet.pltCounts[k]).map((k) => `${k} ${sheet.pltCounts[k]}`).join(" · ") || "0"}`,
+        `PLT ${pltSummary(sheet.pltCounts, sheet.pltOtherNote)}`,
       ].join(" · ");
 
   const meta: [string, string][] = [

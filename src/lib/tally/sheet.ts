@@ -1,4 +1,4 @@
-import { CHECKS, MATERIALS, PLT_TYPES, ROWS_PER_PAGE, normalizeUnit, type PltType, type SheetForm } from "./constants";
+import { CHECKS, MATERIALS, OLD_LAM_SOON, PLT_TYPES, ROWS_PER_PAGE, normalizeUnit, pltTypeName, type SheetForm } from "./constants";
 import { formatDateTime, isoToPaperDate } from "./dates";
 import { palletQty, pltCounts, totals, type Draft, type QtyByUnit } from "./draft";
 
@@ -35,7 +35,8 @@ export interface SheetLine {
 export interface SheetPallet {
   palletNo: number;
   itemNo: number;
-  pltType: PltType | null;
+  /** A PltType, or the old "L" on sheets from before the 4-way / 2-way split. */
+  pltType: string | null;
   contractNo: string;
   remark: string;
   lines: SheetLine[];
@@ -69,6 +70,7 @@ export interface SheetDetail extends SheetSummary {
   materials: Record<string, number>;
   checks: Record<string, { qty: number; note: string }>;
   pltCounts: Record<string, number>;
+  pltOtherNote: string;
   signature: string;
   signedAt: string;
   device: string;
@@ -123,19 +125,14 @@ export interface PaperData {
   materials: { label: string; value: string }[];
   checks: { label: string; value: string; note: string }[];
   plt: { label: string; value: string }[];
+  /** What the OTHERS pallets were. */
+  pltOtherNote: string;
   remark: string;
   signature: string | null;
   signedBy: string;
   totalPallets: number;
   qtyByUnit: QtyByUnit;
 }
-
-export const PLT_LABELS: Record<PltType, string> = {
-  L: "L - (LAM SOON)",
-  E: "E - (ECR)",
-  C: "C - (LOSCAM)",
-  O: "O - (OTHERS)",
-};
 
 /** "TOTAL: 200 CTN": the total the order asked for, else what was counted. */
 export function itemTotalText(unit: string, targetQty: number | null, palletQtys: number[]): string {
@@ -173,7 +170,11 @@ function footer(
   return {
     materials: MATERIALS.map((k) => ({ label: k, value: form === "container" ? String(materials[k] ?? 0) : "" })),
     checks: CHECKS.map((k) => ({ label: k, value: form === "lorry" && checks[k]?.qty ? String(checks[k].qty) : "", note: checks[k]?.note ?? "" })),
-    plt: PLT_TYPES.map((k) => ({ label: PLT_LABELS[k], value: form === "lorry" ? String(plt[k] ?? 0) : "" })),
+    // The old "L" gets a box of its own only on a sheet that used it.
+    plt: (plt[OLD_LAM_SOON] ? [OLD_LAM_SOON, ...PLT_TYPES] : PLT_TYPES).map((k) => ({
+      label: pltTypeName(k),
+      value: form === "lorry" ? String(plt[k] ?? 0) : "",
+    })),
   };
 }
 
@@ -193,7 +194,7 @@ export function paperFromSheet(sheet: SheetDetail): PaperData {
       no: p.palletNo,
       ...marks.get(p.palletNo),
       item: marks.get(p.palletNo)?.item ?? "",
-      pltType: p.pltType ?? "",
+      pltType: pltTypeName(p.pltType),
       contractNo: p.contractNo,
       remark: p.remark,
       lines: p.lines.map((l) => ({
@@ -204,6 +205,7 @@ export function paperFromSheet(sheet: SheetDetail): PaperData {
       })),
     })),
     ...footer(sheet.form, sheet.materials, sheet.checks, sheet.pltCounts),
+    pltOtherNote: sheet.pltOtherNote,
     remark: sheet.remark,
     signature: sheet.signature || null,
     signedBy: `${sheet.preparedByName.toUpperCase()} · ${formatDateTime(sheet.signedAt)}`,
@@ -225,7 +227,7 @@ export function paperFromDraft(draft: Draft, signerName: string, ref = "NOT SUBM
       rows.push({
         no: n,
         ...marks[j],
-        pltType: draft.form === "lorry" ? p.pltType : "",
+        pltType: draft.form === "lorry" ? pltTypeName(p.pltType) : "",
         contractNo: draft.form === "lorry" ? up(p.contractNo) : "",
         remark: up(p.remark),
         lines: p.lines.map((l) => ({ qty: l.qty.trim(), expired: l.expired.trim(), prod: l.prod.trim(), batch: up(l.batch) })),
@@ -255,6 +257,7 @@ export function paperFromDraft(draft: Draft, signerName: string, ref = "NOT SUBM
       Object.fromEntries(CHECKS.map((k) => [k, { qty: draft.checks[k].qty ?? 0, note: up(draft.checks[k].note) }])),
       pltCounts(draft),
     ),
+    pltOtherNote: up(draft.pltOtherNote),
     remark: up(draft.remark),
     signature: draft.signature,
     signedBy: draft.signedAt ? `${signerName.toUpperCase()} · ${formatDateTime(draft.signedAt)}` : "",

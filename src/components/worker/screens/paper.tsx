@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Calculator, Check, Plus, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { PLT_TYPES, normalizeUnit, type SheetForm, MAX_PALLETS } from "@/lib/tally/constants";
+import { PLT_TYPE_NAMES, PLT_TYPES, normalizeUnit, type SheetForm, MAX_PALLETS } from "@/lib/tally/constants";
 import { isValidPaperDate, normalizeDate } from "@/lib/tally/dates";
 import {
   blankLine,
@@ -392,7 +392,7 @@ export function PaperScreen({
               <thead>
                 <tr className="bg-surface-sunken text-[11px] leading-tight font-bold tracking-[.04em] text-body">
                   <th className={cn(cell, "sticky left-0 z-10 w-12 bg-surface-sunken px-1 py-2 text-center")}>{isLorry ? "PLT NO" : "NO."}</th>
-                  {isLorry ? <th className={cn(cell, "w-16 px-2")}>PLT TYPE</th> : null}
+                  {isLorry ? <th className={cn(cell, "min-w-[104px] px-2")}>PLT TYPE</th> : null}
                   {isLorry ? <th className={cn(cell, "min-w-[120px] px-2")}>CONTRACT NO.</th> : null}
                   <th className={cn(cell, "min-w-[210px] px-2")}>{isLorry ? "ITEM (DESC)" : "ITEM (DESCRIPTION)"}</th>
                   <th className={cn(cell, "min-w-[124px] px-2")}>QTY</th>
@@ -439,7 +439,7 @@ export function PaperScreen({
                           >
                             {PLT_TYPES.map((k) => (
                               <option key={k} value={k}>
-                                {k}
+                                {PLT_TYPE_NAMES[k]}
                               </option>
                             ))}
                           </select>
@@ -799,7 +799,7 @@ export function PaperScreen({
           history={history}
           nextStart={filled + 1}
           room={MAX_PALLETS - filled}
-          defaults={{ pltType: lastFilled?.pltType ?? "L", contractNo: lastFilled?.contractNo ?? "" }}
+          defaults={{ pltType: lastFilled?.pltType ?? "L4", contractNo: lastFilled?.contractNo ?? "" }}
           onClose={() => setAutoFill(false)}
           onAdd={(item) => {
             onItems((its) => appendItem(its, item));

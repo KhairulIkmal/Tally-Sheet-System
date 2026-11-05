@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { CHECKS, MATERIALS, MAX_ITEMS, MAX_LINES_PER_PALLET, MAX_PALLETS, PLT_TYPES, normalizeUnit } from "./constants";
+import { CHECKS, MATERIALS, MAX_ITEMS, MAX_LINES_PER_PALLET, MAX_PALLETS, OLD_LAM_SOON, PLT_TYPES, normalizeUnit } from "./constants";
 import { paperDateToIso } from "./dates";
 import { pltCounts, toQty, type Draft } from "./draft";
 
@@ -18,7 +18,8 @@ const lineSchema = z.object({
 });
 
 const palletSchema = z.object({
-  pltType: z.enum(PLT_TYPES as unknown as [string, ...string[]]).nullable(),
+  // The old "L" too: a phone may be holding a signed sheet from before the split, waiting to send.
+  pltType: z.enum([OLD_LAM_SOON, ...PLT_TYPES] as [string, ...string[]]).nullable(),
   contractNo: text(60),
   remark: text(60),
   lines: z.array(lineSchema).min(1).max(MAX_LINES_PER_PALLET),
@@ -55,6 +56,7 @@ export const submitPayloadSchema = z
     materials: z.record(z.string(), z.number().int().min(0).max(9999)),
     checks: z.record(z.string(), z.object({ qty: z.number().int().min(0).max(9999), note: text(60) })),
     pltCounts: z.record(z.string(), z.number().int().min(0).max(MAX_PALLETS)),
+    pltOtherNote: text(60).default(""),
     remark: text(300),
     signature: z
       .string()
@@ -127,6 +129,7 @@ export function draftToPayload(draft: Draft, device: string): SubmitPayload {
       ? Object.fromEntries(CHECKS.map((k) => [k, { qty: draft.checks[k].qty ?? 0, note: up(draft.checks[k].note) }]))
       : {},
     pltCounts: isLorry ? pltCounts(draft) : {},
+    pltOtherNote: isLorry ? up(draft.pltOtherNote) : "",
     remark: up(draft.remark),
     signature: draft.signature ?? "",
     signedAt: draft.signedAt ?? new Date().toISOString(),

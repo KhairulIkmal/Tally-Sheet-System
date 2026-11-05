@@ -18,7 +18,7 @@ describe("sampleDraft", () => {
     expect(validateHeader("lorry", d.header)).toEqual({});
     expect(reviewWarnings(d)).toEqual([]);
     expect(totals(d.items).pallets).toBe(9);
-    expect(pltCounts(d)).toEqual({ L: 5, E: 2, C: 1, O: 1 });
+    expect(pltCounts(d)).toEqual({ L4: 4, L2: 1, E: 2, C: 1, O: 1 });
   });
 
   it("has a full container version: all 25 rows, short pallets mid-item, every material, no review warnings", () => {
@@ -35,7 +35,7 @@ describe("sampleDraft", () => {
     expect(d.form).toBe("lorry");
     expect(reviewWarnings(d)).toEqual([]);
     expect(totals(d.items).pallets).toBe(MAX_PALLETS);
-    expect(pltCounts(d)).toEqual({ L: 17, E: 4, C: 3, O: 1 });
+    expect(pltCounts(d)).toEqual({ L4: 13, L2: 4, E: 4, C: 3, O: 1 });
     expect(Object.values(d.checks).every((c) => c.qty > 0)).toBe(true);
   });
 });

@@ -13,21 +13,21 @@ const ITEMS: [string, string, number, number[], string, string, string[]][] = [
 
 // Lorry: name, unit, target, qtys, expired, prod, batch, PLT type per pallet (the last repeats)
 const LORRY_ITEMS: [string, string, number, number[], string, string, string, PltType[]][] = [
-  ["24X480G DAISY MARG", "CTN", 140, [40, 40, 40, 20], "14/05/27", "13/05/26", "0381505203", ["L", "L", "L", "C"]],
-  ["12X1KG DAISY MARG", "CTN", 108, [54, 54], "07/11/28", "08/05/26", "0260805103", ["L"]],
+  ["24X480G DAISY MARG", "CTN", 140, [40, 40, 40, 20], "14/05/27", "13/05/26", "0381505203", ["L4", "L4", "L2", "C"]],
+  ["12X1KG DAISY MARG", "CTN", 108, [54, 54], "07/11/28", "08/05/26", "0260805103", ["L4"]],
   ["18KG DAISY MARG-TIN", "TIN", 96, [48, 48], "02/05/27", "03/05/26", "03305", ["E"]],
   ["16KG LS SHTG BLUE LB", "CTN", 60, [60], "07/04/27", "08/04/26", "01202", ["O"]],
 ];
 
 // Full lorry: every one of the 25 rows used, all PLT types, two contracts.
 const LORRY_FULL_ITEMS: [string, string, number, number[], string, string, string, PltType[]][] = [
-  ["24X480G DAISY MARG", "CTN", 200, [40, 40, 40, 40, 40], "14/05/27", "13/05/26", "0381505203", ["L", "L", "L", "L", "C"]],
-  ["12X1KG DAISY MARG", "CTN", 216, [54, 54, 54, 54], "07/11/28", "08/05/26", "0260805103", ["L"]],
+  ["24X480G DAISY MARG", "CTN", 200, [40, 40, 40, 40, 40], "14/05/27", "13/05/26", "0381505203", ["L4", "L4", "L4", "L4", "C"]],
+  ["12X1KG DAISY MARG", "CTN", 216, [54, 54, 54, 54], "07/11/28", "08/05/26", "0260805103", ["L4"]],
   ["18KG DAISY MARG-TIN", "TIN", 192, [48, 48, 48, 48], "02/05/27", "03/05/26", "03305", ["E"]],
-  ["36X240G DAISY MARG", "CTN", 160, [40, 40, 40, 40], "16/05/27", "17/05/26", "1261705203", ["L"]],
-  ["2X4.8KG DAISY MARG", "CTN", 150, [32, 32, 32, 32, 22], "11/03/27", "12/03/26", "08613021", ["L", "L", "L", "L", "O"]],
+  ["36X240G DAISY MARG", "CTN", 160, [40, 40, 40, 40], "16/05/27", "17/05/26", "1261705203", ["L2"]],
+  ["2X4.8KG DAISY MARG", "CTN", 150, [32, 32, 32, 32, 22], "11/03/27", "12/03/26", "08613021", ["L4", "L4", "L4", "L4", "O"]],
   ["16KG LS SHTG BLUE LB", "CTN", 120, [60, 60], "07/04/27", "08/04/26", "01202", ["C"]],
-  ["6X2.5KG DAISY MARG", "CTN", 52, [52], "07/10/28", "08/04/26", "0460804203", ["L"]],
+  ["6X2.5KG DAISY MARG", "CTN", 52, [52], "07/10/28", "08/04/26", "0460804203", ["L4"]],
 ];
 
 // Full container: all 25 rows, with short pallets in the middle of an item as well as at its end.
@@ -75,7 +75,7 @@ export function sampleDraft(now: Date = new Date(), form: "container" | "contain
       disport: "MUARA, BRUNEI",
       date: todayPaperDate(now),
     });
-    d.items = items(CONTAINER_FULL_ITEMS.map(([n, u, t, q, e, p, b]) => [n, u, t, q, e, p, b, ["L"], ""]));
+    d.items = items(CONTAINER_FULL_ITEMS.map(([n, u, t, q, e, p, b]) => [n, u, t, q, e, p, b, ["L4"], ""]));
     // The last pallet carries two batches, like a mixed pallet on paper.
     const mixed = d.items[d.items.length - 1].pallets[0];
     mixed.lines = [
@@ -113,6 +113,7 @@ export function sampleDraft(now: Date = new Date(), form: "container" | "contain
     d.checks.SAMPLE = { qty: 2, note: "FOR QC" };
     d.checks["EMPTY CTN"] = { qty: 5, note: "SPARE FOR DC" };
     d.checks.OTHERS = { qty: 1, note: "PALLET JACK" };
+    d.pltOtherNote = "PLASTIC PALLET";
     d.remark = "LORRY ARRIVED 2.30PM, LOADED BY BAY 3";
     return d;
   }
@@ -122,6 +123,7 @@ export function sampleDraft(now: Date = new Date(), form: "container" | "contain
     Object.assign(d.header, { transferTo: "SHAH ALAM DC", doNo: "DO-2610-0457", lorryNo: "JTR 4821", date: todayPaperDate(now) });
     d.items = items(LORRY_ITEMS.map(([n, u, t, q, e, p, b, ty]) => [n, u, t, q, e, p, [b], ty, "LS-24117"]));
     d.checks.SAMPLE = { qty: 2, note: "FOR QC" };
+    d.pltOtherNote = "PLASTIC PALLET";
     return d;
   }
 
@@ -134,7 +136,7 @@ export function sampleDraft(now: Date = new Date(), form: "container" | "contain
     disport: "MUARA, BRUNEI",
     date: todayPaperDate(now),
   });
-  d.items = items(ITEMS.map(([n, u, t, q, e, p, b]) => [n, u, t, q, e, p, b, ["L"], ""]));
+  d.items = items(ITEMS.map(([n, u, t, q, e, p, b]) => [n, u, t, q, e, p, b, ["L4"], ""]));
   d.materials.LINER = 1;
   d.materials.POLYFOAM = 8;
   return d;

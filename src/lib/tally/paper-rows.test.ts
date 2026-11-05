@@ -9,7 +9,7 @@ function item(name: string, qtys: number[], extra: Partial<DraftItem> = {}): Dra
     unit: "CTN",
     targetQty: 100,
     qtyPerPallet: 32,
-    pallets: buildPallets(qtys, { pltType: "L", contractNo: "LS-1" }),
+    pallets: buildPallets(qtys, { pltType: "L4", contractNo: "LS-1" }),
     ...extra,
   };
 }
@@ -37,7 +37,7 @@ describe("paper rows", () => {
   it("adds an empty row, copying nothing", () => {
     const out = addRow([item("A", [32])]);
     expect(names(out)).toEqual(["A×1", "×1"]);
-    expect(out[1].pallets[0]).toMatchObject({ pltType: "L", contractNo: "", lines: [{ qty: "", batch: "" }] });
+    expect(out[1].pallets[0]).toMatchObject({ pltType: "L4", contractNo: "", lines: [{ qty: "", batch: "" }] });
     expect(unnamedRows(out)).toEqual([2]);
   });
 

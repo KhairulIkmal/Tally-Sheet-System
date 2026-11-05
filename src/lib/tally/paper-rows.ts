@@ -78,7 +78,7 @@ export function addRow(items: DraftItem[]): DraftItem[] {
     unit: "CTN",
     pallet: {
       id: newId(),
-      pltType: "L",
+      pltType: "L4",
       contractNo: "",
       remark: "",
       lines: [blankLine()],

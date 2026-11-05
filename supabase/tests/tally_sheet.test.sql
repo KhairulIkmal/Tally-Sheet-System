@@ -6,7 +6,7 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 
-select plan(33);
+select plan(36);
 
 create temp table r (k text primary key, v jsonb);
 grant all on r to public;
@@ -67,16 +67,17 @@ create function pg_temp.sheet(p_client uuid) returns jsonb language sql as $$
     'header', jsonb_build_object('transferTo', 'shah alam dc', 'doNo', 'do-1', 'lorryNo', 'wxy 1'),
     'items', jsonb_build_array(
       jsonb_build_object('name', 'margarine 5kg', 'unit', 'ctn', 'targetQty', 52, 'qtyPerPallet', 32, 'pallets', jsonb_build_array(
-        jsonb_build_object('pltType', 'L', 'contractNo', 'ls-1', 'remark', '', 'lines', jsonb_build_array(
+        jsonb_build_object('pltType', 'L4', 'contractNo', 'ls-1', 'remark', '', 'lines', jsonb_build_array(
           jsonb_build_object('qty', 32, 'batch', 'b1', 'expired', '2027-04-16', 'prod', '2025-04-16'))),
         jsonb_build_object('pltType', 'C', 'contractNo', 'ls-1', 'remark', 'mixed', 'lines', jsonb_build_array(
           jsonb_build_object('qty', 12, 'batch', 'b1', 'expired', '2027-04-16', 'prod', null),
           jsonb_build_object('qty', 8, 'batch', 'b2', 'expired', null, 'prod', null))))),
       jsonb_build_object('name', 'ghee 2kg', 'unit', 'tin', 'targetQty', null, 'qtyPerPallet', null, 'pallets', jsonb_build_array(
-        jsonb_build_object('pltType', 'L', 'contractNo', '', 'remark', '', 'lines', jsonb_build_array(
+        jsonb_build_object('pltType', 'L2', 'contractNo', '', 'remark', '', 'lines', jsonb_build_array(
           jsonb_build_object('qty', 72, 'batch', '', 'expired', null, 'prod', null)))))),
     'checks', jsonb_build_object('SAMPLE', jsonb_build_object('qty', 2, 'note', 'for qc'), 'OTHERS', jsonb_build_object('qty', '3', 'note', '')),
-    'pltCounts', jsonb_build_object('L', 2, 'C', 1, 'X', 99),
+    'pltCounts', jsonb_build_object('L4', 1, 'L2', 1, 'C', 1, 'X', 99),
+    'pltOtherNote', ' plastic ',
     'remark', 'ok', 'signature', 'data:image/png;base64,AAAA', 'signedAt', '2026-10-14T07:00:00Z', 'device', 'pgtap'
   );
 $$;
@@ -94,6 +95,12 @@ select pg_temp.keep('no_header', to_jsonb(pg_temp.try_rolled_back($$
   select tally.submit_sheet(jsonb_set(pg_temp.sheet('33333333-3333-4333-8333-333333333333'), '{header,lorryNo}', '""')) $$)));
 select pg_temp.keep('no_plt_type', to_jsonb(pg_temp.try($$
   select tally.submit_sheet(jsonb_set(pg_temp.sheet('33333333-3333-4333-8333-333333333333'), '{items,0,pallets,0,pltType}', 'null')) $$)));
+select pg_temp.keep('bad_plt_type', to_jsonb(pg_temp.try($$
+  select tally.submit_sheet(jsonb_set(pg_temp.sheet('33333333-3333-4333-8333-333333333333'), '{items,0,pallets,0,pltType}', '"L3"')) $$)));
+select pg_temp.keep('old_plt_type', to_jsonb(pg_temp.try_rolled_back($$
+  select tally.submit_sheet(jsonb_set(pg_temp.sheet('33333333-3333-4333-8333-333333333333'), '{items,0,pallets,0,pltType}', '"L"')) $$)));
+select pg_temp.keep('long_note', to_jsonb(pg_temp.try_rolled_back($$
+  select tally.submit_sheet(pg_temp.sheet('33333333-3333-4333-8333-333333333333') || jsonb_build_object('pltOtherNote', repeat('x', 200))) $$)));
 select pg_temp.keep('bad_date', to_jsonb(pg_temp.try($$
   select tally.submit_sheet(jsonb_set(pg_temp.sheet('33333333-3333-4333-8333-333333333333'), '{items,0,pallets,0,lines,0,expired}', '"16/04/27"')) $$)));
 select pg_temp.keep('bad_sig', to_jsonb(pg_temp.try($$
@@ -151,6 +158,9 @@ select isnt((pg_temp.got('s2') ->> 'ref'), (pg_temp.got('s1') ->> 'ref'), 'a new
 select is(pg_temp.got('bad_form') #>> '{}', '22023', 'unknown form is rejected');
 select is(pg_temp.got('no_header') #>> '{}', 'ok', 'lorry sheet without a lorry no is accepted (header fields are optional)');
 select is(pg_temp.got('no_plt_type') #>> '{}', '22023', 'lorry pallet without a PLT type is rejected');
+select is(pg_temp.got('bad_plt_type') #>> '{}', '22023', 'an unknown PLT type is rejected');
+select is(pg_temp.got('old_plt_type') #>> '{}', 'ok', 'the old L is still accepted, for sheets waiting to send on a phone');
+select is(pg_temp.got('long_note') #>> '{}', 'ok', 'a long Others note is cut to fit, not rejected');
 select is(pg_temp.got('bad_date') #>> '{}', '22023', 'non-ISO date is rejected');
 select is(pg_temp.got('bad_sig') #>> '{}', '23514', 'a signature that is not a PNG data URL is rejected');
 select is(pg_temp.got('no_items') #>> '{}', '22023', 'a sheet with no items is rejected');
@@ -180,12 +190,12 @@ select is(
     'form', 'lorry', 'sheet_date', '2026-10-14', 'contract_no', null, 'container_no', null, 'seal_no', null, 'si_no', null, 'disport', null,
     'transfer_to', 'SHAH ALAM DC', 'do_no', 'DO-1', 'lorry_no', 'WXY 1', 'remark', 'OK', 'materials', '{}'::jsonb,
     'checks', '{"SAMPLE": {"qty": 2, "note": "FOR QC"}, "EMPTY CTN": {"qty": 0, "note": ""}, "OTHERS": {"qty": 3, "note": ""}}'::jsonb,
-    'plt_counts', '{"L": 2, "E": 0, "C": 1, "O": 0}'::jsonb, 'total_pallets', 3, 'qty_by_unit', '{"CTN": 52, "TIN": 72}'::jsonb,
+    'plt_counts', '{"L": 0, "L4": 1, "L2": 1, "E": 0, "C": 1, "O": 0}'::jsonb, 'plt_other_note', 'PLASTIC', 'total_pallets', 3, 'qty_by_unit', '{"CTN": 52, "TIN": 72}'::jsonb,
     'prepared_by_name', 'Tally Tester 1', 'device', 'pgtap', 'status', 'printed', 'printed_by_name', 'Tally Tester 2'
   ),
   'stored sheet: upper-cased text, fixed keys only, totals computed, printed'
 );
-select is(pg_temp.got('s1_pallets'), '[[1, 1, "L", "LS-1"], [2, 1, "C", "LS-1"], [3, 2, "L", null]]'::jsonb, 'pallets numbered 1..n across items');
+select is(pg_temp.got('s1_pallets'), '[[1, 1, "L4", "LS-1"], [2, 1, "C", "LS-1"], [3, 2, "L2", null]]'::jsonb, 'pallets numbered 1..n across items');
 
 select * from finish();
 rollback;
