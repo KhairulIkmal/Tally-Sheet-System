@@ -1,7 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { CHECKS, MATERIALS, MATERIALS_FIRST_BOXES, PLT_GROUPS, PLT_LABELS } from "@/lib/tally/constants";
+import { CHECKS, MATERIALS, MATERIALS_FIRST_BOXES, PLT_GROUPS, PLT_LABELS, otherPalletList } from "@/lib/tally/constants";
 import { autoPltCounts, pltCounts, totals, type Draft } from "@/lib/tally/draft";
 
 const box =
@@ -97,6 +97,7 @@ export function PaperFooter({ draft, signerName, onEdit }: { draft: Draft; signe
 
   const counts = pltCounts(draft);
   const auto = autoPltCounts(draft.items);
+  const otherNote = otherPalletList(draft.items.flatMap((it) => it.pallets));
   const pltSum = PLT_GROUPS.reduce((a, k) => a + counts[k], 0);
   const pallets = totals(draft.items).pallets;
   return (
@@ -138,7 +139,10 @@ export function PaperFooter({ draft, signerName, onEdit }: { draft: Draft; signe
           <div className="mb-0.5 text-right text-xs font-bold">TOTAL NUMBER OF PLT</div>
           {PLT_GROUPS.map((k) => (
             <label key={k} className="grid grid-cols-[1fr_72px] border-2 border-ink">
-              <span className="flex items-center border-r-2 border-ink px-2 text-[11px] font-bold">{PLT_LABELS[k]}</span>
+              <span className="flex flex-col justify-center border-r-2 border-ink px-2 text-[11px] font-bold">
+                {PLT_LABELS[k]}
+                {k === "O" && otherNote ? <span className="pb-0.5 text-[10px] font-semibold text-muted">{otherNote}</span> : null}
+              </span>
               <input
                 value={String(counts[k])}
                 inputMode="numeric"

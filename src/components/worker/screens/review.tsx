@@ -1,7 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { MATERIALS, materialLabel, pltSummary } from "@/lib/tally/constants";
+import { MATERIALS, materialLabel, otherPalletList, pltSummary } from "@/lib/tally/constants";
 import { countStatus, formatQty, itemQty, palletQty, palletRanges, pltCounts, totals, type Draft, type Warning, type LineField } from "@/lib/tally/draft";
 import { BottomBar, Button, Scroll } from "../ui";
 
@@ -37,7 +37,7 @@ export function ReviewScreen({
         ...Object.entries(draft.checks)
           .filter(([, c]) => c.qty || c.note)
           .map(([k, c]) => `${materialLabel(k)} ${c.qty}${c.note ? ` (${c.note})` : ""}`),
-        `PLT ${pltSummary(counts)}`,
+        `PLT ${pltSummary(counts, otherPalletList(draft.items.flatMap((it) => it.pallets)))}`,
       ].join(" · ");
 
   return (

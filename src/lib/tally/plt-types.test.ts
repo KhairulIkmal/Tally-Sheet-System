@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { pltCellText, pltSummary, pltTypeName } from "./constants";
+import { otherPalletList, pltCellText, pltSummary, pltTypeName } from "./constants";
 import { autoPltCounts, buildPallets, pltCounts, reviewWarnings, upgradeDraftPlt } from "./draft";
 import { draftToPayload, submitPayloadSchema } from "./payload";
 import { sampleDraft } from "./sample";
-import { paperFromSheet, type SheetDetail } from "./sheet";
+import { paperFromDraft, paperFromSheet, type SheetDetail } from "./sheet";
 
 const at = new Date("2026-10-30T02:00:00Z");
 
@@ -53,6 +53,21 @@ describe("a draft from an earlier version", () => {
     const up = upgradeDraftPlt(Object.assign(d, { pltOtherNote: " wood " }));
     expect(up.items[3].pallets[0].pltOther).toBe("WOOD");
     expect("pltOtherNote" in up).toBe(false);
+  });
+});
+
+describe("the note on the OTHERS box", () => {
+  it("lists each type with how many, in the order written", () => {
+    const o = (pltOther: string) => ({ pltType: "O", pltOther });
+    expect(otherPalletList([o("plastic"), o(" WOOD "), o("PLASTIC")])).toBe("PLASTIC 2 · WOOD 1");
+  });
+
+  it("leaves out blanks and other pallet types", () => {
+    expect(otherPalletList([{ pltType: "O", pltOther: "" }, { pltType: "E", pltOther: "WOOD" }, { pltType: "O" }])).toBe("");
+  });
+
+  it("comes from the pallets on a draft", () => {
+    expect(paperFromDraft(sampleDraft(at, "lorry"), "A").pltOtherNote).toBe("PLASTIC 1");
   });
 });
 
@@ -144,7 +159,9 @@ describe("the printed sheet", () => {
   });
 
   it("writes an Others pallet's type on its row", () => {
-    expect(paperFromSheet(sheet({ L: 0, E: 0, C: 0, O: 1 }, "O")).rows[0].pltType).toBe("PLASTIC");
+    const p = paperFromSheet(sheet({ L: 0, E: 0, C: 0, O: 1 }, "O"));
+    expect(p.rows[0].pltType).toBe("PLASTIC");
+    expect(p.pltOtherNote).toBe("PLASTIC 1");
   });
 
   it("shows an old sheet the same way", () => {

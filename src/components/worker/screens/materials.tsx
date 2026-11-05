@@ -2,7 +2,7 @@
 
 import { Minus, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { CHECKS, MATERIALS, MATERIALS_FIRST_BOXES, PLT_GROUP_NAMES, PLT_GROUPS, materialLabel, type CheckKey, type MaterialKey, type PltGroup } from "@/lib/tally/constants";
+import { CHECKS, MATERIALS, MATERIALS_FIRST_BOXES, PLT_GROUP_NAMES, PLT_GROUPS, materialLabel, otherPalletList, type CheckKey, type MaterialKey, type PltGroup } from "@/lib/tally/constants";
 import { autoPltCounts, pltCounts, totals, type Draft } from "@/lib/tally/draft";
 import { BottomBar, Button, Scroll, TextField } from "../ui";
 
@@ -78,6 +78,7 @@ export function MaterialsScreen({
   const isContainer = draft.form === "container";
   const counts = pltCounts(draft);
   const auto = autoPltCounts(draft.items);
+  const otherNote = otherPalletList(draft.items.flatMap((it) => it.pallets));
   const pltSum = Object.values(counts).reduce((a, b) => a + b, 0);
   const pallets = totals(draft.items).pallets;
 
@@ -151,9 +152,12 @@ export function MaterialsScreen({
             </div>
             <div className="rounded-[14px] border border-line bg-surface px-3">
               {PLT_GROUPS.map((k) => (
-                <div key={k} className="flex h-[58px] items-center gap-2 border-b border-line-soft">
+                <div key={k} className="flex min-h-[58px] items-center gap-2 border-b border-line-soft py-1">
                   <span className="grid size-9 place-items-center rounded-lg bg-chip text-lg font-extrabold">{k}</span>
-                  <span className="flex-1 text-base font-semibold">{PLT_GROUP_NAMES[k]}</span>
+                  <span className="flex min-w-0 flex-1 flex-col text-base leading-tight font-semibold">
+                    {PLT_GROUP_NAMES[k]}
+                    {k === "O" && otherNote ? <span className="text-xs font-semibold text-muted">{otherNote}</span> : null}
+                  </span>
                   <button
                     type="button"
                     aria-label={`Less ${PLT_GROUP_NAMES[k]}`}

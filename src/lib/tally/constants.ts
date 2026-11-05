@@ -24,6 +24,16 @@ export function pltCellText(code: string | null | undefined, other: string | nul
   return code === "O" && written ? written : pltTypeName(code);
 }
 
+/** The note on the OTHERS box: each type of Others pallet written on the sheet, with how many ("PLASTIC 2 · WOOD 1"). */
+export function otherPalletList(pallets: readonly { pltType: string | null; pltOther?: string | null }[]): string {
+  const found = new Map<string, number>();
+  for (const p of pallets) {
+    const type = (p.pltOther ?? "").trim().toUpperCase();
+    if (p.pltType === "O" && type) found.set(type, (found.get(type) ?? 0) + 1);
+  }
+  return [...found].map(([type, n]) => `${type} ${n}`).join(" · ");
+}
+
 /** The boxes of TOTAL NUMBER OF PLT, as on the paper form: both kinds of Lam Soon pallet count under L. */
 export type PltGroup = "L" | "E" | "C" | "O";
 export const PLT_GROUPS: readonly PltGroup[] = ["L", "E", "C", "O"];

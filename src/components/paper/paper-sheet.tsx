@@ -1,4 +1,4 @@
-import { MATERIALS_FIRST_BOXES } from "@/lib/tally/constants";
+import { MATERIALS_FIRST_BOXES, PLT_LABELS } from "@/lib/tally/constants";
 import { formatQty } from "@/lib/tally/draft";
 import { pageCount, pageRows, type PaperData, type PaperRow } from "@/lib/tally/sheet";
 
@@ -409,17 +409,30 @@ export function PaperSheet({ data, page = 1, highlightMixed = false }: { data: P
             <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
               <div style={{ textAlign: "right", fontSize: 10.5, height: 14 }}>TOTAL NUMBER OF PLT</div>
               {data.plt.map((p) => (
-                <div key={p.label} style={{ display: "grid", gridTemplateColumns: "1fr 66px", border: "1.5px solid #111", height: 20 }}>
-                  <span style={{ padding: "0 6px", display: "flex", alignItems: "center", fontSize: 9.5, borderRight: "1.5px solid #111" }}>
+                <div key={p.label} style={{ display: "grid", gridTemplateColumns: "1fr 66px", border: "1.5px solid #111", minHeight: 20 }}>
+                  <span
+                    style={{
+                      padding: "0 6px",
+                      display: "flex",
+                      flexDirection: "column",
+                      justifyContent: "center",
+                      fontSize: 9.5,
+                      borderRight: "1.5px solid #111",
+                    }}
+                  >
                     {p.label}
+                    {/* A note on the OTHERS box: which types they were. */}
+                    {p.label === PLT_LABELS.O && data.pltOtherNote ? (
+                      <span style={{ font: `500 7.5px/9px ${mono}`, padding: "1px 0 2px", overflowWrap: "anywhere" }}>
+                        {data.pltOtherNote}
+                      </span>
+                    ) : null}
                   </span>
                   <span style={{ font: `600 10.5px ${mono}`, display: "flex", alignItems: "center", justifyContent: "center" }}>
                     {p.value}
                   </span>
                 </div>
               ))}
-              {/* Only a sheet stored while the form had a line under OTHERS. */}
-              {data.pltOtherNote ? <div style={{ font: `500 9px ${mono}`, textAlign: "right" }}>{data.pltOtherNote}</div> : null}
             </div>
           </div>
           <div style={{ marginTop: 8, paddingLeft: 36, fontSize: 10.5, fontWeight: 700 }}>

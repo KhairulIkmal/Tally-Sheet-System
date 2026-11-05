@@ -1,4 +1,4 @@
-import { CHECKS, MATERIALS, PLT_GROUPS, PLT_LABELS, ROWS_PER_PAGE, normalizeUnit, pltCellText, storedPltCount, type SheetForm } from "./constants";
+import { CHECKS, MATERIALS, PLT_GROUPS, PLT_LABELS, ROWS_PER_PAGE, normalizeUnit, otherPalletList, pltCellText, storedPltCount, type SheetForm } from "./constants";
 import { formatDateTime, isoToPaperDate } from "./dates";
 import { palletQty, pltCounts, totals, type Draft, type QtyByUnit } from "./draft";
 
@@ -127,7 +127,7 @@ export interface PaperData {
   materials: { label: string; value: string }[];
   checks: { label: string; value: string; note: string }[];
   plt: { label: string; value: string }[];
-  /** Only on the few sheets stored while the form had a line under OTHERS. */
+  /** The note on the OTHERS box: the types of Others pallet on this sheet. */
   pltOtherNote: string;
   remark: string;
   signature: string | null;
@@ -203,7 +203,8 @@ export function paperFromSheet(sheet: SheetDetail): PaperData {
       })),
     })),
     ...footer(sheet.form, sheet.materials, sheet.checks, sheet.pltCounts),
-    pltOtherNote: sheet.pltOtherNote,
+    // The stored note is only on the few sheets from when the form had a line under OTHERS.
+    pltOtherNote: otherPalletList(sheet.pallets) || sheet.pltOtherNote,
     remark: sheet.remark,
     signature: sheet.signature || null,
     signedBy: `${sheet.preparedByName.toUpperCase()} · ${formatDateTime(sheet.signedAt)}`,
@@ -255,7 +256,7 @@ export function paperFromDraft(draft: Draft, signerName: string, ref = "NOT SUBM
       Object.fromEntries(CHECKS.map((k) => [k, { qty: draft.checks[k].qty ?? 0, note: up(draft.checks[k].note) }])),
       pltCounts(draft),
     ),
-    pltOtherNote: "",
+    pltOtherNote: otherPalletList(draft.items.flatMap((it) => it.pallets)),
     remark: up(draft.remark),
     signature: draft.signature,
     signedBy: draft.signedAt ? `${signerName.toUpperCase()} · ${formatDateTime(draft.signedAt)}` : "",
