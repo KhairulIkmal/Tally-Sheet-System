@@ -7,7 +7,38 @@ import { autoPltCounts, pltCounts, totals, type Draft } from "@/lib/tally/draft"
 import { BottomBar, Button, Scroll, TextField } from "../ui";
 
 
-function Stepper({ value, onDec, onInc, label }: { value: number; onDec: () => void; onInc: () => void; label: string }) {
+/** The count between − and +: tap it and type. */
+function CountInput({ value, onChange, label, className }: { value: number; onChange: (n: number) => void; label: string; className?: string }) {
+  return (
+    <input
+      value={value ? String(value) : ""}
+      inputMode="numeric"
+      pattern="[0-9]*"
+      placeholder="0"
+      aria-label={`${label} count`}
+      className={cn(
+        "h-12 min-w-0 flex-none rounded-[10px] border-[1.5px] border-field bg-surface text-center text-[22px] font-extrabold text-ink outline-none placeholder:text-placeholder focus:border-2 focus:border-primary",
+        className,
+      )}
+      onFocus={(e) => e.target.select()}
+      onChange={(e) => onChange(Math.min(9999, parseInt(e.target.value.replace(/\D/g, ""), 10) || 0))}
+    />
+  );
+}
+
+function Stepper({
+  value,
+  onDec,
+  onInc,
+  onSet,
+  label,
+}: {
+  value: number;
+  onDec: () => void;
+  onInc: () => void;
+  onSet: (n: number) => void;
+  label: string;
+}) {
   return (
     <>
       <button
@@ -19,9 +50,7 @@ function Stepper({ value, onDec, onInc, label }: { value: number; onDec: () => v
       >
         <Minus className="size-6" />
       </button>
-      <span className={cn("w-14 text-center text-2xl font-extrabold", value ? "text-ink" : "text-placeholder")} aria-live="polite">
-        {value}
-      </span>
+      <CountInput value={value} label={label} onChange={onSet} className="w-14" />
       <button type="button" aria-label={`More ${label}`} onClick={onInc} className="grid h-12 w-[52px] place-items-center rounded-[10px] bg-primary text-white dark:text-[#0e1115]">
         <Plus className="size-6" />
       </button>
@@ -62,7 +91,13 @@ export function MaterialsScreen({
               {group.map((k) => (
                 <div key={k} className="flex h-[60px] items-center gap-2 border-b border-line-soft last:border-b-0">
                   <span className="flex-1 text-[17px] font-bold">{materialLabel(k)}</span>
-                  <Stepper value={draft.materials[k] ?? 0} label={materialLabel(k)} onDec={() => onMaterial(k, -1)} onInc={() => onMaterial(k, 1)} />
+                  <Stepper
+                    value={draft.materials[k] ?? 0}
+                    label={materialLabel(k)}
+                    onDec={() => onMaterial(k, -1)}
+                    onInc={() => onMaterial(k, 1)}
+                    onSet={(n) => onMaterial(k, n - (draft.materials[k] ?? 0))}
+                  />
                 </div>
               ))}
             </div>
@@ -128,7 +163,7 @@ export function MaterialsScreen({
                   >
                     <Minus className="size-5" />
                   </button>
-                  <span className="w-11 text-center text-[22px] font-extrabold">{counts[k]}</span>
+                  <CountInput value={counts[k]} label={PLT_TYPE_NAMES[k]} onChange={(n) => onPltAdjust(k, n - counts[k])} className="h-11 w-12" />
                   <button
                     type="button"
                     aria-label={`More ${PLT_TYPE_NAMES[k]}`}
