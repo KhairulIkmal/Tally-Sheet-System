@@ -1,7 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { CHECKS, MATERIALS, PLT_TYPES } from "@/lib/tally/constants";
+import { CHECKS, MATERIALS, MATERIALS_FIRST_BOXES, PLT_TYPES } from "@/lib/tally/constants";
 import { PLT_LABELS } from "@/lib/tally/sheet";
 import { autoPltCounts, pltCounts, totals, type Draft } from "@/lib/tally/draft";
 
@@ -16,7 +16,8 @@ const toCount = (v: string) => Math.min(9999, parseInt(v.replace(/\D/g, ""), 10)
  * The bottom of the paper form, laid out as printed: packing-material boxes
  * and remarks (container), or Sample / Empty CTN / Others, remark and the
  * PLT totals (lorry), then "Count & prepared by". Edits the same draft fields
- * as the step-by-step materials screen.
+ * as the step-by-step materials screen. The sheet is as wide as the paper on
+ * every screen (it is zoomed to fit), so the layout doesn't change on a phone.
  */
 export function PaperFooter({ draft, signerName, onEdit }: { draft: Draft; signerName: string; onEdit: (fn: (d: Draft) => void) => void }) {
   const signature = (
@@ -36,47 +37,57 @@ export function PaperFooter({ draft, signerName, onEdit }: { draft: Draft; signe
   );
 
   const remark = (label: string) => (
-    <label className="grid grid-cols-[84px_10px_1fr] items-end text-xs font-bold">
-      <span className="pb-1.5">{label}</span>
-      <span className="pb-1.5">:</span>
-      <input
-        value={draft.remark}
-        aria-label={label}
-        className={lineInput}
-        onChange={(e) => {
-          const v = e.target.value.slice(0, 300);
-          onEdit((d) => void (d.remark = v));
-        }}
-      />
+    <label className="grid grid-cols-[84px_10px_1fr] items-start text-xs font-bold">
+      <span className="pt-3">{label}</span>
+      <span className="pt-3">:</span>
+      {/* Two ruled lines, as on the paper: the writing runs on from the first to the second. */}
+      <span className="relative block h-[72px]">
+        <span aria-hidden className="absolute inset-x-0 top-0 h-9 border-b-2 border-ink/40" />
+        <span aria-hidden className="absolute inset-x-0 top-9 h-9 border-b-2 border-ink/40" />
+        <textarea
+          value={draft.remark}
+          aria-label={label}
+          rows={2}
+          className="absolute inset-0 resize-none overflow-y-auto bg-transparent px-1 text-[15px] leading-9 font-semibold uppercase outline-none focus:bg-primary-soft"
+          onChange={(e) => {
+            const v = e.target.value.replace(/\s*\n\s*/g, " ").slice(0, 300);
+            onEdit((d) => void (d.remark = v));
+          }}
+        />
+      </span>
     </label>
   );
 
   if (draft.form === "container") {
+    const boxes = (keys: readonly (typeof MATERIALS)[number][]) => (
+      <div className="flex w-[210px] flex-col border-2 border-ink">
+        {keys.map((k) => {
+          const v = draft.materials[k] ?? 0;
+          return (
+            <label key={k} className="grid grid-cols-[1fr_64px] items-stretch border-b border-ink/60 last:border-b-0">
+              <span className="flex items-center border-r border-ink/60 px-2 text-[11px] font-bold whitespace-nowrap">{k}</span>
+              <input
+                value={v ? String(v) : ""}
+                inputMode="numeric"
+                aria-label={k}
+                className={box}
+                onChange={(e) => {
+                  const n = toCount(e.target.value);
+                  onEdit((d) => void (d.materials[k] = n));
+                }}
+              />
+            </label>
+          );
+        })}
+      </div>
+    );
     return (
-      <div className="mt-5 grid gap-6 sm:grid-cols-[minmax(0,1fr)_360px]">
-        <div className="flex flex-col gap-5">
-          {remark("REMARKS")}
+      <div className="mt-5 flex flex-col gap-4">
+        {remark("REMARKS")}
+        <div className="flex items-end justify-between gap-4">
           {signature}
-        </div>
-        <div className="grid grid-cols-2 content-start gap-x-2.5 gap-y-1.5">
-          {MATERIALS.map((k) => {
-            const v = draft.materials[k] ?? 0;
-            return (
-              <label key={k} className="grid grid-cols-[1fr_56px] items-stretch border border-ink/60">
-                <span className="flex items-center border-r border-ink/60 px-2 text-[11px] font-bold">{k}</span>
-                <input
-                  value={v ? String(v) : ""}
-                  inputMode="numeric"
-                  aria-label={k}
-                  className={box}
-                  onChange={(e) => {
-                    const n = toCount(e.target.value);
-                    onEdit((d) => void (d.materials[k] = n));
-                  }}
-                />
-              </label>
-            );
-          })}
+          {boxes(MATERIALS.slice(0, MATERIALS_FIRST_BOXES))}
+          {boxes(MATERIALS.slice(MATERIALS_FIRST_BOXES))}
         </div>
       </div>
     );
@@ -88,8 +99,8 @@ export function PaperFooter({ draft, signerName, onEdit }: { draft: Draft; signe
   const pallets = totals(draft.items).pallets;
   return (
     <div className="mt-5 flex flex-col gap-5">
-      <div className="grid gap-6 sm:grid-cols-[minmax(0,1fr)_260px]">
-        <div className="flex flex-col gap-2 sm:pt-6">
+      <div className="grid grid-cols-[minmax(0,1fr)_260px] gap-6">
+        <div className="flex flex-col gap-2 pt-6">
           {CHECKS.map((k) => {
             const c = draft.checks[k];
             return (

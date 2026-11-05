@@ -24,6 +24,8 @@ export const MATERIALS = [
   "POLYFOAM",
 ] as const;
 export type MaterialKey = (typeof MATERIALS)[number];
+/** The paper has two sets of boxes: this many of MATERIALS in the first (Sample to Wooden Frame), the rest in the second. */
+export const MATERIALS_FIRST_BOXES = 4;
 
 /** Tick boxes with a note line at the foot of the lorry form. */
 export const CHECKS = ["SAMPLE", "EMPTY CTN", "OTHERS"] as const;

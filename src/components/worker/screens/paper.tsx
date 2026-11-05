@@ -331,9 +331,17 @@ export function PaperScreen({
             <div className="mb-1 text-center text-lg font-extrabold tracking-[.04em]">COUNT TALLY SHEET</div>
 
             <div className="mt-3 mb-4 grid grid-cols-2 gap-x-6 gap-y-2">
-              {HEADER[form].map((f) => (
+              {HEADER[form].map((f, n) => (
                 <label key={f.key} className="flex items-end gap-2">
-                  <span className={cn("pb-1.5 text-xs font-bold whitespace-nowrap uppercase", errors[f.key] ? "text-danger" : "text-body")}>
+                  <span
+                    className={cn(
+                      "flex-none pb-1.5 text-xs font-bold whitespace-nowrap uppercase",
+                      n % 2 ? "w-[72px]" : "w-[104px]",
+                      // The container form lines its labels up on the right, the lorry form on the left.
+                      !isLorry && "text-right",
+                      errors[f.key] ? "text-danger" : "text-body",
+                    )}
+                  >
                     {f.label}:
                   </span>
                   <input
@@ -383,10 +391,10 @@ export function PaperScreen({
             <table className="w-full border-collapse text-left">
               <thead>
                 <tr className="bg-surface-sunken text-[11px] leading-tight font-bold tracking-[.04em] text-body">
-                  <th className={cn(cell, "sticky left-0 z-10 w-12 bg-surface-sunken px-1 py-2 text-center")}>PLT NO</th>
+                  <th className={cn(cell, "sticky left-0 z-10 w-12 bg-surface-sunken px-1 py-2 text-center")}>{isLorry ? "PLT NO" : "NO."}</th>
                   {isLorry ? <th className={cn(cell, "w-16 px-2")}>PLT TYPE</th> : null}
                   {isLorry ? <th className={cn(cell, "min-w-[120px] px-2")}>CONTRACT NO.</th> : null}
-                  <th className={cn(cell, "min-w-[210px] px-2")}>ITEM (DESCRIPTION)</th>
+                  <th className={cn(cell, "min-w-[210px] px-2")}>{isLorry ? "ITEM (DESC)" : "ITEM (DESCRIPTION)"}</th>
                   <th className={cn(cell, "min-w-[124px] px-2")}>QTY</th>
                   <th className={cn(cell, "min-w-[100px] px-2")}>EXPIRED</th>
                   <th className={cn(cell, "min-w-[100px] px-2")}>PROD</th>

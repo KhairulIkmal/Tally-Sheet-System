@@ -1,3 +1,4 @@
+import { MATERIALS_FIRST_BOXES } from "@/lib/tally/constants";
 import { formatQty } from "@/lib/tally/draft";
 import { pageCount, pageRows, type PaperData, type PaperRow } from "@/lib/tally/sheet";
 
@@ -12,10 +13,16 @@ export const PAPER_HEIGHT = 1123;
 const line = "1px solid #111";
 const mono = "var(--font-plex-mono), ui-monospace, monospace";
 
-function HeaderField({ label, value, labelWidth }: { label: string; value: string; labelWidth: number }) {
+/** Column widths measured off the paper forms. */
+const COLUMNS = {
+  container: "36px 183px 64px 80px 88px 158px minmax(0,1fr)",
+  lorry: "32px 58px 84px 151px 44px 69px 72px 133px minmax(0,1fr)",
+};
+
+function HeaderField({ label, value, labelWidth, right }: { label: string; value: string; labelWidth: number; right?: boolean }) {
   return (
     <div style={{ display: "grid", gridTemplateColumns: `${labelWidth}px 10px 1fr`, alignItems: "end" }}>
-      <span>{label}</span>
+      <span style={right ? { textAlign: "right", paddingRight: 3 } : undefined}>{label}</span>
       <span>:</span>
       <span
         style={{
@@ -168,9 +175,29 @@ function BoldSignature({ src }: { src: string }) {
   );
 }
 
+/** One set of the container form's packing-material boxes. */
+function MaterialBoxes({ boxes }: { boxes: PaperData["materials"] }) {
+  return (
+    <div style={{ border: "1.5px solid #111", width: 165 }}>
+      {boxes.map((m, i) => (
+        <div
+          key={m.label}
+          style={{ display: "grid", gridTemplateColumns: "84px 1fr", height: 23, borderBottom: i < boxes.length - 1 ? line : undefined }}
+        >
+          <span style={{ padding: "0 4px", display: "flex", alignItems: "center", fontSize: 9, whiteSpace: "nowrap", borderRight: line }}>
+            {m.label}
+          </span>
+          <span style={{ font: `600 10px ${mono}`, display: "flex", alignItems: "center", justifyContent: "center" }}>
+            {m.value === "0" ? "" : m.value}
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function rowsFor(form: PaperData["form"], rows: PaperRow[], highlightMixed: boolean) {
-  const cols =
-    form === "container" ? "34px minmax(0,1fr) 46px 62px 62px 92px 86px" : "32px 34px 76px minmax(0,1fr) 38px 56px 56px 78px 62px";
+  const cols = COLUMNS[form];
   return rows.map((r) => {
     const q = r.lines.map((l) => l.qty);
     const e = r.lines.map((l) => l.expired);
@@ -229,9 +256,9 @@ export function PaperSheet({ data, page = 1, highlightMixed = false }: { data: P
   const rows = pageRows(data.rows, page);
   const h = data.header;
   const isContainer = data.form === "container";
-  const headCols = isContainer ? "34px minmax(0,1fr) 46px 62px 62px 92px 86px" : "32px 34px 76px minmax(0,1fr) 38px 56px 56px 78px 62px";
+  const headCols = COLUMNS[data.form];
   const heads = isContainer
-    ? ["NO", "ITEM (DESCRIPTION)", "QTY", "EXPIRED", "PROD", "BATCH", "REMARK"]
+    ? ["NO.", "ITEM (DESCRIPTION)", "QTY", "EXPIRED", "PROD", "BATCH", "REMARK"]
     : ["PLT\nNO", "PLT\nTYPE", "CONTRACT\nNO.", "ITEM (DESC)", "QTY", "EXPIRED", "PROD", "BATCH", "REMARK"];
 
   return (
@@ -250,15 +277,15 @@ export function PaperSheet({ data, page = 1, highlightMixed = false }: { data: P
         overflow: "hidden",
       }}
     >
-      <div style={{ textAlign: "center", fontWeight: 700, fontSize: 15, letterSpacing: ".02em", marginBottom: 14 }}>COUNT TALLY SHEET</div>
+      <div style={{ textAlign: "center", fontWeight: 700, fontSize: 19, letterSpacing: ".02em", marginBottom: 14 }}>COUNT TALLY SHEET</div>
 
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "1fr 1fr",
-          columnGap: 40,
-          rowGap: 7,
-          fontSize: 10.5,
+          gridTemplateColumns: isContainer ? "349px minmax(0,1fr)" : "1fr 1fr",
+          columnGap: isContainer ? 15 : 50,
+          rowGap: 10,
+          fontSize: 11,
           fontWeight: 700,
           marginBottom: 12,
         }}
@@ -266,19 +293,19 @@ export function PaperSheet({ data, page = 1, highlightMixed = false }: { data: P
         {isContainer ? (
           <>
             {/* As on the paper form: Contract, Container, Seal down the left; SI, Disport, Date down the right. */}
-            <HeaderField label="CONTRACT NO" value={h.contractNo} labelWidth={92} />
-            <HeaderField label="SI NO" value={h.siNo} labelWidth={70} />
-            <HeaderField label="CONTAINER NO" value={h.containerNo} labelWidth={92} />
-            <HeaderField label="DISPORT" value={h.disport} labelWidth={70} />
-            <HeaderField label="SEAL NO" value={h.sealNo} labelWidth={92} />
-            <HeaderField label="DATE" value={h.date} labelWidth={70} />
+            <HeaderField label="CONTRACT NO" value={h.contractNo} labelWidth={124} right />
+            <HeaderField label="SI NO" value={h.siNo} labelWidth={73} right />
+            <HeaderField label="CONTAINER NO" value={h.containerNo} labelWidth={124} right />
+            <HeaderField label="DISPORT" value={h.disport} labelWidth={73} right />
+            <HeaderField label="SEAL NO" value={h.sealNo} labelWidth={124} right />
+            <HeaderField label="DATE" value={h.date} labelWidth={73} right />
           </>
         ) : (
           <>
-            <HeaderField label="TRANSFER TO" value={h.transferTo} labelWidth={92} />
-            <HeaderField label="DATE" value={h.date} labelWidth={70} />
-            <HeaderField label="D/O NO" value={h.doNo} labelWidth={92} />
-            <HeaderField label="LORRY NO" value={h.lorryNo} labelWidth={70} />
+            <HeaderField label="TRANSFER TO" value={h.transferTo} labelWidth={110} />
+            <HeaderField label="DATE" value={h.date} labelWidth={87} />
+            <HeaderField label="D/O NO" value={h.doNo} labelWidth={110} />
+            <HeaderField label="LORRY NO" value={h.lorryNo} labelWidth={87} />
           </>
         )}
       </div>
@@ -315,23 +342,20 @@ export function PaperSheet({ data, page = 1, highlightMixed = false }: { data: P
       </div>
 
       {isLast && isContainer ? (
-        <div
-          style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) 330px", gap: 28, marginTop: 16, fontSize: 10.5, fontWeight: 700 }}
-        >
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            <RuledRemark label="REMARKS" labelWidth={72} text={data.remark} step={22} />
-            <div style={{ marginTop: 12 }}>COUNT &amp; PREPARED BY :</div>
-            <Signature data={data} />
+        <div style={{ marginTop: 12, fontSize: 10.5, fontWeight: 700 }}>
+          <div style={{ padding: "0 76px 0 42px" }}>
+            <RuledRemark label="REMARKS" labelWidth={62} text={data.remark} step={24} />
           </div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "5px 10px", alignContent: "start" }}>
-            {data.materials.map((m) => (
-              <div key={m.label} style={{ display: "grid", gridTemplateColumns: "1fr 36px", border: line, height: 22 }}>
-                <span style={{ padding: "0 6px", display: "flex", alignItems: "center", fontSize: 9, borderRight: line }}>{m.label}</span>
-                <span style={{ font: `600 10px ${mono}`, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                  {m.value === "0" ? "" : m.value}
-                </span>
-              </div>
-            ))}
+          {/* As on the paper: the signature on the left, then two sets of boxes side by side, level at the bottom. */}
+          <div style={{ display: "grid", gridTemplateColumns: "282px 165px minmax(0,1fr)", alignItems: "end", marginTop: 8 }}>
+            <div style={{ paddingLeft: 42 }}>
+              <div>COUNT &amp; PREPARED BY :</div>
+              <Signature data={data} />
+            </div>
+            <MaterialBoxes boxes={data.materials.slice(0, MATERIALS_FIRST_BOXES)} />
+            <div style={{ justifySelf: "end" }}>
+              <MaterialBoxes boxes={data.materials.slice(MATERIALS_FIRST_BOXES)} />
+            </div>
           </div>
         </div>
       ) : null}
@@ -339,17 +363,17 @@ export function PaperSheet({ data, page = 1, highlightMixed = false }: { data: P
       {isLast && !isContainer ? (
         <>
           <div
-            style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) 230px", gap: 40, marginTop: 12, fontSize: 10.5, fontWeight: 700 }}
+            style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) 200px", gap: 41, marginTop: 6, fontSize: 10.5, fontWeight: 700 }}
           >
-            <div style={{ display: "flex", flexDirection: "column", gap: 7, paddingTop: 16 }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 5, paddingTop: 19 }}>
               {data.checks.map((c) => (
-                <div key={c.label} style={{ display: "grid", gridTemplateColumns: "76px 10px 24px 1fr", alignItems: "end", gap: "0 4px" }}>
+                <div key={c.label} style={{ display: "grid", gridTemplateColumns: "76px 10px 40px 1fr", alignItems: "end", gap: "0 4px" }}>
                   <span>{c.label}</span>
                   <span>:</span>
                   <span
                     style={{
-                      width: 22,
-                      height: 16,
+                      width: 40,
+                      height: 20,
                       border: "1.5px solid #111",
                       display: "flex",
                       alignItems: "center",
@@ -375,10 +399,10 @@ export function PaperSheet({ data, page = 1, highlightMixed = false }: { data: P
               ))}
               <RuledRemark label="REMARK" labelWidth={80} text={data.remark} step={20} />
             </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-              <div style={{ textAlign: "right", fontSize: 10.5, marginBottom: 2 }}>TOTAL NUMBER OF PLT</div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+              <div style={{ textAlign: "right", fontSize: 10.5, height: 14 }}>TOTAL NUMBER OF PLT</div>
               {data.plt.map((p) => (
-                <div key={p.label} style={{ display: "grid", gridTemplateColumns: "1fr 60px", border: "1.5px solid #111", height: 21 }}>
+                <div key={p.label} style={{ display: "grid", gridTemplateColumns: "1fr 66px", border: "1.5px solid #111", height: 20 }}>
                   <span style={{ padding: "0 6px", display: "flex", alignItems: "center", fontSize: 9.5, borderRight: "1.5px solid #111" }}>
                     {p.label}
                   </span>
@@ -389,8 +413,10 @@ export function PaperSheet({ data, page = 1, highlightMixed = false }: { data: P
               ))}
             </div>
           </div>
-          <div style={{ marginTop: 14, fontSize: 10.5, fontWeight: 700 }}>COUNT &amp; PREPARED BY :</div>
-          <Signature data={data} />
+          <div style={{ marginTop: 8, paddingLeft: 36, fontSize: 10.5, fontWeight: 700 }}>
+            <div>COUNT &amp; PREPARED BY :</div>
+            <Signature data={data} />
+          </div>
         </>
       ) : null}
 
