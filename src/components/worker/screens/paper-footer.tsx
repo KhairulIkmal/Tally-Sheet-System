@@ -1,7 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { CHECKS, MATERIALS, MATERIALS_FIRST_BOXES, PLT_GROUPS, PLT_LABELS, otherPalletList } from "@/lib/tally/constants";
+import { CHECKS, MATERIALS, MATERIALS_FIRST_BOXES, PLT_GROUPS, PLT_LABELS, lamSoonWayList, otherPalletList } from "@/lib/tally/constants";
 import { autoPltCounts, pltCounts, totals, type Draft } from "@/lib/tally/draft";
 
 const box =
@@ -97,7 +97,8 @@ export function PaperFooter({ draft, signerName, onEdit }: { draft: Draft; signe
 
   const counts = pltCounts(draft);
   const auto = autoPltCounts(draft.items);
-  const otherNote = otherPalletList(draft.items.flatMap((it) => it.pallets));
+  const allPallets = draft.items.flatMap((it) => it.pallets);
+  const notes: Partial<Record<(typeof PLT_GROUPS)[number], string>> = { L: lamSoonWayList(allPallets), O: otherPalletList(allPallets) };
   const pltSum = PLT_GROUPS.reduce((a, k) => a + counts[k], 0);
   const pallets = totals(draft.items).pallets;
   return (
@@ -141,7 +142,7 @@ export function PaperFooter({ draft, signerName, onEdit }: { draft: Draft; signe
             <label key={k} className="grid grid-cols-[1fr_72px] border-2 border-ink">
               <span className="flex flex-col justify-center border-r-2 border-ink px-2 text-[11px] font-bold">
                 {PLT_LABELS[k]}
-                {k === "O" && otherNote ? <span className="pb-0.5 text-[10px] font-semibold text-muted">{otherNote}</span> : null}
+                {notes[k] ? <span className="pb-0.5 text-[10px] font-semibold text-muted">{notes[k]}</span> : null}
               </span>
               <input
                 value={String(counts[k])}

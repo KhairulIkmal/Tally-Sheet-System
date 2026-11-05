@@ -3,10 +3,11 @@ import { itemRowMarks } from "./sheet";
 
 // The examples from the warehouse's paper sheet.
 describe("itemRowMarks", () => {
-  it("writes the name on the first row and the TOTAL on the second", () => {
+  it("writes the name first, then how the pallets split, then the TOTAL", () => {
     const rows = itemRowMarks("36X240G DAISY MARG", "CTN", 200, [40, 40, 40, 40, 40]);
-    expect(rows.map((r) => r.item)).toEqual(["36X240G DAISY MARG", "TOTAL: 200 CTN", "", "", ""]);
+    expect(rows.map((r) => r.item)).toEqual(["36X240G DAISY MARG", "5 PLT x 40 CTN", "TOTAL: 200 CTN", "", ""]);
     expect(rows[1].itemIsTotal).toBe(true);
+    expect(rows[2].itemIsTotal).toBe(true);
     expect(rows.map((r) => r.circled)).toEqual([false, false, false, false, true]);
   });
 

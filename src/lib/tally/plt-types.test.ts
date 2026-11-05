@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { otherPalletList, pltCellText, pltSummary, pltTypeName } from "./constants";
+import { lamSoonWayList, otherPalletList, pltCellText, pltSummary, pltTypeName } from "./constants";
 import { autoPltCounts, buildPallets, pltCounts, reviewWarnings, samePltType, upgradeDraftPlt } from "./draft";
 import { draftToPayload, submitPayloadSchema } from "./payload";
 import { fillDown, toRows } from "./paper-rows";
 import { sampleDraft } from "./sample";
-import { paperFromDraft, paperFromSheet, type SheetDetail } from "./sheet";
+import { itemPalletsText, itemRowMarks, paperFromDraft, paperFromSheet, type SheetDetail } from "./sheet";
 
 const at = new Date("2026-10-30T02:00:00Z");
 
@@ -87,6 +87,62 @@ describe("same for the PLT type", () => {
     expect(samePltType({ pltType: "L4" }, { pltType: "L4", pltOther: "OLD" })).toBe(true);
     expect(samePltType({ pltType: "L4" }, { pltType: "L2" })).toBe(false);
     expect(samePltType({ pltType: "O", pltOther: "A" }, { pltType: "O", pltOther: "B" })).toBe(false);
+  });
+});
+
+describe("the note on the L box", () => {
+  const of = (...types: string[]) => types.map((pltType) => ({ pltType }));
+
+  it("says how many of each way, leaving out a way not used", () => {
+    expect(lamSoonWayList(of("L4", "L4", "L2", "E"))).toBe("4W 2 · 2W 1");
+    expect(lamSoonWayList(of("L4", "L4"))).toBe("4W 2");
+    expect(lamSoonWayList(of("L2"))).toBe("2W 1");
+  });
+
+  it("is empty with no way to tell: other types, or an old L", () => {
+    expect(lamSoonWayList(of("E", "O"))).toBe("");
+    expect(lamSoonWayList(of("L"))).toBe("");
+  });
+
+  it("goes on the sheet and in the summary", () => {
+    const d = sampleDraft(at, "lorry");
+    expect(paperFromDraft(d, "A").pltWayNote).toBe("4W 4 · 2W 1");
+    expect(pltSummary({ L: 5, O: 1 }, "WOOD 1", "4W 4 · 2W 1")).toBe("L 5 (4W 4 · 2W 1) · O 1 (WOOD 1)");
+  });
+});
+
+describe("the pallets line on an item", () => {
+  it("is said when every pallet holds the same qty", () => {
+    expect(itemPalletsText("CTN", Array(16).fill(40))).toBe("16 PLT x 40 CTN");
+    expect(itemPalletsText("TIN", [48, 48, 48])).toBe("3 PLT x 48 TIN");
+  });
+
+  it("isn't said for a short pallet, a blank qty, or too few rows", () => {
+    expect(itemPalletsText("CTN", [48, 48, 6])).toBe("");
+    expect(itemPalletsText("CTN", [0, 0, 0])).toBe("");
+    expect(itemPalletsText("CTN", [40, 40])).toBe("");
+    expect(itemPalletsText("CTN", [40])).toBe("");
+  });
+
+  it("writes name, pallets line, TOTAL, then blanks, with the last pallet circled", () => {
+    const m = itemRowMarks("X", "CTN", 160, [40, 40, 40, 40]);
+    expect(m.map((r) => r.item)).toEqual(["X", "4 PLT x 40 CTN", "TOTAL: 160 CTN", ""]);
+    expect(m.map((r) => !!r.itemIsTotal)).toEqual([false, true, true, false]);
+    expect(m.map((r) => !!r.circled)).toEqual([false, false, false, true]);
+  });
+
+  it("is left off the container form", () => {
+    const rows = paperFromDraft(sampleDraft(at, "container-full"), "A").rows;
+    expect(rows[1].item).toBe("TOTAL: 200 CTN");
+    expect(rows.some((r) => r.item.includes(" PLT x "))).toBe(false);
+  });
+
+  it("stays as name then TOTAL otherwise", () => {
+    expect(itemRowMarks("X", "CTN", 150, [48, 48, 48, 6]).map((r) => r.item)).toEqual(["X", "TOTAL: 150 CTN", "", ""]);
+    expect(itemRowMarks("X", "CTN", 80, [40, 40]).map((r) => r.item)).toEqual(["X", "TOTAL: 80 CTN"]);
+    const one = itemRowMarks("X", "CTN", 40, [40]);
+    expect(one[0].item).toBe("X");
+    expect(one[0].itemSub).toBe("TOTAL: 40 CTN");
   });
 });
 

@@ -24,6 +24,14 @@ export function pltCellText(code: string | null | undefined, other: string | nul
   return code === "O" && written ? written : pltTypeName(code);
 }
 
+/** The note on the L box: how many Lam Soon pallets of each way ("4W 16 · 2W 6"). */
+export function lamSoonWayList(pallets: readonly { pltType: string | null }[]): string {
+  const count = (type: string) => pallets.filter((p) => p.pltType === type).length;
+  const four = count("L4");
+  const two = count("L2");
+  return [four ? `4W ${four}` : "", two ? `2W ${two}` : ""].filter(Boolean).join(" · ");
+}
+
 /** The note on the OTHERS box: each type of Others pallet written on the sheet, with how many ("PLASTIC 2 · WOOD 1"). */
 export function otherPalletList(pallets: readonly { pltType: string | null; pltOther?: string | null }[]): string {
   const found = new Map<string, number>();
@@ -60,11 +68,12 @@ export function pltTypeName(code: string | null | undefined): string {
   return code === OLD_LAM_SOON ? "LAM SOON" : (PLT_TYPE_NAMES[code as PltType] ?? code);
 }
 
-/** "L 3 · O 1" from a sheet's counts, in form order. */
-export function pltSummary(counts: Record<string, number>, otherNote = ""): string {
+/** "L 3 (4W 3) · O 1 (WOOD 1)" from a sheet's counts and the notes on its boxes, in form order. */
+export function pltSummary(counts: Record<string, number>, otherNote = "", wayNote = ""): string {
+  const noteOf = (k: PltGroup) => (k === "O" ? otherNote.trim().toUpperCase() : k === "L" ? wayNote : "");
   return (
     PLT_GROUPS.filter((k) => storedPltCount(counts, k))
-      .map((k) => `${k} ${storedPltCount(counts, k)}${k === "O" && otherNote.trim() ? ` (${otherNote.trim().toUpperCase()})` : ""}`)
+      .map((k) => `${k} ${storedPltCount(counts, k)}${noteOf(k) ? ` (${noteOf(k)})` : ""}`)
       .join(" · ") || "0"
   );
 }

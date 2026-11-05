@@ -39,7 +39,7 @@ import {
 } from "@/lib/tally/paper-rows";
 import type { ItemSuggestion } from "../pick";
 import { BottomBar, Button } from "../ui";
-import { itemRowMarks, itemTotalText } from "@/lib/tally/sheet";
+import { itemPalletsText, itemRowMarks, itemTotalText } from "@/lib/tally/sheet";
 import { PaperFooter } from "./paper-footer";
 import { AutoFillPanel } from "./paper-autofill";
 import { usePaperZoom } from "./paper-zoom";
@@ -191,15 +191,21 @@ export function PaperScreen({
     const qtys = it.pallets.map(palletQty);
     const unit = normalizeUnit(it.unit);
     const total = itemTotalText(unit, it.targetQty, qtys);
+    const perPallet = form === "lorry" ? itemPalletsText(unit, qtys) : "";
     // While filling in only: how far the counted pallets are from the TOTAL. The printed sheet doesn't show it.
     const check = countStatus(
       qtys.reduce((a, b) => a + b, 0),
       it.targetQty,
       unit,
     );
-    return itemRowMarks(it.name.trim(), unit, it.targetQty, qtys).map((m, j) => {
-      const totalRow = j === (qtys.length > 1 ? 1 : 0);
-      return { first: j === 0, total: totalRow ? total : "", check: totalRow ? check : null, circled: !!m.circled };
+    return itemRowMarks(it.name.trim(), unit, it.targetQty, qtys, form === "lorry").map((m, j) => {
+      const totalRow = j === (perPallet ? 2 : qtys.length > 1 ? 1 : 0);
+      return {
+        first: j === 0,
+        total: totalRow ? total : perPallet && j === 1 ? perPallet : "",
+        check: totalRow ? check : null,
+        circled: !!m.circled,
+      };
     });
   });
   const isLorry = form === "lorry";

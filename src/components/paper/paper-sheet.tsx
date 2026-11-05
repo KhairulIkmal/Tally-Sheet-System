@@ -196,6 +196,10 @@ function MaterialBoxes({ boxes }: { boxes: PaperData["materials"] }) {
   );
 }
 
+function boxNote(data: PaperData, label: string): string {
+  return label === PLT_LABELS.L ? data.pltWayNote : label === PLT_LABELS.O ? data.pltOtherNote : "";
+}
+
 function rowsFor(form: PaperData["form"], rows: PaperRow[], highlightMixed: boolean) {
   const cols = COLUMNS[form];
   return rows.map((r) => {
@@ -421,10 +425,10 @@ export function PaperSheet({ data, page = 1, highlightMixed = false }: { data: P
                     }}
                   >
                     {p.label}
-                    {/* A note on the OTHERS box: which types they were. */}
-                    {p.label === PLT_LABELS.O && data.pltOtherNote ? (
+                    {/* A note on the box: the L box's ways, the OTHERS box's types. */}
+                    {boxNote(data, p.label) ? (
                       <span style={{ font: `500 7.5px/9px ${mono}`, padding: "1px 0 2px", overflowWrap: "anywhere" }}>
-                        {data.pltOtherNote}
+                        {boxNote(data, p.label)}
                       </span>
                     ) : null}
                   </span>
