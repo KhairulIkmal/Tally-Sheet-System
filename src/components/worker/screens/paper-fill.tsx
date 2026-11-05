@@ -15,15 +15,38 @@ export interface FillDrag {
 }
 
 /**
- * iPhones and iPads cancel a touch when the keyboard closes under it, which would
- * end a drag on the spot. There the keyboard waits until the finger lifts.
+ * iPhones and iPads cancel the pointer when the keyboard closes under it, which would
+ * end a drag on the spot. There a finger is followed by its touch events instead.
  */
 function isIOS(): boolean {
   return /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
 }
 
-function closeKeyboard() {
-  if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
+const KEEP_KEYBOARD_KEY = "tally.dragKeepsKeyboard";
+
+/** Set on a device whose touch was cancelled by the keyboard closing: there it closes when the finger lifts. */
+function dragKeepsKeyboard(): boolean {
+  try {
+    return window.localStorage.getItem(KEEP_KEYBOARD_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
+function rememberDragKeepsKeyboard() {
+  try {
+    window.localStorage.setItem(KEEP_KEYBOARD_KEY, "1");
+  } catch {
+    // Private mode: it is worked out again next time.
+  }
+}
+
+/** True if there was a field to take the keyboard away from. */
+function closeKeyboard(): boolean {
+  const active = document.activeElement;
+  if (!(active instanceof HTMLElement) || active === document.body) return false;
+  active.blur();
+  return true;
 }
 
 const same = (a: FillSpec, b: FillSpec) =>
@@ -49,7 +72,9 @@ function followRows(
   let y = e.clientY;
   let to = from;
   let moved = false;
-  const closeOnLift = isIOS();
+  const touch = isIOS() && e.pointerType === "touch";
+  const closeOnLift = touch && dragKeepsKeyboard();
+  let closedAt = 0;
   // Looks through anything floating over the sheet (the Done button, the hint) to the row beneath.
   const rowAt = (py: number) => {
     for (const el of document.elementsFromPoint(x, py)) {
@@ -83,20 +108,24 @@ function followRows(
     raf = requestAnimationFrame(tick);
   };
   raf = requestAnimationFrame(tick);
-  const onMove = (ev: PointerEvent) => {
-    if (!moved && Math.abs(ev.clientY - e.clientY) > 6) {
+  const moveTo = (clientY: number) => {
+    if (!moved && Math.abs(clientY - e.clientY) > 6) {
       moved = true;
       // A drag needs the room: close the keyboard. A plain tap leaves it open to keep typing.
-      if (!closeOnLift) closeKeyboard();
+      if (!closeOnLift && closeKeyboard()) closedAt = Date.now();
     }
-    y = ev.clientY;
+    y = clientY;
     track();
   };
+  const onMove = (ev: PointerEvent) => moveTo(ev.clientY);
   const end = (apply: boolean) => {
     cancelAnimationFrame(raf);
     window.removeEventListener("pointermove", onMove);
     window.removeEventListener("pointerup", onUp);
     window.removeEventListener("pointercancel", onCancel);
+    target.removeEventListener("touchmove", onTouchMove);
+    target.removeEventListener("touchend", onTouchEnd);
+    target.removeEventListener("touchcancel", onTouchCancel);
     if (closeOnLift && moved) closeKeyboard();
     onDone(apply ? to : null, moved);
   };
@@ -106,9 +135,33 @@ function followRows(
     end(true);
   };
   const onCancel = () => end(false);
-  window.addEventListener("pointermove", onMove);
-  window.addEventListener("pointerup", onUp);
-  window.addEventListener("pointercancel", onCancel);
+  // Touch events keep going to the element the finger came down on.
+  const target = e.target as Element;
+  const onTouchMove = (ev: Event) => {
+    ev.preventDefault();
+    const t = (ev as TouchEvent).touches[0];
+    if (t) moveTo(t.clientY);
+  };
+  const onTouchEnd = (ev: Event) => {
+    const { touches, changedTouches } = ev as TouchEvent;
+    if (touches.length) return;
+    if (changedTouches[0]) y = changedTouches[0].clientY;
+    track();
+    end(true);
+  };
+  const onTouchCancel = () => {
+    if (closedAt && Date.now() - closedAt < 1000) rememberDragKeepsKeyboard();
+    end(false);
+  };
+  if (touch) {
+    target.addEventListener("touchmove", onTouchMove, { passive: false });
+    target.addEventListener("touchend", onTouchEnd);
+    target.addEventListener("touchcancel", onTouchCancel);
+  } else {
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+    window.addEventListener("pointercancel", onCancel);
+  }
   return () => end(false);
 }
 
