@@ -29,7 +29,7 @@ describe("draftToPayload", () => {
     expect(p.header.doNo).toBe("DO-778120");
     expect(p.items[0]).toMatchObject({ name: "SHORTENING 16KG", unit: "TIN", targetQty: 60, qtyPerPallet: 40 });
     expect(p.items[0].pallets[1].lines[1]).toEqual({ qty: 8, batch: "B2", expired: "2026-10-02", prod: null });
-    expect(p.pltCounts).toEqual({ L4: 0, L2: 0, E: 0, C: 2, O: 0 });
+    expect(p.pltCounts).toEqual({ L: 0, E: 0, C: 2, O: 0 });
     expect(p.checks.SAMPLE).toEqual({ qty: 2, note: "FOR QC" });
     expect(p.materials).toEqual({});
   });
@@ -62,7 +62,7 @@ describe("pallet limit", () => {
     const full = buildPallets(Array.from({ length: 25 }, () => 4), { pltType: "C", contractNo: "x" });
     full.forEach((p) => (p.lines[0] = { qty: "4", batch: "b", expired: "", prod: "" }));
     d.items = [{ ...d.items[0], targetQty: null, pallets: full }];
-    d.pltAdjust = { L4: 0, L2: 0, E: 0, C: 0, O: 0 };
+    d.pltAdjust = { L: 0, E: 0, C: 0, O: 0 };
     expect(submitPayloadSchema.safeParse(draftToPayload(d, "x")).success).toBe(true);
     d.items[0].pallets = [...full, { ...full[0], id: "extra" }];
     const r = submitPayloadSchema.safeParse(draftToPayload(d, "x"));
@@ -78,7 +78,7 @@ describe("paper layout", () => {
     expect(paper.rows[1].lines.map((l) => l.batch)).toEqual(["B1", "B2"]);
     // Just the number, even for TIN: the unit is on the TOTAL line.
     expect(paper.rows[1].lines.map((l) => l.qty)).toEqual(["12", "8"]);
-    expect(paper.plt.find((x) => x.label === "LOSCAM")?.value).toBe("2");
+    expect(paper.plt.find((x) => x.label === "C - (LOSCAM)")?.value).toBe("2");
     expect(paper.signedBy).toBe("MOHD HAFIZ · 14/10/26 15:58");
   });
 

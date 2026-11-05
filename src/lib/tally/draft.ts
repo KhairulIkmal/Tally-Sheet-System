@@ -1,7 +1,9 @@
 import {
   CHECKS,
   MATERIALS,
-  PLT_TYPES,
+  PLT_GROUPS,
+  pltGroup,
+  type PltGroup,
   type CheckKey,
   type MaterialKey,
   type PltType,
@@ -65,10 +67,8 @@ export interface Draft {
   items: DraftItem[];
   materials: Record<MaterialKey, number>;
   checks: Record<CheckKey, { qty: number; note: string }>;
-  /** Manual corrections on top of the PLT-type counts worked out from the pallets. */
-  pltAdjust: Record<PltType, number>;
-  /** What the OTHERS pallets were, written under their box on the form. */
-  pltOtherNote: string;
+  /** Manual corrections on top of the TOTAL NUMBER OF PLT boxes worked out from the pallets. */
+  pltAdjust: Record<PltGroup, number>;
   remark: string;
   signature: string | null;
   signedAt: string | null;
@@ -111,8 +111,7 @@ export function newDraft(form: SheetForm, now: Date = new Date()): Draft {
       CheckKey,
       { qty: number; note: string }
     >,
-    pltAdjust: { L4: 0, L2: 0, E: 0, C: 0, O: 0 },
-    pltOtherNote: "",
+    pltAdjust: { L: 0, E: 0, C: 0, O: 0 },
     remark: "",
     signature: null,
     signedAt: null,
@@ -122,18 +121,26 @@ export function newDraft(form: SheetForm, now: Date = new Date()): Draft {
 }
 
 /**
- * A draft saved on a phone before Lam Soon pallets were split into 4-way and 2-way.
- * Its "L" pallets start as L4WAY, the form's first choice, and the worker can change them.
+ * A draft saved on a phone by an earlier version. Its "L" pallets start as L4WAY, the first
+ * choice, and the worker can change them. Corrections made while L4 and L2 had a box each go
+ * under L, and a note from the line that was under OTHERS moves to the first Others pallet's remark.
  */
 export function upgradeDraftPlt(draft: Draft): Draft {
-  const old = (draft.pltAdjust ?? {}) as Partial<Record<PltType | "L", number>>;
+  const { pltOtherNote: oldNote, ...rest } = draft as Draft & { pltOtherNote?: string };
+  const old = (draft.pltAdjust ?? {}) as Partial<Record<PltGroup | "L4" | "L2", number>>;
+  let note = (oldNote ?? "").trim().toUpperCase().slice(0, 60);
   return {
-    ...draft,
-    pltOtherNote: draft.pltOtherNote ?? "",
-    pltAdjust: { L4: (old.L4 ?? 0) + (old.L ?? 0), L2: old.L2 ?? 0, E: old.E ?? 0, C: old.C ?? 0, O: old.O ?? 0 },
+    ...rest,
+    pltAdjust: { L: (old.L ?? 0) + (old.L4 ?? 0) + (old.L2 ?? 0), E: old.E ?? 0, C: old.C ?? 0, O: old.O ?? 0 },
     items: draft.items.map((it) => ({
       ...it,
-      pallets: it.pallets.map((p) => ((p.pltType as string) === "L" ? { ...p, pltType: "L4" as const } : p)),
+      pallets: it.pallets.map((p) => {
+        const next = (p.pltType as string) === "L" ? { ...p, pltType: "L4" as const } : p;
+        if (!note || next.pltType !== "O" || next.remark.trim()) return next;
+        const remark = note;
+        note = "";
+        return { ...next, remark };
+      }),
     })),
   };
 }
@@ -269,17 +276,17 @@ export function copyPalletFrom(target: DraftPallet, source: DraftPallet): DraftP
 
 // ── lorry PLT type totals ───────────────────────────────────────────────
 
-export function autoPltCounts(items: DraftItem[]): Record<PltType, number> {
-  const counts: Record<PltType, number> = { L4: 0, L2: 0, E: 0, C: 0, O: 0 };
-  for (const it of items) for (const p of it.pallets) counts[p.pltType] += 1;
+export function autoPltCounts(items: DraftItem[]): Record<PltGroup, number> {
+  const counts: Record<PltGroup, number> = { L: 0, E: 0, C: 0, O: 0 };
+  for (const it of items) for (const p of it.pallets) counts[pltGroup(p.pltType)] += 1;
   return counts;
 }
 
-export function pltCounts(draft: Pick<Draft, "items" | "pltAdjust">): Record<PltType, number> {
+export function pltCounts(draft: Pick<Draft, "items" | "pltAdjust">): Record<PltGroup, number> {
   const auto = autoPltCounts(draft.items);
   return Object.fromEntries(
-    PLT_TYPES.map((k) => [k, Math.max(0, auto[k] + (draft.pltAdjust[k] ?? 0))]),
-  ) as Record<PltType, number>;
+    PLT_GROUPS.map((k) => [k, Math.max(0, auto[k] + (draft.pltAdjust[k] ?? 0))]),
+  ) as Record<PltGroup, number>;
 }
 
 // ── header validation ───────────────────────────────────────────────────

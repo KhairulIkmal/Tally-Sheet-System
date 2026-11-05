@@ -2,7 +2,7 @@
 
 import { Minus, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { CHECKS, MATERIALS, MATERIALS_FIRST_BOXES, PLT_TYPE_NAMES, PLT_TYPES, materialLabel, type CheckKey, type MaterialKey, type PltType } from "@/lib/tally/constants";
+import { CHECKS, MATERIALS, MATERIALS_FIRST_BOXES, PLT_GROUP_NAMES, PLT_GROUPS, materialLabel, type CheckKey, type MaterialKey, type PltGroup } from "@/lib/tally/constants";
 import { autoPltCounts, pltCounts, totals, type Draft } from "@/lib/tally/draft";
 import { BottomBar, Button, Scroll, TextField } from "../ui";
 
@@ -63,7 +63,6 @@ export function MaterialsScreen({
   onMaterial,
   onCheck,
   onPltAdjust,
-  onPltOtherNote,
   onRemark,
   onNext,
   nextLabel = "Next · Review",
@@ -71,8 +70,7 @@ export function MaterialsScreen({
   draft: Draft;
   onMaterial: (k: MaterialKey, delta: number) => void;
   onCheck: (k: CheckKey, patch: Partial<{ qty: number; note: string }>) => void;
-  onPltAdjust: (k: PltType, delta: number) => void;
-  onPltOtherNote: (v: string) => void;
+  onPltAdjust: (k: PltGroup, delta: number) => void;
   onRemark: (v: string) => void;
   onNext: () => void;
   nextLabel?: string;
@@ -152,22 +150,23 @@ export function MaterialsScreen({
               <span className="text-[13px] font-semibold text-primary">Counted from the pallets</span>
             </div>
             <div className="rounded-[14px] border border-line bg-surface px-3">
-              {PLT_TYPES.map((k) => (
+              {PLT_GROUPS.map((k) => (
                 <div key={k} className="flex h-[58px] items-center gap-2 border-b border-line-soft">
-                  <span className="flex-1 text-base font-semibold">{PLT_TYPE_NAMES[k]}</span>
+                  <span className="grid size-9 place-items-center rounded-lg bg-chip text-lg font-extrabold">{k}</span>
+                  <span className="flex-1 text-base font-semibold">{PLT_GROUP_NAMES[k]}</span>
                   <button
                     type="button"
-                    aria-label={`Less ${PLT_TYPE_NAMES[k]}`}
+                    aria-label={`Less ${PLT_GROUP_NAMES[k]}`}
                     onClick={() => onPltAdjust(k, -1)}
                     disabled={counts[k] === 0}
                     className="grid h-11 w-12 place-items-center rounded-[9px] border-[1.5px] border-field disabled:opacity-40"
                   >
                     <Minus className="size-5" />
                   </button>
-                  <CountInput value={counts[k]} label={PLT_TYPE_NAMES[k]} onChange={(n) => onPltAdjust(k, n - counts[k])} className="h-11 w-12" />
+                  <CountInput value={counts[k]} label={PLT_GROUP_NAMES[k]} onChange={(n) => onPltAdjust(k, n - counts[k])} className="h-11 w-12" />
                   <button
                     type="button"
-                    aria-label={`More ${PLT_TYPE_NAMES[k]}`}
+                    aria-label={`More ${PLT_GROUP_NAMES[k]}`}
                     onClick={() => onPltAdjust(k, 1)}
                     className="grid h-11 w-12 place-items-center rounded-[9px] border-[1.5px] border-field"
                   >
@@ -175,20 +174,13 @@ export function MaterialsScreen({
                   </button>
                 </div>
               ))}
-              <input
-                value={draft.pltOtherNote}
-                placeholder="Others: what kind of pallet?"
-                aria-label="Others: what kind of pallet"
-                onChange={(e) => onPltOtherNote(e.target.value.slice(0, 60))}
-                className="mt-2.5 h-11 w-full rounded-lg border-[1.5px] border-line bg-canvas px-2.5 text-[15px] font-semibold text-ink uppercase outline-none placeholder:font-medium placeholder:normal-case focus:border-primary focus:bg-surface"
-              />
               <div className={cn("flex min-h-12 items-center justify-between text-base font-extrabold", pltSum === pallets ? "text-success" : "text-warning")}>
                 <span>Total</span>
                 <span>{pltSum === pallets ? `${pltSum} PLT ✓ matches the pallets` : `${pltSum} PLT · actual pallets ${pallets}`}</span>
               </div>
-              {PLT_TYPES.some((k) => counts[k] !== auto[k]) ? (
+              {PLT_GROUPS.some((k) => counts[k] !== auto[k]) ? (
                 <div className="pb-2.5 text-[13px] font-medium text-muted">
-                  Counted: {PLT_TYPES.map((k) => `${PLT_TYPE_NAMES[k]} ${auto[k]}`).join(" · ")}. You changed the totals by hand.
+                  Counted: {PLT_GROUPS.map((k) => `${k} ${auto[k]}`).join(" · ")}. You changed the totals by hand.
                 </div>
               ) : null}
             </div>

@@ -716,11 +716,6 @@ export function WorkerApp({ user, history, sheets }: { user: WorkerUser; history
               d.pltAdjust[k] = (d.pltAdjust[k] ?? 0) + delta;
             })
           }
-          onPltOtherNote={(v) =>
-            update((d) => {
-              d.pltOtherNote = v;
-            })
-          }
           onRemark={(v) =>
             update((d) => {
               d.remark = v;

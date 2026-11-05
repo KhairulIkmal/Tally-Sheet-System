@@ -398,11 +398,6 @@ export function PaperSheet({ data, page = 1, highlightMixed = false }: { data: P
                 </div>
               ))}
               <RuledRemark label="REMARK" labelWidth={80} text={data.remark} step={20} />
-              {/* Beside the longer PLT boxes, so the page keeps its one A4. */}
-              <div style={{ marginTop: 6, paddingLeft: 36 }}>
-                <div>COUNT &amp; PREPARED BY :</div>
-                <Signature data={data} />
-              </div>
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
               <div style={{ textAlign: "right", fontSize: 10.5, height: 14 }}>TOTAL NUMBER OF PLT</div>
@@ -416,23 +411,13 @@ export function PaperSheet({ data, page = 1, highlightMixed = false }: { data: P
                   </span>
                 </div>
               ))}
-              {/* What the OTHERS pallets were. */}
-              <div
-                style={{
-                  borderBottom: line,
-                  font: `500 10px ${mono}`,
-                  padding: "0 4px 1px",
-                  height: 18,
-                  marginTop: 2,
-                  whiteSpace: "nowrap",
-                  overflow: "hidden",
-                  display: "flex",
-                  alignItems: "flex-end",
-                }}
-              >
-                {data.pltOtherNote}
-              </div>
+              {/* Only a sheet stored while the form had a line under OTHERS. */}
+              {data.pltOtherNote ? <div style={{ font: `500 9px ${mono}`, textAlign: "right" }}>{data.pltOtherNote}</div> : null}
             </div>
+          </div>
+          <div style={{ marginTop: 8, paddingLeft: 36, fontSize: 10.5, fontWeight: 700 }}>
+            <div>COUNT &amp; PREPARED BY :</div>
+            <Signature data={data} />
           </div>
         </>
       ) : null}

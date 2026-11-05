@@ -113,7 +113,7 @@ export function sampleDraft(now: Date = new Date(), form: "container" | "contain
     d.checks.SAMPLE = { qty: 2, note: "FOR QC" };
     d.checks["EMPTY CTN"] = { qty: 5, note: "SPARE FOR DC" };
     d.checks.OTHERS = { qty: 1, note: "PALLET JACK" };
-    d.pltOtherNote = "PLASTIC PALLET";
+    d.items[4].pallets[4].remark = "PLASTIC PALLET";
     d.remark = "LORRY ARRIVED 2.30PM, LOADED BY BAY 3";
     return d;
   }
@@ -123,7 +123,7 @@ export function sampleDraft(now: Date = new Date(), form: "container" | "contain
     Object.assign(d.header, { transferTo: "SHAH ALAM DC", doNo: "DO-2610-0457", lorryNo: "JTR 4821", date: todayPaperDate(now) });
     d.items = items(LORRY_ITEMS.map(([n, u, t, q, e, p, b, ty]) => [n, u, t, q, e, p, [b], ty, "LS-24117"]));
     d.checks.SAMPLE = { qty: 2, note: "FOR QC" };
-    d.pltOtherNote = "PLASTIC PALLET";
+    d.items[3].pallets[0].remark = "PLASTIC PALLET";
     return d;
   }
 

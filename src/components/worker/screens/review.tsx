@@ -37,7 +37,7 @@ export function ReviewScreen({
         ...Object.entries(draft.checks)
           .filter(([, c]) => c.qty || c.note)
           .map(([k, c]) => `${materialLabel(k)} ${c.qty}${c.note ? ` (${c.note})` : ""}`),
-        `PLT ${pltSummary(counts, draft.pltOtherNote)}`,
+        `PLT ${pltSummary(counts)}`,
       ].join(" · ");
 
   return (

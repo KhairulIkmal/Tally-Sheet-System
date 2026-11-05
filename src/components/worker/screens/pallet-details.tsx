@@ -258,7 +258,7 @@ export function PalletDetailsScreen({
               </div>
 
               {form === "lorry" ? (
-                <div className="flex flex-col gap-2">
+                <div className="grid grid-cols-[1fr_1.1fr] items-start gap-2">
                   <div className="flex flex-col gap-1">
                     <span className="text-xs font-bold text-muted">PLT TYPE</span>
                     <PltTypeButtons size="sm" value={p.pltType} onChange={(t) => setPallet(i, (pl) => void (pl.pltType = t))} />
@@ -309,7 +309,7 @@ export function PalletDetailsScreen({
                 </button>
                 <input
                   value={p.remark}
-                  placeholder="Remark"
+                  placeholder={form === "lorry" && p.pltType === "O" ? "Type of pallet" : "Remark"}
                   aria-label={`Pallet ${no} remark`}
                   autoComplete="off"
                   onChange={(e) => {

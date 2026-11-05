@@ -1,7 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { CHECKS, MATERIALS, MATERIALS_FIRST_BOXES, PLT_TYPE_NAMES, PLT_TYPES } from "@/lib/tally/constants";
+import { CHECKS, MATERIALS, MATERIALS_FIRST_BOXES, PLT_GROUPS, PLT_LABELS } from "@/lib/tally/constants";
 import { autoPltCounts, pltCounts, totals, type Draft } from "@/lib/tally/draft";
 
 const box =
@@ -97,7 +97,7 @@ export function PaperFooter({ draft, signerName, onEdit }: { draft: Draft; signe
 
   const counts = pltCounts(draft);
   const auto = autoPltCounts(draft.items);
-  const pltSum = PLT_TYPES.reduce((a, k) => a + counts[k], 0);
+  const pltSum = PLT_GROUPS.reduce((a, k) => a + counts[k], 0);
   const pallets = totals(draft.items).pallets;
   return (
     <div className="mt-5 flex flex-col gap-5">
@@ -136,13 +136,13 @@ export function PaperFooter({ draft, signerName, onEdit }: { draft: Draft; signe
         </div>
         <div className="flex flex-col gap-1">
           <div className="mb-0.5 text-right text-xs font-bold">TOTAL NUMBER OF PLT</div>
-          {PLT_TYPES.map((k) => (
+          {PLT_GROUPS.map((k) => (
             <label key={k} className="grid grid-cols-[1fr_72px] border-2 border-ink">
-              <span className="flex items-center border-r-2 border-ink px-2 text-[11px] font-bold">{PLT_TYPE_NAMES[k]}</span>
+              <span className="flex items-center border-r-2 border-ink px-2 text-[11px] font-bold">{PLT_LABELS[k]}</span>
               <input
                 value={String(counts[k])}
                 inputMode="numeric"
-                aria-label={PLT_TYPE_NAMES[k]}
+                aria-label={PLT_LABELS[k]}
                 className={cn(box, "h-9", counts[k] !== auto[k] && "text-warning")}
                 onChange={(e) => {
                   // Stored as a correction on top of the count worked out from the rows.
@@ -152,15 +152,6 @@ export function PaperFooter({ draft, signerName, onEdit }: { draft: Draft; signe
               />
             </label>
           ))}
-          <input
-            value={draft.pltOtherNote}
-            aria-label="Others: what kind of pallet"
-            className={lineInput}
-            onChange={(e) => {
-              const v = e.target.value.slice(0, 60);
-              onEdit((d) => void (d.pltOtherNote = v));
-            }}
-          />
           <div className={cn("mt-1 text-right text-xs font-bold", pltSum === pallets ? "text-success" : "text-warning")}>
             {pltSum === pallets ? `${pltSum} PLT ✓ matches the rows` : `${pltSum} PLT · ${pallets} rows filled`}
           </div>

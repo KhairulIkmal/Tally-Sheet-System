@@ -612,6 +612,7 @@ export function PaperScreen({
                       <td className={cell}>
                         <input
                           value={p.remark}
+                          placeholder={isLorry && p.pltType === "O" ? "Type of pallet" : undefined}
                           aria-label={`Pallet ${i + 1} remark`}
                           className={input}
                           onChange={(e) =>

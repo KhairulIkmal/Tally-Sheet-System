@@ -15,18 +15,37 @@ export const PLT_TYPE_NAMES: Record<PltType, string> = {
 /** Sheets from before Lam Soon pallets were split into 4-way and 2-way say only "L". */
 export const OLD_LAM_SOON = "L";
 
+/** The boxes of TOTAL NUMBER OF PLT, as on the paper form: both kinds of Lam Soon pallet count under L. */
+export type PltGroup = "L" | "E" | "C" | "O";
+export const PLT_GROUPS: readonly PltGroup[] = ["L", "E", "C", "O"];
+export const PLT_GROUP_NAMES: Record<PltGroup, string> = { L: "Lam Soon", E: "ECR", C: "Loscam", O: "Others" };
+export const PLT_LABELS: Record<PltGroup, string> = {
+  L: "L - (LAM SOON)",
+  E: "E - (ECR)",
+  C: "C - (LOSCAM)",
+  O: "O - (OTHERS)",
+};
+
+export function pltGroup(type: PltType): PltGroup {
+  return type === "L4" || type === "L2" ? "L" : type;
+}
+
+/** A stored count for one box. A few sheets were stored with L4 and L2 counted apart. */
+export function storedPltCount(counts: Record<string, number>, group: PltGroup): number {
+  return group === "L" ? (counts.L ?? 0) + (counts.L4 ?? 0) + (counts.L2 ?? 0) : (counts[group] ?? 0);
+}
+
 /** A stored PLT type's full name, including the old "L". */
 export function pltTypeName(code: string | null | undefined): string {
   if (!code) return "";
   return code === OLD_LAM_SOON ? "LAM SOON" : (PLT_TYPE_NAMES[code as PltType] ?? code);
 }
 
-/** "L4WAY 3 · OTHERS 1 (PLASTIC)" from a sheet's counts, in form order. */
-export function pltSummary(counts: Record<string, number>, otherNote: string): string {
+/** "L 3 · O 1" from a sheet's counts, in form order. */
+export function pltSummary(counts: Record<string, number>, otherNote = ""): string {
   return (
-    [OLD_LAM_SOON, ...PLT_TYPES]
-      .filter((k) => counts[k])
-      .map((k) => `${pltTypeName(k)} ${counts[k]}${k === "O" && otherNote.trim() ? ` (${otherNote.trim().toUpperCase()})` : ""}`)
+    PLT_GROUPS.filter((k) => storedPltCount(counts, k))
+      .map((k) => `${k} ${storedPltCount(counts, k)}${k === "O" && otherNote.trim() ? ` (${otherNote.trim().toUpperCase()})` : ""}`)
       .join(" · ") || "0"
   );
 }

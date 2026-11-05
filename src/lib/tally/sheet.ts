@@ -1,4 +1,4 @@
-import { CHECKS, MATERIALS, OLD_LAM_SOON, PLT_TYPES, ROWS_PER_PAGE, normalizeUnit, pltTypeName, type SheetForm } from "./constants";
+import { CHECKS, MATERIALS, PLT_GROUPS, PLT_LABELS, ROWS_PER_PAGE, normalizeUnit, pltTypeName, storedPltCount, type SheetForm } from "./constants";
 import { formatDateTime, isoToPaperDate } from "./dates";
 import { palletQty, pltCounts, totals, type Draft, type QtyByUnit } from "./draft";
 
@@ -125,7 +125,7 @@ export interface PaperData {
   materials: { label: string; value: string }[];
   checks: { label: string; value: string; note: string }[];
   plt: { label: string; value: string }[];
-  /** What the OTHERS pallets were. */
+  /** Only on the few sheets stored while the form had a line under OTHERS. */
   pltOtherNote: string;
   remark: string;
   signature: string | null;
@@ -170,11 +170,7 @@ function footer(
   return {
     materials: MATERIALS.map((k) => ({ label: k, value: form === "container" ? String(materials[k] ?? 0) : "" })),
     checks: CHECKS.map((k) => ({ label: k, value: form === "lorry" && checks[k]?.qty ? String(checks[k].qty) : "", note: checks[k]?.note ?? "" })),
-    // The old "L" gets a box of its own only on a sheet that used it.
-    plt: (plt[OLD_LAM_SOON] ? [OLD_LAM_SOON, ...PLT_TYPES] : PLT_TYPES).map((k) => ({
-      label: pltTypeName(k),
-      value: form === "lorry" ? String(plt[k] ?? 0) : "",
-    })),
+    plt: PLT_GROUPS.map((k) => ({ label: PLT_LABELS[k], value: form === "lorry" ? String(storedPltCount(plt, k)) : "" })),
   };
 }
 
@@ -257,7 +253,7 @@ export function paperFromDraft(draft: Draft, signerName: string, ref = "NOT SUBM
       Object.fromEntries(CHECKS.map((k) => [k, { qty: draft.checks[k].qty ?? 0, note: up(draft.checks[k].note) }])),
       pltCounts(draft),
     ),
-    pltOtherNote: up(draft.pltOtherNote),
+    pltOtherNote: "",
     remark: up(draft.remark),
     signature: draft.signature,
     signedBy: draft.signedAt ? `${signerName.toUpperCase()} · ${formatDateTime(draft.signedAt)}` : "",
