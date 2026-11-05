@@ -150,7 +150,8 @@ function LineFields({
           <div className="relative">
             <input
               value={line.batch}
-              placeholder="B…"
+              inputMode="numeric"
+              pattern="[0-9]*"
               aria-label="Batch"
               autoComplete="off"
               onChange={(e) => onSet("batch", e.target.value.toUpperCase())}

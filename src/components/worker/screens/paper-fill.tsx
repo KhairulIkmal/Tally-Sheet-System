@@ -37,7 +37,7 @@ function followRows(
   let y = e.clientY;
   let to = from;
   let moved = false;
-  // Looks through anything floating over the sheet (the zoom buttons, the hint) to the row beneath.
+  // Looks through anything floating over the sheet (the Done button, the hint) to the row beneath.
   const rowAt = (py: number) => {
     for (const el of document.elementsFromPoint(x, py)) {
       const tr = el.closest<HTMLElement>("tr[data-row]");

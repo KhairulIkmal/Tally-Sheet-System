@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { Calculator, Plus, Trash2 } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { Calculator, Check, Plus, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { PLT_TYPES, normalizeUnit, type SheetForm, MAX_PALLETS } from "@/lib/tally/constants";
 import { isValidPaperDate, normalizeDate } from "@/lib/tally/dates";
@@ -41,7 +41,7 @@ import { BottomBar, Button } from "../ui";
 import { itemRowMarks, itemTotalText } from "@/lib/tally/sheet";
 import { PaperFooter } from "./paper-footer";
 import { AutoFillPanel } from "./paper-autofill";
-import { ZoomControls, usePaperZoom } from "./paper-zoom";
+import { usePaperZoom } from "./paper-zoom";
 import { DittoHandle, deleteRowMark, fillCell, useDeleteDrag, useFillDrag } from "./paper-fill";
 
 /** Header boxes in the printed order: two columns, left then right. */
@@ -135,17 +135,17 @@ export function PaperScreen({
       return k === "qty" ? !v || v === "0" : k === "batch" ? !v : !v || !isValidPaperDate(v);
     });
   };
-  const { zoom, setZoom, fit, scrollRef, sheetRef } = usePaperZoom();
+  const { zoom, zoomed, zoomTo, release, scrollRef, sheetRef, scrollProps } = usePaperZoom();
   // Scroll the row from Fix into the middle and put the cursor in its first marked cell.
   useEffect(() => {
     if (!fix) return;
     const t = window.setTimeout(() => {
       const tr = sheetRef.current?.querySelector<HTMLElement>(`tr[data-row="${fix.row}"]`);
-      tr?.scrollIntoView({ block: "center", inline: "nearest", behavior: "smooth" });
+      if (tr) zoomTo(tr);
       tr?.querySelector<HTMLInputElement>("[data-fix] input")?.focus({ preventScroll: true });
     }, 120);
     return () => window.clearTimeout(t);
-  }, [fix, sheetRef]);
+  }, [fix, sheetRef, zoomTo]);
   // "same" held and dragged down fills every row the finger passes; rows past the
   // end of the sheet are added first.
   const fill = useFillDrag(scrollRef, (from, to, spec) =>
@@ -159,6 +159,18 @@ export function PaperScreen({
   // A pallet row that continues the item above shows the paper's blank (or TOTAL) until tapped.
   const [nameRow, setNameRow] = useState<number | null>(null);
   const rows = toRows(items);
+  // A blank row tapped: once it exists, go to it and start on its first field.
+  const openRow = useRef<number | null>(null);
+  const rowCount = rows.length;
+  useEffect(() => {
+    const at = openRow.current;
+    if (at === null) return;
+    openRow.current = null;
+    const tr = sheetRef.current?.querySelector<HTMLElement>(`tr[data-row="${at}"]`);
+    if (!tr) return;
+    zoomTo(tr);
+    tr.querySelector<HTMLInputElement>("input")?.focus({ preventScroll: true });
+  }, [rowCount, sheetRef, zoomTo]);
   // Auto-fill starts after the last row with anything on it.
   let filled = rows.length;
   while (
@@ -241,7 +253,7 @@ export function PaperScreen({
     onItems((its) => removeRow(its, i));
   }
 
-  function lineCells(i: number, k: LineKey, opts: { numeric?: boolean; date?: boolean; placeholder?: string }) {
+  function lineCells(i: number, k: LineKey, opts: { numeric?: boolean; date?: boolean; digitPad?: boolean; placeholder?: string }) {
     const p = rows[i].pallet;
     return (
       <td className={cell}>
@@ -265,7 +277,8 @@ export function PaperScreen({
               <input
                 value={l[k]}
                 aria-label={`Pallet ${i + 1} ${k}${p.lines.length > 1 ? ` line ${li + 1}` : ""}`}
-                inputMode={opts.numeric || opts.date ? "numeric" : "text"}
+                inputMode={opts.numeric || opts.date || opts.digitPad ? "numeric" : "text"}
+                pattern={opts.digitPad ? "[0-9]*" : undefined}
                 placeholder={opts.placeholder}
                 className={cn(input, bad && "bg-danger-bg text-danger-ink")}
                 onChange={(e) =>
@@ -310,7 +323,7 @@ export function PaperScreen({
 
       <div className="relative flex min-h-0 flex-1 flex-col">
         {/* pan-x pan-y: two fingers zoom the sheet (usePaperZoom), not the whole page. */}
-        <div ref={scrollRef} className="min-h-0 flex-1 touch-pan-x touch-pan-y overflow-auto bg-canvas pb-16">
+        <div ref={scrollRef} {...scrollProps} className="min-h-0 flex-1 touch-pan-x touch-pan-y overflow-auto bg-canvas pb-4">
           <div ref={sheetRef} style={{ zoom, minWidth: zoom === 1 ? "100%" : undefined }} className="mx-auto w-fit bg-surface p-3 sm:p-5">
             <div className="mb-1 text-center text-lg font-extrabold tracking-[.04em]">COUNT TALLY SHEET</div>
 
@@ -355,6 +368,7 @@ export function PaperScreen({
             <div className="mb-2 flex justify-end">
               <button
                 type="button"
+                data-zoom-pass
                 onClick={() => setAutoFill(true)}
                 disabled={filled >= MAX_PALLETS}
                 title={filled >= MAX_PALLETS ? `This sheet is full: ${MAX_PALLETS} pallets` : undefined}
@@ -458,6 +472,7 @@ export function PaperScreen({
                         {!marks[i]?.first && r.name.trim() && nameRow !== i ? (
                           <button
                             type="button"
+                            data-zoom-pass
                             aria-label={`Pallet ${i + 1} item: ${r.name.trim()}. Tap to change`}
                             title={r.name.trim()}
                             className="flex h-10 w-full items-center px-2 text-left hover:bg-primary-soft"
@@ -582,7 +597,7 @@ export function PaperScreen({
                         date: true,
                         placeholder: "DD/MM/YY",
                       })}
-                      {lineCells(i, "batch", {})}
+                      {lineCells(i, "batch", { digitPad: true })}
                       <td className={cell}>
                         <input
                           value={p.remark}
@@ -638,7 +653,11 @@ export function PaperScreen({
                     <tr
                       key={`blank-${index}`}
                       data-row={index}
-                      onClick={() => addRowsTo(index)}
+                      data-zoom-pass
+                      onClick={() => {
+                        addRowsTo(index);
+                        openRow.current = index;
+                      }}
                       className="cursor-pointer text-faint hover:bg-primary-soft/60"
                     >
                       <td
@@ -703,12 +722,24 @@ export function PaperScreen({
             ) : null}
             <PaperFooter draft={draft} signerName={signerName} onEdit={onEdit} />
             <p className="mt-1 text-xs font-medium text-muted">
-              Each row is filled on its own. Tap ↑ same in a cell (Item, Contract, Qty, Batch, Expired, Prod) to copy just that value from the
+              Tap a field to zoom in on it; Done shows the whole sheet again. Each row is filled on its own. Tap ↑ same in a cell (Item, Contract, Qty, Batch, Expired, Prod) to copy just that value from the
               row above. +B adds a second batch for a mixed pallet. Dates: type 160427 for 16/04/27.
             </p>
           </div>
         </div>
-        <ZoomControls zoom={zoom} setZoom={setZoom} fit={fit} />
+        {zoomed ? (
+          <button
+            type="button"
+            aria-label="Done, show the whole sheet"
+            onClick={release}
+            className={cn(
+              "absolute right-3 z-20 flex h-10 items-center gap-1.5 rounded-full bg-primary pr-4 pl-3 text-sm font-bold text-white shadow-[0_6px_20px_rgba(16,24,40,.28)]",
+              fix ? "top-[68px]" : "top-3",
+            )}
+          >
+            <Check aria-hidden className="size-4" strokeWidth={3} /> Done
+          </button>
+        ) : null}
         {fix ? (
           <div className="absolute inset-x-3 top-3 z-20 mx-auto flex max-w-[560px] items-center gap-2 rounded-xl border border-warning-border bg-warning-bg py-1.5 pr-1.5 pl-3.5 text-sm font-bold text-warning-ink shadow-[0_8px_24px_rgba(0,0,0,.15)]">
             <span className="min-w-0 flex-1 truncate">
