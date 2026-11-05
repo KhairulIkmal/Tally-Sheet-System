@@ -10,12 +10,22 @@ const CONTROL = `${FIELD},button,label,a,[data-zoom-pass]`;
 const KEYBOARD_MIN = 120;
 /** A field losing focus this soon after a tap on the sheet was that tap's doing, not the keyboard closing. */
 const TAP_MS = 800;
+const GLIDE_MS = 280;
+
+/** A zoom change waiting to be laid out: where `el` is on screen now, to glide from. */
+interface PendingZoom {
+  el: Element;
+  from: DOMRect;
+  fromZoom: number;
+  /** Bring `el` to the middle of the view at the new zoom. */
+  centre: boolean;
+}
 
 const isField = (el: Element | null, within: Element | null): el is HTMLElement => !!el && !!within?.contains(el) && el.matches(FIELD);
 
 /**
  * The paper sheet's zoom. It sits fitted to the screen width, and on a small
- * screen tapping a field zooms in on it, centred above the keyboard. It goes
+ * screen tapping a field glides in on it, centred above the keyboard. It goes
  * back to fitted with Done, a tap on a blank part of the sheet or the keyboard
  * closing. Two-finger pinch and Ctrl + wheel still work.
  *
@@ -27,11 +37,13 @@ export function usePaperZoom() {
   const [fit, setFit] = useState(1);
   const scrollRef = useRef<HTMLDivElement>(null);
   const sheetRef = useRef<HTMLDivElement>(null);
+  /** Wraps the sheet: moved and scaled for the glide. Holds no zoom, which would scale the movement too. */
+  const glideRef = useRef<HTMLDivElement>(null);
+  const glideAnim = useRef<Animation | null>(null);
   const zoomRef = useRef(1);
   const fitRef = useRef(1);
   const naturalRef = useRef(0);
-  /** To centre once the new zoom has been laid out. */
-  const pendingRef = useRef<Element | null>(null);
+  const pendingRef = useRef<PendingZoom | null>(null);
   /** The last thing zoomed to, kept in view on the way back out. */
   const lastRef = useRef<Element | null>(null);
   const swallowRef = useRef<Element | null>(null);
@@ -69,9 +81,15 @@ export function usePaperZoom() {
   const zoomTo = useCallback(
     (el: Element) => {
       lastRef.current = el;
+      // Already on the way to a new zoom (a row, then its first field): just change where to.
+      const waiting = pendingRef.current;
+      if (waiting) {
+        pendingRef.current = { el, from: el.getBoundingClientRect(), fromZoom: waiting.fromZoom, centre: true };
+        return;
+      }
       const next = fieldZoom(zoomRef.current, fitRef.current);
       if (next !== zoomRef.current) {
-        pendingRef.current = el;
+        pendingRef.current = { el, from: el.getBoundingClientRect(), fromZoom: zoomRef.current, centre: true };
         apply(next);
       } else centre(el, "smooth");
     },
@@ -84,16 +102,32 @@ export function usePaperZoom() {
     if (isField(active, scrollRef.current)) active.blur();
     const sc = scrollRef.current;
     if (sc) sc.style.paddingBottom = "";
-    if (lastRef.current?.isConnected) pendingRef.current = lastRef.current;
+    const last = lastRef.current?.isConnected ? lastRef.current : null;
+    const el = last ?? sheetRef.current;
+    if (el) pendingRef.current = { el, from: el.getBoundingClientRect(), fromZoom: zoomRef.current, centre: !!last };
     lastRef.current = null;
     apply(fitRef.current);
   }, [apply]);
 
   useLayoutEffect(() => {
-    const el = pendingRef.current;
-    if (!el) return;
+    const p = pendingRef.current;
+    if (!p) return;
     pendingRef.current = null;
-    centre(el, "auto");
+    glideAnim.current?.cancel();
+    if (p.centre) centre(p.el, "auto");
+    const box = glideRef.current;
+    if (!box || zoom === p.fromZoom || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    // The new layout is in place. Start it drawn exactly where the old one was and let
+    // it settle: only a transform, so the phone doesn't lay the sheet out on every frame.
+    const scale = p.fromZoom / zoom;
+    const origin = box.getBoundingClientRect();
+    const to = p.el.getBoundingClientRect();
+    const x = p.from.left - origin.left - scale * (to.left - origin.left);
+    const y = p.from.top - origin.top - scale * (to.top - origin.top);
+    glideAnim.current = box.animate([{ transform: `translate(${x}px, ${y}px) scale(${scale})` }, { transform: "none" }], {
+      duration: GLIDE_MS,
+      easing: "cubic-bezier(.2, .8, .2, 1)",
+    });
   }, [zoom, centre]);
 
   // Fit to the width now and whenever it changes (turning the phone). Measured at
@@ -127,8 +161,10 @@ export function usePaperZoom() {
   // a few pixels too wide. Step down until it really fits.
   const settleFit = useCallback(() => {
     const sc = scrollRef.current;
-    if (!sc || zoomRef.current > fitRef.current + 0.01 || sc.scrollWidth <= sc.clientWidth) return;
-    const next = fitZoom(sc.clientWidth, sc.scrollWidth / zoomRef.current);
+    // The glide's wrapper, which the glide doesn't scale: the scroller's own width would count the glide.
+    const laidOut = glideRef.current?.parentElement?.getBoundingClientRect().width ?? 0;
+    if (!sc || zoomRef.current > fitRef.current + 0.01 || laidOut <= sc.clientWidth + 0.5) return;
+    const next = fitZoom(sc.clientWidth, laidOut / zoomRef.current);
     if (next >= zoomRef.current) return;
     fitRef.current = next;
     setFit(next);
@@ -151,7 +187,7 @@ export function usePaperZoom() {
       const active = document.activeElement;
       if (isField(active, scrollRef.current) && isCompact(fitRef.current)) {
         if (open && !nowOpen) release();
-        else centre(active, "auto");
+        else centre(active, "smooth");
       }
       open = nowOpen;
     };
@@ -240,5 +276,5 @@ export function usePaperZoom() {
     },
   };
 
-  return { zoom, zoomed: zoom > fit + 0.01, zoomTo, release, scrollRef, sheetRef, scrollProps };
+  return { zoom, zoomed: zoom > fit + 0.01, zoomTo, release, scrollRef, sheetRef, glideRef, scrollProps };
 }

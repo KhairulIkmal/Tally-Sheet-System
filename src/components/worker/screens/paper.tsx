@@ -135,7 +135,7 @@ export function PaperScreen({
       return k === "qty" ? !v || v === "0" : k === "batch" ? !v : !v || !isValidPaperDate(v);
     });
   };
-  const { zoom, zoomed, zoomTo, release, scrollRef, sheetRef, scrollProps } = usePaperZoom();
+  const { zoom, zoomed, zoomTo, release, scrollRef, sheetRef, glideRef, scrollProps } = usePaperZoom();
   // Scroll the row from Fix into the middle and put the cursor in its first marked cell.
   useEffect(() => {
     if (!fix) return;
@@ -324,6 +324,9 @@ export function PaperScreen({
       <div className="relative flex min-h-0 flex-1 flex-col">
         {/* pan-x pan-y: two fingers zoom the sheet (usePaperZoom), not the whole page. */}
         <div ref={scrollRef} {...scrollProps} className="min-h-0 flex-1 touch-pan-x touch-pan-y overflow-auto bg-canvas pb-4">
+          {/* Outer: holds the sheet's full size while the inner is scaled, so the scroll position isn't cut back during the glide. */}
+          <div className="w-fit min-w-full">
+          <div ref={glideRef} className="origin-top-left">
           <div ref={sheetRef} style={{ zoom, minWidth: zoom === 1 ? "100%" : undefined }} className="mx-auto w-fit bg-surface p-3 sm:p-5">
             <div className="mb-1 text-center text-lg font-extrabold tracking-[.04em]">COUNT TALLY SHEET</div>
 
@@ -725,6 +728,8 @@ export function PaperScreen({
               Tap a field to zoom in on it; Done shows the whole sheet again. Each row is filled on its own. Tap ↑ same in a cell (Item, Contract, Qty, Batch, Expired, Prod) to copy just that value from the
               row above. +B adds a second batch for a mixed pallet. Dates: type 160427 for 16/04/27.
             </p>
+          </div>
+          </div>
           </div>
         </div>
         {zoomed ? (
