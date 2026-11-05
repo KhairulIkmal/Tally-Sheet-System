@@ -1,18 +1,34 @@
 "use client";
 
+import { Minus, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { CHECKS, MATERIALS, MATERIALS_FIRST_BOXES, PLT_TYPES, type CheckKey, type MaterialKey, type PltType } from "@/lib/tally/constants";
+import { CHECKS, MATERIALS, MATERIALS_FIRST_BOXES, PLT_TYPE_NAMES, PLT_TYPES, materialLabel, type CheckKey, type MaterialKey, type PltType } from "@/lib/tally/constants";
 import { autoPltCounts, pltCounts, totals, type Draft } from "@/lib/tally/draft";
-import { PLT_LABELS } from "@/lib/tally/sheet";
-import { BottomBar, Button, Scroll } from "../ui";
-import { RuledRemarkInput } from "./paper-footer";
+import { BottomBar, Button, Scroll, TextField } from "../ui";
 
-const toCount = (v: string) => Math.min(9999, parseInt(v.replace(/\D/g, ""), 10) || 0);
 
-const countBox =
-  "h-12 w-full min-w-0 bg-transparent text-center text-xl font-extrabold text-ink outline-none placeholder:text-[11px] placeholder:font-bold placeholder:text-placeholder focus:bg-primary-soft";
+function Stepper({ value, onDec, onInc, label }: { value: number; onDec: () => void; onInc: () => void; label: string }) {
+  return (
+    <>
+      <button
+        type="button"
+        aria-label={`Less ${label}`}
+        onClick={onDec}
+        disabled={value === 0}
+        className="grid h-12 w-[52px] place-items-center rounded-[10px] border-[1.5px] border-field bg-surface disabled:opacity-40"
+      >
+        <Minus className="size-6" />
+      </button>
+      <span className={cn("w-14 text-center text-2xl font-extrabold", value ? "text-ink" : "text-placeholder")} aria-live="polite">
+        {value}
+      </span>
+      <button type="button" aria-label={`More ${label}`} onClick={onInc} className="grid h-12 w-[52px] place-items-center rounded-[10px] bg-primary text-white dark:text-[#0e1115]">
+        <Plus className="size-6" />
+      </button>
+    </>
+  );
+}
 
-/** The foot of the paper form on a phone: same boxes, same names, same order, filled in by typing the count. */
 export function MaterialsScreen({
   draft,
   onMaterial,
@@ -36,95 +52,105 @@ export function MaterialsScreen({
   const pltSum = Object.values(counts).reduce((a, b) => a + b, 0);
   const pallets = totals(draft.items).pallets;
 
-  const boxes = (keys: readonly MaterialKey[]) => (
-    <div className="flex flex-col border-2 border-ink bg-surface">
-      {keys.map((k) => {
-        const v = draft.materials[k] ?? 0;
-        return (
-          <label key={k} className="grid grid-cols-[minmax(0,1fr)_56px] items-stretch border-b border-ink/60 last:border-b-0">
-            <span className="flex items-center border-r border-ink/60 px-2 text-xs leading-tight font-bold text-ink">{k}</span>
-            <input
-              value={v ? String(v) : ""}
-              inputMode="numeric"
-              aria-label={k}
-              className={countBox}
-              onFocus={(e) => e.target.select()}
-              onChange={(e) => onMaterial(k, toCount(e.target.value) - v)}
-            />
-          </label>
-        );
-      })}
-    </div>
-  );
-
   return (
     <>
-      <Scroll className="gap-5 px-4 pt-4 pb-5">
+      <Scroll className="gap-2.5 px-4 pt-2.5 pb-4">
         {isContainer ? (
-          <>
-            <RuledRemarkInput label="REMARKS" value={draft.remark} onChange={onRemark} />
-            {/* Two sets of boxes, level at the bottom, as printed. */}
-            <div className="grid grid-cols-2 items-end gap-3">
-              {boxes(MATERIALS.slice(0, MATERIALS_FIRST_BOXES))}
-              {boxes(MATERIALS.slice(MATERIALS_FIRST_BOXES))}
-            </div>
-          </>
-        ) : (
-          <>
-            <div className="flex flex-col gap-2.5">
-              {CHECKS.map((k) => {
-                const c = draft.checks[k];
-                return (
-                  <div key={k} className="grid grid-cols-[84px_10px_60px_minmax(0,1fr)] items-end gap-x-1 text-xs font-bold text-ink">
-                    <span className="pb-3">{k}</span>
-                    <span className="pb-3">:</span>
-                    <input
-                      value={c.qty ? String(c.qty) : ""}
-                      inputMode="numeric"
-                      placeholder="CTN"
-                      aria-label={`${k} CTN`}
-                      className={cn(countBox, "border-2 border-ink bg-surface")}
-                      onFocus={(e) => e.target.select()}
-                      onChange={(e) => onCheck(k, { qty: toCount(e.target.value) })}
-                    />
-                    <input
-                      value={c.note}
-                      aria-label={`${k} note`}
-                      className="ml-1.5 h-10 w-[calc(100%-6px)] min-w-0 border-b-2 border-ink/40 bg-transparent px-1 text-[15px] font-semibold uppercase outline-none focus:border-primary focus:bg-primary-soft"
-                      onChange={(e) => onCheck(k, { note: e.target.value.slice(0, 60) })}
-                    />
-                  </div>
-                );
-              })}
-              <RuledRemarkInput label="REMARK" value={draft.remark} onChange={onRemark} />
-            </div>
-
-            <div className="flex flex-col gap-1.5">
-              <div className="text-right text-xs font-bold text-ink">TOTAL NUMBER OF PLT</div>
-              {PLT_TYPES.map((k) => (
-                <label key={k} className="grid grid-cols-[minmax(0,1fr)_84px] border-2 border-ink bg-surface">
-                  <span className="flex items-center border-r-2 border-ink px-2.5 text-[13px] font-bold text-ink">{PLT_LABELS[k]}</span>
-                  <input
-                    value={String(counts[k])}
-                    inputMode="numeric"
-                    aria-label={PLT_LABELS[k]}
-                    className={cn(countBox, counts[k] !== auto[k] && "text-warning")}
-                    onFocus={(e) => e.target.select()}
-                    onChange={(e) => onPltAdjust(k, toCount(e.target.value) - counts[k])}
-                  />
-                </label>
+          // The same two sets as the boxes on the paper form.
+          [MATERIALS.slice(0, MATERIALS_FIRST_BOXES), MATERIALS.slice(MATERIALS_FIRST_BOXES)].map((group) => (
+            <div key={group[0]} className="flex flex-col rounded-[14px] border border-line bg-surface px-3">
+              {group.map((k) => (
+                <div key={k} className="flex h-[60px] items-center gap-2 border-b border-line-soft last:border-b-0">
+                  <span className="flex-1 text-[17px] font-bold">{materialLabel(k)}</span>
+                  <Stepper value={draft.materials[k] ?? 0} label={materialLabel(k)} onDec={() => onMaterial(k, -1)} onInc={() => onMaterial(k, 1)} />
+                </div>
               ))}
-              <div className={cn("mt-0.5 text-right text-[13px] font-bold", pltSum === pallets ? "text-success" : "text-warning")}>
-                {pltSum === pallets ? `${pltSum} PLT ✓ matches the pallets` : `${pltSum} PLT · actual pallets ${pallets}`}
+            </div>
+          ))
+        ) : (
+          <div className="rounded-[14px] border border-line bg-surface px-3 py-1">
+            <div className="flex gap-3 pt-2 text-xs font-bold tracking-[.04em] text-muted">
+              <span className="w-[92px]" />
+              <span className="w-[72px] text-center">CTN</span>
+              <span>NOTE</span>
+            </div>
+            {CHECKS.map((k) => {
+              const c = draft.checks[k];
+              return (
+                <div key={k} className="flex min-h-[64px] items-center gap-3 border-b border-line-soft last:border-b-0">
+                  <span className="w-[92px] flex-none text-[17px] font-bold">{materialLabel(k)}</span>
+                  <input
+                    value={c.qty ? String(c.qty) : ""}
+                    inputMode="numeric"
+                    placeholder="0"
+                    aria-label={`${materialLabel(k)} CTN`}
+                    onChange={(e) => onCheck(k, { qty: Math.min(9999, parseInt(e.target.value.replace(/\D/g, ""), 10) || 0) })}
+                    className={cn(
+                      "h-12 w-[72px] flex-none rounded-lg border-[1.5px] bg-surface text-center text-[22px] font-extrabold text-ink outline-none focus:border-2 focus:border-primary",
+                      c.qty ? "border-primary" : "border-field",
+                    )}
+                  />
+                  <input
+                    value={c.note}
+                    placeholder={k === "SAMPLE" ? "e.g. for QA/QC" : "Note"}
+                    aria-label={`${materialLabel(k)} note`}
+                    onChange={(e) => onCheck(k, { note: e.target.value.slice(0, 60) })}
+                    className="h-11 min-w-0 flex-1 rounded-lg border-[1.5px] border-line bg-canvas px-2.5 text-[15px] font-semibold text-ink outline-none focus:border-primary focus:bg-surface"
+                  />
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        <label className="mt-1 flex flex-col gap-1.5">
+          <span className="text-sm font-bold text-body">{isContainer ? "Remarks" : "Remark"}</span>
+          <TextField value={draft.remark} onChange={(e) => onRemark(e.target.value.slice(0, 300))} placeholder="Optional" className="h-[52px] text-base" />
+        </label>
+
+        {!isContainer ? (
+          <>
+            <div className="mt-1.5 flex items-baseline justify-between">
+              <span className="text-sm font-bold tracking-[.04em] text-body">TOTAL NUMBER OF PLT</span>
+              <span className="text-[13px] font-semibold text-primary">Counted from the pallets</span>
+            </div>
+            <div className="rounded-[14px] border border-line bg-surface px-3">
+              {PLT_TYPES.map((k) => (
+                <div key={k} className="flex h-[58px] items-center gap-2 border-b border-line-soft">
+                  <span className="grid size-9 place-items-center rounded-lg bg-chip text-lg font-extrabold">{k}</span>
+                  <span className="flex-1 text-base font-semibold">{PLT_TYPE_NAMES[k]}</span>
+                  <button
+                    type="button"
+                    aria-label={`Less ${PLT_TYPE_NAMES[k]}`}
+                    onClick={() => onPltAdjust(k, -1)}
+                    disabled={counts[k] === 0}
+                    className="grid h-11 w-12 place-items-center rounded-[9px] border-[1.5px] border-field disabled:opacity-40"
+                  >
+                    <Minus className="size-5" />
+                  </button>
+                  <span className="w-11 text-center text-[22px] font-extrabold">{counts[k]}</span>
+                  <button
+                    type="button"
+                    aria-label={`More ${PLT_TYPE_NAMES[k]}`}
+                    onClick={() => onPltAdjust(k, 1)}
+                    className="grid h-11 w-12 place-items-center rounded-[9px] border-[1.5px] border-field"
+                  >
+                    <Plus className="size-5" />
+                  </button>
+                </div>
+              ))}
+              <div className={cn("flex min-h-12 items-center justify-between text-base font-extrabold", pltSum === pallets ? "text-success" : "text-warning")}>
+                <span>Total</span>
+                <span>{pltSum === pallets ? `${pltSum} PLT ✓ matches the pallets` : `${pltSum} PLT · actual pallets ${pallets}`}</span>
               </div>
               {PLT_TYPES.some((k) => counts[k] !== auto[k]) ? (
-                <div className="text-[13px] font-medium text-muted">
+                <div className="pb-2.5 text-[13px] font-medium text-muted">
                   Counted: {PLT_TYPES.map((k) => `${k} ${auto[k]}`).join(" · ")}. You changed the totals by hand.
                 </div>
               ) : null}
             </div>
           </>
-        )}
+        ) : null}
       </Scroll>
       <BottomBar>
         <Button className="w-full" onClick={onNext}>

@@ -13,7 +13,7 @@ const lineInput =
 const toCount = (v: string) => Math.min(9999, parseInt(v.replace(/\D/g, ""), 10) || 0);
 
 /** REMARK(S) on two ruled lines, as on the paper: the writing runs on from the first to the second. */
-export function RuledRemarkInput({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
+function RuledRemarkInput({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
   return (
     <label className="grid grid-cols-[84px_10px_minmax(0,1fr)] items-start text-xs font-bold text-ink">
       <span className="pt-3">{label}</span>
