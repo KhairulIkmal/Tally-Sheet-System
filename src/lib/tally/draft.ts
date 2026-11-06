@@ -8,7 +8,6 @@ import {
   type PltChoice,
   type CheckKey,
   type MaterialKey,
-  type PltType,
   type SheetForm,
 } from "./constants";
 import { isValidPaperDate, todayPaperDate } from "./dates";
