@@ -154,7 +154,7 @@ function NumberBox({
         onChange={(e) => onChange(e.target.value.replace(/\D/g, "").slice(0, 5))}
         className="rounded-xl"
       />
-      {note ? <span className="text-xs font-semibold text-muted">{note}</span> : null}
+      {note ? <span className="text-xs font-semibold text-success">{note}</span> : null}
     </label>
   );
 }

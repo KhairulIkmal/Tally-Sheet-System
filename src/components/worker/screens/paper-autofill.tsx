@@ -164,7 +164,7 @@ export function AutoFillPanel({
               onChange={(e) => setPer(e.target.value.replace(/\D/g, "").slice(0, 5))}
             />
             {historyNote(per, perFromHistory) ? (
-              <span className="text-xs font-semibold text-muted">{historyNote(per, perFromHistory)}</span>
+              <span className="text-xs font-semibold text-success">{historyNote(per, perFromHistory)}</span>
             ) : null}
           </label>
         </div>
