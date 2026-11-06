@@ -121,10 +121,21 @@ export function SignatureScreen({
 
   return (
     <>
-      <div className="flex min-h-0 flex-1 flex-col gap-3 p-4">
+      {/* No text selection or long-press menu here: a double tap or a held finger
+          while signing would otherwise turn the name and labels blue. */}
+      <div
+        className="flex min-h-0 flex-1 flex-col gap-3 p-4 select-none [-webkit-touch-callout:none] [-webkit-user-select:none]"
+        onContextMenu={(e) => e.preventDefault()}
+      >
         <div className="text-base/[1.4] font-semibold text-body">{summary}</div>
         <div className="relative flex-1 overflow-hidden rounded-2xl border-2 border-field bg-white">
-          <canvas ref={canvasRef} className="absolute inset-0 block size-full cursor-crosshair touch-none" aria-label="Signature pad" />
+          <canvas
+            ref={canvasRef}
+            className="absolute inset-0 block size-full cursor-crosshair touch-none"
+            aria-label="Signature pad"
+            // A double click would select the words around the pad.
+            onMouseDown={(e) => e.detail > 1 && e.preventDefault()}
+          />
           {!hasInk ? (
             <div className="pointer-events-none absolute inset-x-0 top-[40%] text-center text-lg font-semibold text-[#aeb4bd]">
               Sign here with your finger
