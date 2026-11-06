@@ -232,11 +232,14 @@ export function splitIntoPallets(total: number, perPallet: number, max = 200): n
  * Pallets for a new item from its total. With a qty per pallet the total is
  * split (150 at 32 → 32, 32, 32, 32, 22). Without one, pallets often hold
  * different amounts (80 → 54 + 26), so one pallet is started with the qty
- * left blank and the worker adds pallets and types each qty. `room` is how
- * many pallets the sheet still has space for (a sheet holds MAX_PALLETS).
+ * left blank and the worker adds pallets and types each qty. The total is
+ * optional too: without it one pallet is started (holding the qty per pallet
+ * when given), more are added by hand, and the TOTAL is what they add up to.
+ * `room` is how many pallets the sheet still has space for (a sheet holds MAX_PALLETS).
  */
 export function setupPallets(total: number, perPallet: number, room = Infinity): (number | "")[] {
-  if (!(total > 0) || room < 1) return [];
+  if (room < 1) return [];
+  if (!(total > 0)) return [perPallet > 0 ? perPallet : ""];
   return perPallet > 0 ? splitIntoPallets(total, perPallet, room) : [""];
 }
 

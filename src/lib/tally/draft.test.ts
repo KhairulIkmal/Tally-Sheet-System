@@ -173,8 +173,10 @@ describe("setupPallets", () => {
   it("starts one pallet with a blank qty when it is not", () => {
     expect(setupPallets(80, 0)).toEqual([""]);
   });
-  it("needs a total", () => {
-    expect(setupPallets(0, 32)).toEqual([]);
+  it("starts one pallet without a total, holding the qty per pallet when given", () => {
+    expect(setupPallets(0, 32)).toEqual([32]);
+    expect(setupPallets(0, 0)).toEqual([""]);
+    expect(setupPallets(0, 32, 0)).toEqual([]);
   });
   it("only creates the pallets the sheet still has room for", () => {
     expect(setupPallets(150, 32, 3)).toEqual([32, 32, 32]);

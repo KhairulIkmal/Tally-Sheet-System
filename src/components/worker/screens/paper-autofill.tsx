@@ -77,7 +77,7 @@ export function AutoFillPanel({
         <div className="flex items-center justify-between">
           <div>
             <div className="text-lg font-extrabold">Auto-fill item</div>
-            <div className="text-sm font-medium text-muted">Enter the total. With a qty per pallet the rows are filled for you.</div>
+            <div className="text-sm font-medium text-muted">With a total and a qty per pallet the rows are filled for you.</div>
           </div>
           <button
             type="button"
@@ -137,7 +137,7 @@ export function AutoFillPanel({
 
         <div className="grid grid-cols-2 gap-2">
           <label className="flex flex-col gap-1">
-            <span className="text-xs font-bold text-muted">TOTAL ({normalizeUnit(unit)})</span>
+            <span className="text-xs font-bold text-muted">TOTAL ({normalizeUnit(unit)}) (OPTIONAL)</span>
             <input
               value={total}
               inputMode="numeric"
@@ -181,7 +181,7 @@ export function AutoFillPanel({
         >
           {qtys.length
             ? `${qtys.length} pallet${qtys.length === 1 ? "" : "s"} · Pallet ${nextStart}${qtys.length > 1 ? `–${end}` : ""}: ${per ? qtys.join(" · ") : "qty typed on the row; add more rows for the other pallets"}`
-            : "Enter the total. Add the qty per pallet to split it into pallets."}
+            : "This sheet is full."}
         </div>
 
         {left > 0 ? (
