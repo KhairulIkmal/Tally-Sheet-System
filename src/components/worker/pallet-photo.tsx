@@ -1,10 +1,17 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { Camera, RefreshCw, Trash2, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { PalletPhoto } from "@/lib/tally/draft";
 import { getPhoto, putPhoto, shrinkPhoto } from "./photo-store";
+import { CameraCapture } from "./camera-capture";
+
+/** Over everything: outside the paper sheet, which is zoomed and would shrink it too. */
+function OnTop({ children }: { children: React.ReactNode }) {
+  return typeof document === "undefined" ? null : createPortal(children, document.body);
+}
 
 /** An object URL for a stored photo, released when it changes or the component goes. */
 export function usePhotoUrl(key: string | undefined): string | null {
@@ -27,14 +34,33 @@ export function usePhotoUrl(key: string | undefined): string | null {
 }
 
 /**
- * Opens the phone's camera (a photo from the gallery isn't evidence of today).
- * Phones honour `capture`; a computer falls back to choosing a file.
+ * Takes a pallet photo with the app's own camera, which only lets the worker snap once
+ * the picture is sharp. Where that camera can't open, the phone's camera is used
+ * (`capture`; a photo from the gallery isn't evidence of today).
  */
-export function useTakePhoto(keyPrefix: string, onTaken: (photo: PalletPhoto) => void) {
+export function useTakePhoto(keyPrefix: string, onTaken: (photo: PalletPhoto) => void, title = "Pallet photo") {
   const inputRef = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
-  const input = (
+  const [camera, setCamera] = useState(false);
+
+  async function save(photo: Blob) {
+    setBusy(true);
+    setError("");
+    try {
+      const blob = await shrinkPhoto(photo);
+      const takenAt = new Date().toISOString();
+      const key = `${keyPrefix}/${Date.now()}`;
+      await putPhoto(key, blob);
+      onTaken({ key, takenAt });
+    } catch {
+      setError("Couldn't save the photo on this phone. Try again.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const fileInput = (
     <input
       ref={inputRef}
       type="file"
@@ -46,24 +72,33 @@ export function useTakePhoto(keyPrefix: string, onTaken: (photo: PalletPhoto) =>
       onChange={async (e) => {
         const file = e.target.files?.[0];
         e.target.value = "";
-        if (!file) return;
-        setBusy(true);
-        setError("");
-        try {
-          const blob = await shrinkPhoto(file);
-          const takenAt = new Date().toISOString();
-          const key = `${keyPrefix}/${Date.now()}`;
-          await putPhoto(key, blob);
-          onTaken({ key, takenAt });
-        } catch {
-          setError("Couldn't save the photo on this phone. Try again.");
-        } finally {
-          setBusy(false);
-        }
+        if (file) await save(file);
       }}
     />
   );
-  return { open: () => inputRef.current?.click(), input, busy, error };
+  const input = (
+    <>
+      {fileInput}
+      {camera ? (
+        <OnTop>
+          <CameraCapture
+            title={title}
+            onClose={() => setCamera(false)}
+            onCapture={(blob) => {
+              setCamera(false);
+              void save(blob);
+            }}
+            onUsePhoneCamera={() => {
+              setCamera(false);
+              inputRef.current?.click();
+            }}
+          />
+        </OnTop>
+      ) : null}
+    </>
+  );
+  const canUseOwnCamera = () => typeof navigator !== "undefined" && !!navigator.mediaDevices?.getUserMedia && window.isSecureContext;
+  return { open: () => (canUseOwnCamera() ? setCamera(true) : inputRef.current?.click()), input, busy, error };
 }
 
 /** The photo full size, with Retake and Remove. Over the sheet, which keeps its zoom. */
@@ -138,10 +173,14 @@ export function PalletPhotoField({
   onChange: (photo: PalletPhoto | undefined) => void;
 }) {
   const [viewing, setViewing] = useState(false);
-  const take = useTakePhoto(keyPrefix, (p) => {
-    setViewing(false);
-    onChange(p);
-  });
+  const take = useTakePhoto(
+    keyPrefix,
+    (p) => {
+      setViewing(false);
+      onChange(p);
+    },
+    `Pallet ${palletNo}`,
+  );
   const thumb = usePhotoUrl(photo?.key);
   return (
     <div className="flex flex-col gap-1">
@@ -184,16 +223,18 @@ export function PalletPhotoField({
       )}
       {take.error ? <span className="text-xs font-semibold text-danger">{take.error}</span> : null}
       {viewing && photo ? (
-        <PhotoViewer
-          photoKey={photo.key}
-          title={`Pallet ${palletNo}`}
-          onClose={() => setViewing(false)}
-          onRetake={take.open}
-          onRemove={() => {
-            setViewing(false);
-            onChange(undefined);
-          }}
-        />
+        <OnTop>
+          <PhotoViewer
+            photoKey={photo.key}
+            title={`Pallet ${palletNo}`}
+            onClose={() => setViewing(false)}
+            onRetake={take.open}
+            onRemove={() => {
+              setViewing(false);
+              onChange(undefined);
+            }}
+          />
+        </OnTop>
       ) : null}
     </div>
   );
@@ -212,10 +253,14 @@ export function PalletPhotoButton({
   onChange: (photo: PalletPhoto | undefined) => void;
 }) {
   const [viewing, setViewing] = useState(false);
-  const take = useTakePhoto(keyPrefix, (p) => {
-    setViewing(false);
-    onChange(p);
-  });
+  const take = useTakePhoto(
+    keyPrefix,
+    (p) => {
+      setViewing(false);
+      onChange(p);
+    },
+    `Pallet ${palletNo}`,
+  );
   return (
     <>
       {take.input}
@@ -231,16 +276,18 @@ export function PalletPhotoButton({
         {photo ? <span aria-hidden className="absolute top-1 right-1 size-2 rounded-full bg-success" /> : null}
       </button>
       {viewing && photo ? (
-        <PhotoViewer
-          photoKey={photo.key}
-          title={`Pallet ${palletNo}`}
-          onClose={() => setViewing(false)}
-          onRetake={take.open}
-          onRemove={() => {
-            setViewing(false);
-            onChange(undefined);
-          }}
-        />
+        <OnTop>
+          <PhotoViewer
+            photoKey={photo.key}
+            title={`Pallet ${palletNo}`}
+            onClose={() => setViewing(false)}
+            onRetake={take.open}
+            onRemove={() => {
+              setViewing(false);
+              onChange(undefined);
+            }}
+          />
+        </OnTop>
       ) : null}
     </>
   );
