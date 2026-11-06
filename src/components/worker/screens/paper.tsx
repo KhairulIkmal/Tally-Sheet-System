@@ -458,6 +458,7 @@ export function PaperScreen({
                                   data-zoom-pass
                                   aria-label={`Pallet ${i + 1} PLT type: ${pltCellText(p.pltType, p.pltOther)}. Tap to change`}
                                   aria-haspopup="dialog"
+                                  data-plt-cell
                                   onPointerDown={() => (pltDownOn.current = p.id)}
                                   onClick={(e) => {
                                     // Only a tap that started here: a "same" beside it disappears once it has copied,
@@ -900,20 +901,28 @@ function PltTypePanel({
 }) {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+    // The sheet above stays usable: another PLT TYPE cell moves the panel to that pallet,
+    // anything else closes it.
+    const onDown = (e: PointerEvent) => {
+      const t = e.target as Element | null;
+      if (!t?.closest("[data-keep-zoom], [data-plt-cell]")) onClose();
+    };
     window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    window.addEventListener("pointerdown", onDown, true);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      window.removeEventListener("pointerdown", onDown, true);
+    };
   }, [onClose]);
   return (
     <div
-      // Only lightly dimmed, so the marked cell stays easy to see.
-      className="fixed inset-0 z-30 flex items-end justify-center bg-black/10 sm:items-center"
+      // No backdrop: the sheet above stays in sight and can be tapped.
+      className="pointer-events-none fixed inset-x-0 bottom-0 z-30 flex justify-center"
       role="dialog"
       data-keep-zoom
-      aria-modal="true"
       aria-label={`Pallet ${no} PLT type`}
-      onClick={(e) => e.target === e.currentTarget && onClose()}
     >
-      <div className="flex w-full max-w-[420px] flex-col gap-3 rounded-t-2xl bg-surface p-4 shadow-[0_-8px_30px_rgba(16,24,40,.25)] pb-[max(1rem,env(safe-area-inset-bottom))] sm:rounded-2xl">
+      <div className="pointer-events-auto flex w-full max-w-[420px] flex-col gap-3 rounded-t-2xl bg-surface p-4 shadow-[0_-8px_30px_rgba(16,24,40,.25)] pb-[max(1rem,env(safe-area-inset-bottom))]">
         <div className="flex items-baseline justify-between">
           <span className="text-base font-extrabold">Pallet {no}</span>
           <span className="text-xs font-bold text-muted">PLT TYPE</span>
