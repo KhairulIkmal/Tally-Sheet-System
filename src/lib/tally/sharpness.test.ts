@@ -64,7 +64,7 @@ describe("ready to snap", () => {
     return last!;
   };
 
-  it("after a few sharp, still frames in a row", () => {
+  it("after a couple of sharp, still frames in a row", () => {
     expect(run([[500, 1]]).ready).toBe(false);
     expect(
       run([
@@ -77,8 +77,8 @@ describe("ready to snap", () => {
 
   it("not while the phone is moving", () => {
     const r = run([
-      [500, 1],
-      [500, 1],
+      [500, 20],
+      [500, 20],
       [500, 20],
     ]);
     expect(r.ready).toBe(false);
@@ -90,7 +90,9 @@ describe("ready to snap", () => {
       [500, 1],
       [500, 1],
       [500, 1],
-      [150, 1],
+      [100, 1],
+      [100, 1],
+      [100, 1],
     ]);
     expect(r.ready).toBe(false);
     expect(r.reason).toBe("blurry");
@@ -104,6 +106,63 @@ describe("ready to snap", () => {
         [5, 0],
         [5, 0],
       ]).ready,
+    ).toBe(false);
+  });
+});
+
+describe("staying green in the hand", () => {
+  const steps = (frames: [number, number][]) => {
+    let state = { peak: 0, run: 0 } as Parameters<typeof nextSharp>[0];
+    return frames.map(([s, m]) => {
+      const r = nextSharp(state, s, m);
+      state = r.state;
+      return r.ready;
+    });
+  };
+
+  it("turns green after two good frames", () => {
+    expect(
+      steps([
+        [500, 2],
+        [500, 2],
+      ]),
+    ).toEqual([false, true]);
+  });
+
+  it("holds through a little shake and a slightly softer frame", () => {
+    // Green, then shake of 12 (over the turn-on limit, under the stay-on one), then softer at 60%.
+    expect(
+      steps([
+        [500, 2],
+        [500, 2],
+        [500, 12],
+        [300, 4],
+        [480, 3],
+      ]),
+    ).toEqual([false, true, true, true, true]);
+  });
+
+  it("holds through one or two bad frames, but goes red after three", () => {
+    expect(
+      steps([
+        [500, 2],
+        [500, 2],
+        [500, 40],
+        [500, 40],
+        [500, 40],
+      ]),
+    ).toEqual([false, true, true, true, false]);
+  });
+
+  it("goes red for a picture that has clearly gone soft", () => {
+    expect(
+      steps([
+        [500, 2],
+        [500, 2],
+        [100, 2],
+        [100, 2],
+        [100, 2],
+      ]).at(-1),
     ).toBe(false);
   });
 });

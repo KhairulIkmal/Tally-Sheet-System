@@ -43,15 +43,33 @@ export function toGrey(rgba: Uint8ClampedArray): Uint8ClampedArray {
   return out;
 }
 
+/** A grey image shrunk by averaging each n x n block. */
+export function shrinkGrey(grey: Uint8ClampedArray, width: number, height: number, n: number): Uint8ClampedArray {
+  const w = Math.floor(width / n);
+  const h = Math.floor(height / n);
+  const out = new Uint8ClampedArray(w * h);
+  for (let y = 0; y < h; y++)
+    for (let x = 0; x < w; x++) {
+      let s = 0;
+      for (let dy = 0; dy < n; dy++) for (let dx = 0; dx < n; dx++) s += grey[(y * n + dy) * width + x * n + dx];
+      out[y * w + x] = s / (n * n);
+    }
+  return out;
+}
+
 export const SHARP = {
   /** Below this nothing counts as sharp, however flat the scene. */
-  floor: 40,
-  /** Within this share of the best seen in the last few seconds. */
-  ofPeak: 0.7,
-  /** Grey levels per pixel of change between frames that still counts as holding still. */
-  still: 6,
+  floor: 30,
+  /** Turning green: within this share of the best seen lately, and no more movement than this. */
+  ofPeak: 0.55,
+  still: 9,
+  /** Staying green: a hand's natural shake or a slightly softer frame doesn't turn it red. */
+  keepOfPeak: 0.35,
+  keepStill: 16,
   /** Frames in a row that must pass before the shutter turns on. */
-  frames: 3,
+  frames: 2,
+  /** Bad frames in a row that turn it red again once green. */
+  dropAfter: 3,
 } as const;
 
 export interface SharpState {
@@ -59,6 +77,10 @@ export interface SharpState {
   peak: number;
   /** Frames in a row that passed. */
   run: number;
+  /** Green now. */
+  ready?: boolean;
+  /** Bad frames in a row while green. */
+  misses?: number;
 }
 
 export interface SharpReading {
@@ -68,15 +90,24 @@ export interface SharpReading {
   reason: "ok" | "moving" | "blurry";
 }
 
-/** One frame's reading: sharpness and movement since the last frame. */
+/**
+ * One frame's reading: sharpness and movement since the last frame. Turning green
+ * takes a couple of good frames; once green it holds through a little shake and only
+ * goes red after a few clearly bad frames, so it doesn't flicker in the hand.
+ */
 export function nextSharp(prev: SharpState, sharpness: number, movement: number): SharpReading {
-  const peak = Math.max(sharpness, prev.peak * 0.97);
-  const moving = movement > SHARP.still;
-  const blurry = sharpness < SHARP.floor || sharpness < peak * SHARP.ofPeak;
-  const run = moving || blurry ? 0 : prev.run + 1;
-  return {
-    state: { peak, run },
-    ready: run >= SHARP.frames,
-    reason: moving ? "moving" : blurry ? "blurry" : "ok",
-  };
+  const peak = Math.max(sharpness, prev.peak * 0.94);
+  const green = !!prev.ready;
+  const moving = movement > (green ? SHARP.keepStill : SHARP.still);
+  const blurry = sharpness < SHARP.floor || sharpness < peak * (green ? SHARP.keepOfPeak : SHARP.ofPeak);
+  const bad = moving || blurry;
+  const reason = moving ? "moving" : blurry ? "blurry" : "ok";
+  if (green) {
+    const misses = bad ? (prev.misses ?? 0) + 1 : 0;
+    const ready = misses < SHARP.dropAfter;
+    return { state: { peak, run: ready ? prev.run + 1 : 0, ready, misses: ready ? misses : 0 }, ready, reason: ready ? "ok" : reason };
+  }
+  const run = bad ? 0 : prev.run + 1;
+  const ready = run >= SHARP.frames;
+  return { state: { peak, run, ready, misses: 0 }, ready, reason };
 }

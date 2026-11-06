@@ -3,10 +3,10 @@
 import { useEffect, useRef, useState } from "react";
 import { Flashlight, X } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { laplacianVariance, meanAbsDiff, nextSharp, toGrey, type SharpState } from "@/lib/tally/sharpness";
+import { laplacianVariance, meanAbsDiff, nextSharp, shrinkGrey, toGrey, type SharpState } from "@/lib/tally/sharpness";
 
 /** After this long without a sharp picture (a bare wall, poor light), the worker may snap anyway. */
-const ANYWAY_AFTER_MS = 6000;
+const ANYWAY_AFTER_MS = 4000;
 const CHECK_EVERY_MS = 120;
 /** Width of the grey copy measured each check. */
 const PROBE_W = 480;
@@ -109,8 +109,10 @@ export function CameraCapture({
       probe.height = h;
       ctx.drawImage(v, (v.videoWidth - sw) / 2, (v.videoHeight - sh) / 2, sw, sh, 0, 0, w, h);
       const grey = toGrey(ctx.getImageData(0, 0, w, h).data);
-      const reading = nextSharp(state, laplacianVariance(grey, w, h), prev ? meanAbsDiff(prev, grey) : 99);
-      prev = grey;
+      // Movement on a quarter-size copy: the camera's own grain doesn't count as a shaking hand.
+      const small = shrinkGrey(grey, w, h, 4);
+      const reading = nextSharp(state, laplacianVariance(grey, w, h), prev ? meanAbsDiff(prev, small) : 99);
+      prev = small;
       state = reading.state;
       setStatus(reading.reason);
       setReady(reading.ready);
