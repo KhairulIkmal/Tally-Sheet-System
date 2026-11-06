@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Minus, Plus } from "lucide-react";
-import { pageCount, type PaperData } from "@/lib/tally/sheet";
+import { paperPageCount, type PaperData } from "@/lib/tally/sheet";
 import { PAPER_HEIGHT, PAPER_WIDTH, PaperSheet } from "./paper-sheet";
 
 /**
@@ -10,20 +10,12 @@ import { PAPER_HEIGHT, PAPER_WIDTH, PaperSheet } from "./paper-sheet";
  * available width; + / − zoom in steps. Used for the worker's preview and
  * the office detail page.
  */
-export function PaperViewer({
-  data,
-  variant = "phone",
-  maxFit = 1,
-}: {
-  data: PaperData;
-  variant?: "phone" | "desk";
-  maxFit?: number;
-}) {
+export function PaperViewer({ data, variant = "phone", maxFit = 1 }: { data: PaperData; variant?: "phone" | "desk"; maxFit?: number }) {
   const boxRef = useRef<HTMLDivElement>(null);
   const [fit, setFit] = useState(0.45);
   const [zoom, setZoom] = useState(1);
   const [page, setPage] = useState(1);
-  const pages = pageCount(data.rows.length);
+  const pages = paperPageCount(data);
   const current = Math.min(page, pages);
 
   useEffect(() => {

@@ -1,6 +1,7 @@
 import { MATERIALS_FIRST_BOXES, PLT_LABELS } from "@/lib/tally/constants";
 import { formatQty } from "@/lib/tally/draft";
-import { pageCount, pageRows, type PaperData, type PaperRow } from "@/lib/tally/sheet";
+import { pageCount, pageRows, paperPageCount, type PaperData, type PaperRow } from "@/lib/tally/sheet";
+import { ChecklistSheet } from "./checklist-sheet";
 
 /**
  * One A4 page (794×1123 CSS px at 96 dpi) laid out like the paper Count
@@ -262,7 +263,11 @@ function rowsFor(form: PaperData["form"], rows: PaperRow[], highlightMixed: bool
 }
 
 export function PaperSheet({ data, page = 1, highlightMixed = false }: { data: PaperData; page?: number; highlightMixed?: boolean }) {
-  const pages = pageCount(data.rows.length);
+  // The pallet pages, then page 2 (the stuffing / loading checklist).
+  const palletPages = pageCount(data.rows.length);
+  const allPages = paperPageCount(data);
+  if (page > palletPages && data.checklist) return <ChecklistSheet data={data.checklist} form={data.form} page={page} pages={allPages} />;
+  const pages = palletPages;
   const isLast = page >= pages;
   const rows = pageRows(data.rows, page);
   const h = data.header;
@@ -483,7 +488,7 @@ export function PaperSheet({ data, page = 1, highlightMixed = false }: { data: P
           {data.ref} · {data.totalPallets} PLT · {formatQty(data.qtyByUnit)}
         </span>
         <span>
-          PAGE {page} OF {pages}
+          PAGE {page} OF {allPages}
         </span>
       </div>
     </div>
@@ -492,7 +497,7 @@ export function PaperSheet({ data, page = 1, highlightMixed = false }: { data: P
 
 /** Every page of a sheet, for the hidden print area. */
 export function PaperPages({ data }: { data: PaperData }) {
-  const pages = pageCount(data.rows.length);
+  const pages = paperPageCount(data);
   return (
     <>
       {Array.from({ length: pages }, (_, i) => (

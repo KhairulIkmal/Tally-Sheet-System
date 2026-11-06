@@ -3,6 +3,7 @@ import "server-only";
 import { submitPayloadSchema, type SubmitPayload } from "@/lib/tally/payload";
 import type { SheetDetail, SheetSummary } from "@/lib/tally/sheet";
 import { rangeBounds } from "./filters";
+import { cleanChecklist } from "@/lib/tally/checklist";
 import { StoreError, type HistoryItem, type TallyStore } from "./types";
 
 /**
@@ -101,6 +102,7 @@ function seedSheet(n: number, form: "container" | "lorry", at: number, status: "
     checks: isLorry ? { SAMPLE: { qty: 2, note: "FOR QC" } } : {},
     pltCounts: isLorry ? { L: 1, E: 0, C: 1, O: 2 } : {},
     pltOtherNote: "",
+    checklist: null,
     signature: SEED_SIGNATURE,
     signedAt: iso,
     device: "Demo device",
@@ -186,6 +188,7 @@ function paperExampleSheet(n: number, at: number): SheetDetail {
     checks: {},
     pltCounts: {},
     pltOtherNote: "",
+    checklist: null,
     signature: SEED_SIGNATURE,
     signedAt: iso,
     device: "Demo device",
@@ -334,6 +337,13 @@ export function demoStore(actor: { id: string; name: string; roles: string[] }):
         checks: p.checks,
         pltCounts: p.pltCounts,
         pltOtherNote: p.pltOtherNote,
+        checklist: p.checklist
+          ? {
+              ...cleanChecklist(p.checklist),
+              timeStart: String(p.checklist.timeStart ?? "") || null,
+              timeEnd: String(p.checklist.timeEnd ?? "") || null,
+            }
+          : null,
         signature: p.signature,
         signedAt: p.signedAt,
         device: p.device,

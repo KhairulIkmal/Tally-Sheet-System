@@ -1,7 +1,18 @@
 import { z } from "zod";
-import { CHECKS, MATERIALS, MAX_ITEMS, MAX_LINES_PER_PALLET, MAX_PALLETS, OLD_LAM_SOON, PLT_OTHER_MAX, PLT_TYPES, normalizeUnit } from "./constants";
+import {
+  CHECKS,
+  MATERIALS,
+  MAX_ITEMS,
+  MAX_LINES_PER_PALLET,
+  MAX_PALLETS,
+  OLD_LAM_SOON,
+  PLT_OTHER_MAX,
+  PLT_TYPES,
+  normalizeUnit,
+} from "./constants";
 import { paperDateToIso } from "./dates";
-import { pltCounts, toQty, type Draft } from "./draft";
+import { draftChecklist, packingFacts, pltCounts, toQty, type Draft } from "./draft";
+import { effectivePacking } from "./checklist";
 
 const isoDate = z
   .string()
@@ -61,11 +72,10 @@ export const submitPayloadSchema = z
     checks: z.record(z.string(), z.object({ qty: z.number().int().min(0).max(9999), note: text(60) })),
     pltCounts: z.record(z.string(), z.number().int().min(0).max(MAX_PALLETS)),
     pltOtherNote: text(60).default(""),
+    /** Page 2. Null from phones from before it. Cleaned again by the database. */
+    checklist: z.record(z.string(), z.unknown()).nullable().default(null),
     remark: text(300),
-    signature: z
-      .string()
-      .startsWith("data:image/png;base64,")
-      .max(300_000),
+    signature: z.string().startsWith("data:image/png;base64,").max(300_000),
     signedAt: z.string().datetime({ offset: true }),
     device: text(160),
   })
@@ -132,11 +142,19 @@ export function draftToPayload(draft: Draft, device: string): SubmitPayload {
       })),
     })),
     materials: isLorry ? {} : Object.fromEntries(MATERIALS.map((k) => [k, draft.materials[k] ?? 0])),
-    checks: isLorry
-      ? Object.fromEntries(CHECKS.map((k) => [k, { qty: draft.checks[k].qty ?? 0, note: up(draft.checks[k].note) }]))
-      : {},
+    checks: isLorry ? Object.fromEntries(CHECKS.map((k) => [k, { qty: draft.checks[k].qty ?? 0, note: up(draft.checks[k].note) }])) : {},
     pltCounts: isLorry ? pltCounts(draft) : {},
     pltOtherNote: "",
+    checklist: (() => {
+      const c = draftChecklist(draft);
+      return {
+        ...c,
+        packing: effectivePacking(c, packingFacts(draft)),
+        // Time start / end: when the sheet was started on the phone, and when it was signed.
+        timeStart: draft.startedAt,
+        timeEnd: draft.signedAt ?? new Date().toISOString(),
+      };
+    })(),
     remark: up(draft.remark),
     signature: draft.signature ?? "",
     signedAt: draft.signedAt ?? new Date().toISOString(),

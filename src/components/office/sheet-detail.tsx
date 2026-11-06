@@ -9,7 +9,7 @@ import { setPrintedAction } from "@/lib/data/actions";
 import { MATERIALS, lamSoonWayList, materialLabel, otherPalletList, pltSummary } from "@/lib/tally/constants";
 import { formatDateTime, isoToPaperDate } from "@/lib/tally/dates";
 import { formatQty } from "@/lib/tally/draft";
-import { itemSummaries, pageCount, paperFromSheet, type SheetDetail } from "@/lib/tally/sheet";
+import { itemSummaries, paperFromSheet, paperPageCount, type SheetDetail } from "@/lib/tally/sheet";
 import { PaperPages } from "@/components/paper/paper-sheet";
 import { PaperViewer } from "@/components/paper/paper-viewer";
 import { FormBadge } from "@/components/worker/ui";
@@ -26,7 +26,7 @@ export function SheetDetailView({ sheet }: { sheet: SheetDetail }) {
   // After the print dialog closes: did it come out of the printer? (The browser can't tell.)
   const [askPrinted, setAskPrinted] = useState(false);
   const paper = paperFromSheet(sheet);
-  const pages = pageCount(paper.rows.length);
+  const pages = paperPageCount(paper);
   const printed = sheet.status === "printed";
   const chip = STATUS_CHIP[sheet.status];
   const items = itemSummaries(sheet);

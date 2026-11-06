@@ -12,7 +12,8 @@ import {
   type SheetForm,
 } from "./constants";
 import { formatDateTime, isoToPaperDate } from "./dates";
-import { palletQty, pltCounts, totals, type Draft, type QtyByUnit } from "./draft";
+import { clockTime, cleanChecklist, effectivePacking, type ChecklistPaper, type Checklist } from "./checklist";
+import { draftChecklist, formatQty, itemQty, packingFacts, palletQty, pltCounts, totals, type Draft, type QtyByUnit } from "./draft";
 
 export type SheetStatus = "submitted" | "printed";
 
@@ -90,6 +91,8 @@ export interface SheetDetail extends SheetSummary {
   checks: Record<string, { qty: number; note: string }>;
   pltCounts: Record<string, number>;
   pltOtherNote: string;
+  /** Page 2, with when loading started and ended. Null on sheets from before it. */
+  checklist: (Checklist & { timeStart?: string | null; timeEnd?: string | null }) | null;
   signature: string;
   signedAt: string;
   device: string;
@@ -148,6 +151,8 @@ export interface PaperData {
   pltWayNote: string;
   /** The note on the OTHERS box: the types of Others pallet on this sheet. */
   pltOtherNote: string;
+  /** Page 2, printed after the pallet pages. Null on sheets from before it. */
+  checklist?: ChecklistPaper | null;
   remark: string;
   signature: string | null;
   signedBy: string;
@@ -254,6 +259,38 @@ export function paperFromSheet(sheet: SheetDetail): PaperData {
     remark: sheet.remark,
     signature: sheet.signature || null,
     signedBy: `${sheet.preparedByName.toUpperCase()} · ${formatDateTime(sheet.signedAt)}`,
+    checklist: sheet.checklist
+      ? (() => {
+          const c = cleanChecklist(sheet.checklist);
+          const items = sheet.items.map((it) => ({
+            name: it.name,
+            unit: it.unit,
+            qty: sheet.pallets.filter((p) => p.itemNo === it.itemNo).reduce((a, p) => a + p.lines.reduce((b, l) => b + (l.qty ?? 0), 0), 0),
+          }));
+          return {
+            issuedDate: isoToPaperDate(sheet.date),
+            siNo: sheet.header.siNo,
+            contract: sheet.form === "container" ? sheet.header.contractNo : sheet.header.doNo,
+            transportAgent: c.transportAgent,
+            vehicleNo: sheet.vehicleNo,
+            products: checklistProducts(items),
+            totalQty: formatQty(sheet.qtyByUnit),
+            pList: c.pList,
+            liftruckDriver: c.liftruckDriver,
+            forkliftDriver: c.forkliftDriver,
+            stackerStuffer: c.stackerStuffer,
+            timeStart: clockTime(sheet.checklist.timeStart),
+            timeEnd: clockTime(sheet.checklist.timeEnd ?? sheet.signedAt),
+            container: c.container,
+            goods: c.goods,
+            packing: c.packing,
+            temperature: c.temperature,
+            qcBy: c.qcBy,
+            department: c.department,
+            checkBy: sheet.preparedByName.toUpperCase(),
+          };
+        })()
+      : null,
     totalPallets: sheet.totalPallets,
     qtyByUnit: sheet.qtyByUnit,
   };
@@ -314,9 +351,44 @@ export function paperFromDraft(draft: Draft, signerName: string, ref = "NOT SUBM
     remark: up(draft.remark),
     signature: draft.signature,
     signedBy: draft.signedAt ? `${signerName.toUpperCase()} · ${formatDateTime(draft.signedAt)}` : "",
+    checklist: (() => {
+      const c = draftChecklist(draft);
+      return {
+        issuedDate: h.date,
+        siNo: up(h.siNo),
+        contract: draft.form === "container" ? up(h.contractNo) : up(h.doNo),
+        transportAgent: up(c.transportAgent),
+        vehicleNo: draft.form === "container" ? up(h.containerNo) : up(h.lorryNo),
+        products: checklistProducts(draft.items.map((it) => ({ name: up(it.name), unit: normalizeUnit(it.unit), qty: itemQty(it) }))),
+        totalQty: formatQty(t.qty),
+        pList: up(c.pList),
+        liftruckDriver: up(c.liftruckDriver),
+        forkliftDriver: up(c.forkliftDriver),
+        stackerStuffer: up(c.stackerStuffer),
+        timeStart: clockTime(draft.startedAt),
+        timeEnd: clockTime(draft.signedAt),
+        container: c.container,
+        goods: c.goods,
+        packing: effectivePacking(c, packingFacts(draft)),
+        temperature: c.temperature.trim(),
+        qcBy: up(c.qcBy),
+        department: up(c.department),
+        checkBy: signerName.toUpperCase(),
+      };
+    })(),
     totalPallets: t.pallets,
     qtyByUnit: t.qty,
   };
+}
+
+/** Page 2's products: each item with its quantity and packing (its unit). */
+function checklistProducts(items: { name: string; unit: string; qty: number }[]) {
+  return items.map((it) => ({ name: it.name, quantity: it.qty ? String(it.qty) : "", packing: it.unit }));
+}
+
+/** All the printed pages: the pallet pages, then page 2 (the checklist) when there is one. */
+export function paperPageCount(data: Pick<PaperData, "rows" | "checklist">): number {
+  return pageCount(data.rows.length) + (data.checklist ? 1 : 0);
 }
 
 export function pageCount(rowCount: number): number {

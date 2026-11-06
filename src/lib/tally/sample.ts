@@ -1,6 +1,29 @@
 import type { PltType } from "./constants";
 import { newDraft, newId, type Draft, type DraftItem } from "./draft";
 import { todayPaperDate } from "./dates";
+import { CONTAINER_CHECKS, GOODS_CHECKS, blankChecklist } from "./checklist";
+
+/** Page 2 as a careful worker would fill it: everything ticked, the people named. */
+function withChecklist(d: Draft): Draft {
+  const c = blankChecklist();
+  c.transportAgent = d.form === "lorry" ? "LAM SOON TRANSPORT" : "KONSORTIUM LOGISTIK";
+  c.pList = "PL-2611-0457";
+  c.liftruckDriver = "AHMAD";
+  c.forkliftDriver = "RAJ KUMAR";
+  c.stackerStuffer = "ZUL";
+  for (const x of CONTAINER_CHECKS) c.container[x.key] = "yes";
+  // As the form asks: cleanliness and sealing are there; dents, rust, leaks and the rest are not.
+  for (const x of GOODS_CHECKS) c.goods[x.key] = x.key === "cleanliness" || x.key === "sealing" ? "yes" : "no";
+  c.packing = { photograph: "no", others: "no" };
+  if (d.form === "lorry")
+    Object.assign(c.packing, { plywood: "no", polyfoam: "no", liner: "no", layerPad: "no", airBag: "no", lockSeal: "no" });
+  else if (!d.header.sealNo.trim()) c.packing.lockSeal = "no";
+  c.temperature = "31";
+  c.qcBy = "NURUL AINA";
+  c.department = "QC";
+  d.checklist = c;
+  return d;
+}
 
 // name, unit, target, qtys, expired, prod, batches (one per pallet, the last repeats)
 const ITEMS: [string, string, number, number[], string, string, string[]][] = [
@@ -98,7 +121,7 @@ export function sampleDraft(
         "EMSIA",
       ],
     ]);
-    return d;
+    return withChecklist(d);
   }
   if (form === "container-full") {
     const d = newDraft("container", now);
@@ -133,7 +156,7 @@ export function sampleDraft(
       POLYFOAM: 11,
     });
     d.remark = "2 CTN 12X1KG DAISY MARG TAKEN FOR SAMPLE BY QC";
-    return d;
+    return withChecklist(d);
   }
   if (form === "lorry-full") {
     const d = newDraft("lorry", now);
@@ -153,7 +176,7 @@ export function sampleDraft(
     d.checks.OTHERS = { qty: 1, note: "PALLET JACK" };
     d.items[4].pallets[4].pltOther = "PLASTIC";
     d.remark = "LORRY ARRIVED 2.30PM, LOADED BY BAY 3";
-    return d;
+    return withChecklist(d);
   }
 
   if (form === "lorry") {
@@ -162,7 +185,7 @@ export function sampleDraft(
     d.items = items(LORRY_ITEMS.map(([n, u, t, q, e, p, b, ty]) => [n, u, t, q, e, p, [b], ty, "LS-24117"]));
     d.checks.SAMPLE = { qty: 2, note: "FOR QC" };
     d.items[3].pallets[0].pltOther = "PLASTIC";
-    return d;
+    return withChecklist(d);
   }
 
   const d = newDraft("container", now);
@@ -177,5 +200,5 @@ export function sampleDraft(
   d.items = items(ITEMS.map(([n, u, t, q, e, p, b]) => [n, u, t, q, e, p, b, ["L4"], ""]));
   d.materials.LINER = 1;
   d.materials.POLYFOAM = 8;
-  return d;
+  return withChecklist(d);
 }

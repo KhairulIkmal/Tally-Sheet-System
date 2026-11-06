@@ -62,10 +62,26 @@ import { SignatureScreen } from "./screens/signature";
 import { PreviewScreen } from "./screens/preview";
 import { SuccessScreen } from "./screens/success";
 import { PaperScreen, type PaperFix } from "./screens/paper";
+import { ChecklistScreen } from "./screens/checklist";
+import { draftChecklist } from "@/lib/tally/draft";
+import type { Checklist } from "@/lib/tally/checklist";
 import { sampleDraft } from "@/lib/tally/sample";
 
 type Screen =
-  "home" | "type" | "header" | "paper" | "picker" | "setup" | "pallets" | "items" | "materials" | "review" | "sign" | "preview" | "success";
+  | "home"
+  | "type"
+  | "header"
+  | "paper"
+  | "picker"
+  | "setup"
+  | "pallets"
+  | "items"
+  | "materials"
+  | "checklist"
+  | "review"
+  | "sign"
+  | "preview"
+  | "success";
 
 /** Edits closer together than this undo as one (typing a word). */
 const UNDO_GROUP_MS = 1000;
@@ -79,9 +95,10 @@ const STEP_OF: Partial<Record<Screen, number>> = {
   // The items list is the "Item" step; "Pallet" is one item's pallets.
   items: 1,
   materials: 3,
-  review: 4,
-  sign: 5,
-  preview: 5,
+  checklist: 4,
+  review: 5,
+  sign: 6,
+  preview: 6,
 };
 
 export interface WorkerUser {
@@ -212,6 +229,17 @@ export function WorkerApp({ user, history, sheets }: { user: WorkerUser; history
       return next;
     });
   }, []);
+
+  /** Edits page 2, the stuffing / loading checklist. */
+  const editChecklist = useCallback(
+    (fn: (c: Checklist) => void) =>
+      update((d) => {
+        const c = structuredClone(draftChecklist(d));
+        fn(c);
+        d.checklist = c;
+      }),
+    [update],
+  );
 
   /** Puts the draft back as it was before the last change. */
   function undo() {
@@ -355,12 +383,13 @@ export function WorkerApp({ user, history, sheets }: { user: WorkerUser; history
     else if (i === 1) go("items");
     else if (i === 2) openItem(cur >= 0 && cur < items.length ? cur : 0);
     else if (i === 3) go("materials");
-    else if (i === 4) go("review");
-    if (keep && i < 4) setFromReview(true);
+    else if (i === 4) go("checklist");
+    else if (i === 5) go("review");
+    if (keep && i < 5) setFromReview(true);
   }
 
   // Steps the worker can jump to: the header always; the rest once there is an item.
-  const canJump = (i: number) => i === 0 || (i <= 4 && items.length > 0 && !!draft);
+  const canJump = (i: number) => i === 0 || (i <= 5 && items.length > 0 && !!draft);
 
   const back: Partial<Record<Screen, Screen>> = {
     type: "home",
@@ -371,7 +400,8 @@ export function WorkerApp({ user, history, sheets }: { user: WorkerUser; history
     items: "header",
     paper: "home",
     materials: mode === "paper" ? "paper" : "items",
-    review: mode === "paper" ? "paper" : "materials",
+    checklist: "materials",
+    review: mode === "paper" ? "paper" : "checklist",
     sign: "review",
     preview: "sign",
   };
@@ -548,13 +578,16 @@ export function WorkerApp({ user, history, sheets }: { user: WorkerUser; history
     ],
     items: ["Items", sheetNo],
     materials: [draft?.form === "lorry" ? "Materials & pallets" : "Packing materials", sheetNo],
+    checklist: ["Stuffing / loading checklist", sheetNo],
     review: ["Review before signing", sheetNo],
     sign: ["Count & Prepared By", sheetNo],
     preview: ["Tally sheet preview", sheetNo],
   };
   const bar = bars[screen];
   // Both views edit the same draft, so the worker can switch on any screen while filling the sheet.
-  const canSwitch = (["paper", "header", "picker", "setup", "pallets", "items", "materials", "review"] as Screen[]).includes(screen);
+  const canSwitch = (["paper", "header", "picker", "setup", "pallets", "items", "materials", "checklist", "review"] as Screen[]).includes(
+    screen,
+  );
   const toPaper = screen === "review" ? mode !== "paper" : screen !== "paper";
   const modeSwitch =
     screen === "type" ? (
@@ -833,6 +866,15 @@ export function WorkerApp({ user, history, sheets }: { user: WorkerUser; history
               d.remark = v;
             })
           }
+          onNext={() => go(fromReview ? "review" : "checklist")}
+          nextLabel={fromReview ? "Save · Back to review" : "Next · Checklist"}
+        />
+      );
+    } else if (screen === "checklist") {
+      body = (
+        <ChecklistScreen
+          draft={draft}
+          onEdit={editChecklist}
           onNext={() => go("review")}
           nextLabel={fromReview ? "Save · Back to review" : undefined}
         />
@@ -851,6 +893,7 @@ export function WorkerApp({ user, history, sheets }: { user: WorkerUser; history
             setPaperFix({ row, fields: pallet === undefined ? undefined : fields, label, seq: Date.now() });
           }}
           onEditMaterials={() => (mode === "paper" ? go("paper") : fixFromReview(() => go("materials")))}
+          onEditChecklist={() => (mode === "paper" ? go("paper") : fixFromReview(() => go("checklist")))}
           onSign={() => go("sign")}
         />
       );
@@ -910,7 +953,11 @@ export function WorkerApp({ user, history, sheets }: { user: WorkerUser; history
           subtitle={bar[1]}
           onBack={() => {
             // Leaving a fix started from the review goes back to the review (an item in progress returns to its list).
-            if (fromReview && (screen === "header" || screen === "items" || screen === "pallets" || screen === "materials")) go("review");
+            if (
+              fromReview &&
+              (screen === "header" || screen === "items" || screen === "pallets" || screen === "materials" || screen === "checklist")
+            )
+              go("review");
             else go(back[screen] ?? "home");
           }}
           form={screen === "type" ? null : draft?.form}

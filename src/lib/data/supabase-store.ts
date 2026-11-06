@@ -180,6 +180,7 @@ export function supabaseStore(): TallyStore {
         checks: s.checks ?? {},
         pltCounts: s.plt_counts ?? {},
         pltOtherNote: s.plt_other_note ?? "",
+        checklist: s.checklist ?? null,
         signature: s.signature,
         signedAt: s.signed_at,
         device: s.device ?? "",

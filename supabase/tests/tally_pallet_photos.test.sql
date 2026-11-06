@@ -6,7 +6,7 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 
-select plan(15);
+select plan(17);
 
 create temp table r (k text primary key, v jsonb);
 grant all on r to public;
@@ -91,6 +91,16 @@ select pg_temp.keep('s1_short', (select jsonb_agg(short order by pallet_no)
 select pg_temp.keep('s2_photos', (select jsonb_agg(photo_path order by pallet_no)
   from tally.sheet_pallets where sheet_id = (pg_temp.got('s2') ->> 'id')::uuid));
 
+-- Page 2: cleaned on the way in.
+select pg_temp.keep('s3', tally.submit_sheet(pg_temp.sheet('ffffffff-ffff-4fff-8fff-ffffffffffff', null) || jsonb_build_object('checklist', jsonb_build_object(
+  'transportAgent', ' lam soon transport ', 'qcBy', 'aina', 'department', 'qc', 'temperature', '31', 'junk', 'x',
+  'container', jsonb_build_object('cleanliness', 'yes', 'noSmell', 'maybe', 'extra', 'yes'),
+  'goods', jsonb_build_object('dented', 'no'),
+  'packing', jsonb_build_object('lockSeal', 'yes'),
+  'timeStart', '2026-11-06T01:00:00.000Z', 'timeEnd', 'not a time'))));
+select pg_temp.keep('s3_cl', (select checklist from tally.sheets where id = (pg_temp.got('s3') ->> 'id')::uuid));
+select pg_temp.keep('s1_cl', coalesce((select checklist from tally.sheets where id = (pg_temp.got('s1') ->> 'id')::uuid), 'null'::jsonb));
+
 -- ═══ Second worker p3 ═══
 select pg_temp.login('00000000-0000-0000-0000-0000000008a3');
 select pg_temp.keep('read_other_worker', to_jsonb(tally.can_read_pallet_photo('00000000-0000-0000-0000-0000000008a1/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/p1.jpg')));
@@ -115,6 +125,13 @@ select is(pg_temp.got('s1_photos'),
   '[[1, "00000000-0000-0000-0000-0000000008a1/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/p1.jpg"], [2, null]]'::jsonb,
   'submit records the uploaded photo on its pallet; a pallet without one has none');
 select is(pg_temp.got('s1_short'), '[true, false]'::jsonb, 'a pallet marked short is stored as short');
+select is(pg_temp.got('s3_cl'), jsonb_build_object(
+  'transportAgent', 'LAM SOON TRANSPORT', 'pList', '', 'liftruckDriver', '', 'forkliftDriver', '', 'stackerStuffer', '',
+  'qcBy', 'AINA', 'department', 'QC', 'temperature', '31',
+  'container', '{"cleanliness": "yes"}'::jsonb, 'goods', '{"dented": "no"}'::jsonb, 'packing', '{"lockSeal": "yes"}'::jsonb,
+  'timeStart', '2026-11-06T01:00:00.000Z', 'timeEnd', null),
+  'page 2 is stored with fixed keys, YES / NO only, text in capitals, a valid start time');
+select is(pg_temp.got('s1_cl'), 'null'::jsonb, 'a sheet sent without page 2 has none');
 select is(pg_temp.got('s2_photos'), '[null, null]'::jsonb, 'a photo that never arrived is left off, the sheet still goes in');
 select is(pg_temp.got('bad_other') #>> '{}', '22023', 'a photo in another worker''s folder is refused');
 select is(pg_temp.got('bad_sheet') #>> '{}', '22023', 'a photo from another sheet''s folder is refused');

@@ -63,7 +63,7 @@ export function TopBar({
   );
 }
 
-export const STEPS = ["Header", "Item", "Pallet", "Materials", "Review", "Sign"] as const;
+export const STEPS = ["Header", "Item", "Pallet", "Materials", "Check", "Review", "Sign"] as const;
 
 /**
  * The step bar. With onStep, the steps the worker can reach are buttons, so
@@ -71,7 +71,10 @@ export const STEPS = ["Header", "Item", "Pallet", "Materials", "Review", "Sign"]
  */
 export function Progress({ step, canJump, onStep }: { step: number; canJump?: (i: number) => boolean; onStep?: (i: number) => void }) {
   return (
-    <nav className="grid flex-none grid-cols-6 gap-1 border-b border-line bg-surface px-4 pt-1 pb-1.5" aria-label={`Step ${step + 1} of 6: ${STEPS[step]}`}>
+    <nav
+      className="grid flex-none grid-cols-7 gap-1 border-b border-line bg-surface px-3 pt-1 pb-1.5"
+      aria-label={`Step ${step + 1} of ${STEPS.length}: ${STEPS[step]}`}
+    >
       {STEPS.map((label, i) => {
         const inner = (
           <>
@@ -192,7 +195,10 @@ export function PalletBadge({ no, size = "md" }: { no: number; size?: "sm" | "md
 export function Toast({ message }: { message: string }) {
   if (!message) return null;
   return (
-    <div role="status" className="pointer-events-none absolute right-4 bottom-[100px] left-4 z-20 rounded-xl bg-[#15181d] px-4 py-3.5 text-[15px] font-semibold text-white shadow-[0_8px_24px_rgba(0,0,0,.3)]">
+    <div
+      role="status"
+      className="pointer-events-none absolute right-4 bottom-[100px] left-4 z-20 rounded-xl bg-[#15181d] px-4 py-3.5 text-[15px] font-semibold text-white shadow-[0_8px_24px_rgba(0,0,0,.3)]"
+    >
       {message}
     </div>
   );

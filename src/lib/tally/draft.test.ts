@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { sampleDraft } from "./sample";
 import {
   buildPallets,
   copyPalletFrom,
@@ -14,7 +15,9 @@ import {
   totals,
   validateHeader,
   type Draft,
-  type DraftItem, setupPallets } from "./draft";
+  type DraftItem,
+  setupPallets,
+} from "./draft";
 
 function item(name: string, qtys: number[], target: number | null = null, unit = "CTN"): DraftItem {
   return {
@@ -133,6 +136,10 @@ describe("reviewWarnings", () => {
   function draftWith(items: DraftItem[]): Draft {
     const d = newDraft("container");
     d.items = items;
+    // Page 2 complete: its own checks are tested in checklist.test.ts.
+    d.checklist = sampleDraft(new Date("2026-11-06T02:00:00Z"), "container").checklist;
+    d.materials = { ...d.materials, ...sampleDraft(new Date("2026-11-06T02:00:00Z"), "container").materials };
+    d.header.sealNo = "PK 1";
     return d;
   }
 

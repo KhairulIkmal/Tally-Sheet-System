@@ -11,6 +11,7 @@ import {
   type SheetForm,
 } from "./constants";
 import { isValidPaperDate, todayPaperDate } from "./dates";
+import { blankChecklist, checklistMissing, type Checklist, type PackingFacts } from "./checklist";
 
 /**
  * The sheet a worker is filling in. Lives only on the device (localStorage)
@@ -80,6 +81,8 @@ export interface Draft {
   header: DraftHeader;
   items: DraftItem[];
   materials: Record<MaterialKey, number>;
+  /** Page 2: the stuffing / loading checklist. Missing on drafts from before it. */
+  checklist?: Checklist;
   checks: Record<CheckKey, { qty: number; note: string }>;
   /** Manual corrections on top of the TOTAL NUMBER OF PLT boxes worked out from the pallets. */
   pltAdjust: Record<PltGroup, number>;
@@ -336,7 +339,7 @@ export function validateHeader(_form: SheetForm, header: DraftHeader): HeaderErr
 // ── review warnings ─────────────────────────────────────────────────────
 
 export interface Warning {
-  kind: "count" | "missing" | "date" | "plt";
+  kind: "count" | "missing" | "date" | "plt" | "checklist";
   severity: "warn" | "error";
   message: string;
   /** Item to jump to for fixing it, or null for the materials screen. */
@@ -425,6 +428,11 @@ export function reviewWarnings(draft: Draft): Warning[] {
     });
   });
 
+  // Page 2 must be complete before signing.
+  for (const message of checklistMissing(draftChecklist(draft), packingFacts(draft))) {
+    warnings.push({ kind: "checklist", severity: "error", message: `Checklist: ${message}`, itemIndex: null });
+  }
+
   if (draft.form === "lorry") {
     const total = totals(draft.items).pallets;
     const counted = Object.values(pltCounts(draft)).reduce((a, b) => a + b, 0);
@@ -439,6 +447,21 @@ export function reviewWarnings(draft: Draft): Warning[] {
   }
 
   return warnings;
+}
+
+/** Page 2 of a draft, blank on a draft from before it. */
+export function draftChecklist(draft: Pick<Draft, "checklist">): Checklist {
+  return draft.checklist ?? blankChecklist();
+}
+
+/** What page 1 already says about page 2's photograph / packing / seal checks. */
+export function packingFacts(draft: Pick<Draft, "form" | "items" | "materials" | "header">): PackingFacts {
+  return {
+    form: draft.form,
+    hasPhoto: draft.items.some((it) => it.pallets.some((p) => !!p.photo)),
+    materials: draft.materials,
+    sealNo: draft.header.sealNo,
+  };
 }
 
 /** The sheet's own number for lists: the container no or the lorry no. */

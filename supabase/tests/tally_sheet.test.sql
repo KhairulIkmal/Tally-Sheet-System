@@ -190,7 +190,7 @@ select is(
     'form', 'lorry', 'sheet_date', '2026-10-14', 'contract_no', null, 'container_no', null, 'seal_no', null, 'si_no', null, 'disport', null,
     'transfer_to', 'SHAH ALAM DC', 'do_no', 'DO-1', 'lorry_no', 'WXY 1', 'remark', 'OK', 'materials', '{}'::jsonb,
     'checks', '{"SAMPLE": {"qty": 2, "note": "FOR QC"}, "EMPTY CTN": {"qty": 0, "note": ""}, "OTHERS": {"qty": 3, "note": ""}}'::jsonb,
-    'plt_counts', '{"L": 0, "L4": 1, "L2": 0, "E": 0, "C": 1, "O": 1}'::jsonb, 'plt_other_note', 'PLASTIC', 'total_pallets', 3, 'qty_by_unit', '{"CTN": 52, "TIN": 72}'::jsonb,
+    'plt_counts', '{"L": 0, "L4": 1, "L2": 0, "E": 0, "C": 1, "O": 1}'::jsonb, 'plt_other_note', 'PLASTIC', 'checklist', null, 'total_pallets', 3, 'qty_by_unit', '{"CTN": 52, "TIN": 72}'::jsonb,
     'prepared_by_name', 'Tally Tester 1', 'device', 'pgtap', 'status', 'printed', 'printed_by_name', 'Tally Tester 2'
   ),
   'stored sheet: upper-cased text, fixed keys only, totals computed, printed'

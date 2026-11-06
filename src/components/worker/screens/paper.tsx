@@ -13,6 +13,7 @@ import {
   itemQty,
   palletQty,
   palletRanges,
+  draftChecklist,
   samePltType,
   totals,
   type Draft,
@@ -41,6 +42,7 @@ import type { ItemSuggestion } from "../pick";
 import { BottomBar, Button } from "../ui";
 import { itemPalletsText, itemRowMarks, itemTotalText } from "@/lib/tally/sheet";
 import { PaperFooter } from "./paper-footer";
+import { ChecklistForm } from "./checklist";
 import { AutoFillPanel } from "./paper-autofill";
 import { usePaperZoom } from "./paper-zoom";
 import { PltTypeButtons } from "./pallet-setup";
@@ -813,6 +815,24 @@ export function PaperScreen({
                   </div>
                 ) : null}
                 <PaperFooter draft={draft} signerName={signerName} onEdit={onEdit} />
+                {/* Page 2: the stuffing / loading checklist, filled in on the same sheet. */}
+                <div id="paper-checklist" className="mt-8 border-t-4 border-dashed border-ink/20 pt-5">
+                  <div className="mb-3 flex items-baseline justify-between">
+                    <span className="text-lg font-extrabold tracking-[.04em]">PAGE 2 · STUFFING / LOADING CHECKLIST</span>
+                    <span className="text-xs font-bold text-muted">WH-FR-001</span>
+                  </div>
+                  <ChecklistForm
+                    draft={draft}
+                    wide
+                    onEdit={(fn) =>
+                      onEdit((d) => {
+                        const c = structuredClone(draftChecklist(d));
+                        fn(c);
+                        d.checklist = c;
+                      })
+                    }
+                  />
+                </div>
                 <p className="mt-1 text-xs font-medium text-muted">
                   Tap a field to zoom in on it; Done shows the whole sheet again. Each row is filled on its own. ◯ marks a short pallet (CTN
                   damaged, sample, ...): its qty is circled. Tap ↑ same in a cell (PLT type, Item, Contract, Qty, Batch, Expired, Prod) to

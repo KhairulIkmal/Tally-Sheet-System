@@ -2,7 +2,18 @@
 
 import { cn } from "@/lib/utils";
 import { MATERIALS, lamSoonWayList, materialLabel, otherPalletList, pltSummary } from "@/lib/tally/constants";
-import { countStatus, formatQty, itemQty, palletQty, palletRanges, pltCounts, totals, type Draft, type Warning, type LineField } from "@/lib/tally/draft";
+import {
+  countStatus,
+  formatQty,
+  itemQty,
+  palletQty,
+  palletRanges,
+  pltCounts,
+  totals,
+  type Draft,
+  type Warning,
+  type LineField,
+} from "@/lib/tally/draft";
 import { BottomBar, Button, Scroll } from "../ui";
 
 const STATUS_TEXT = { none: "text-ink", ok: "text-success", short: "text-warning", over: "text-danger" } as const;
@@ -13,6 +24,7 @@ export function ReviewScreen({
   onEditHeader,
   onEditItem,
   onEditMaterials,
+  onEditChecklist,
   onSign,
 }: {
   draft: Draft;
@@ -22,6 +34,8 @@ export function ReviewScreen({
   /** Opens an item to fix; `fields` are the cells a warning is about. */
   onEditItem: (i: number, pallet?: number, fields?: LineField[]) => void;
   onEditMaterials: () => void;
+  /** Page 2, the stuffing / loading checklist. */
+  onEditChecklist: () => void;
   onSign: () => void;
 }) {
   const t = totals(draft.items);
@@ -32,7 +46,9 @@ export function ReviewScreen({
   const isContainer = draft.form === "container";
   const counts = pltCounts(draft);
   const mats = isContainer
-    ? MATERIALS.filter((k) => draft.materials[k]).map((k) => `${materialLabel(k)} ${draft.materials[k]}`).join(" · ") || "No materials"
+    ? MATERIALS.filter((k) => draft.materials[k])
+        .map((k) => `${materialLabel(k)} ${draft.materials[k]}`)
+        .join(" · ") || "No materials"
     : [
         ...Object.entries(draft.checks)
           .filter(([, c]) => c.qty || c.note)
@@ -50,7 +66,9 @@ export function ReviewScreen({
           </div>
           <div className="rounded-xl bg-solid px-3.5 py-2.5 text-on-solid">
             <div className="text-[13px] font-semibold opacity-75">Total qty</div>
-            <div className={cn("font-extrabold", Object.keys(t.qty).length > 1 ? "text-xl/tight" : "truncate text-[34px]/[1.1]")}>{formatQty(t.qty)}</div>
+            <div className={cn("font-extrabold", Object.keys(t.qty).length > 1 ? "text-xl/tight" : "truncate text-[34px]/[1.1]")}>
+              {formatQty(t.qty)}
+            </div>
           </div>
         </div>
 
@@ -59,14 +77,33 @@ export function ReviewScreen({
             key={i}
             className={cn(
               "flex flex-none items-center gap-2.5 rounded-xl border px-3 py-2.5",
-              w.severity === "error" ? "border-danger-border bg-danger-bg" : w.kind === "count" && w.message.includes("over") ? "border-danger-border bg-danger-bg" : "border-warning-border bg-warning-bg",
+              w.severity === "error"
+                ? "border-danger-border bg-danger-bg"
+                : w.kind === "count" && w.message.includes("over")
+                  ? "border-danger-border bg-danger-bg"
+                  : "border-warning-border bg-warning-bg",
             )}
           >
-            <span className={cn("grid size-[22px] flex-none place-items-center rounded-full text-sm font-extrabold text-white", w.severity === "error" ? "bg-danger" : "bg-warning")}>!</span>
-            <div className={cn("flex-1 text-sm/[1.35] font-semibold", w.severity === "error" ? "text-danger-ink" : "text-warning-ink")}>{w.message}</div>
+            <span
+              className={cn(
+                "grid size-[22px] flex-none place-items-center rounded-full text-sm font-extrabold text-white",
+                w.severity === "error" ? "bg-danger" : "bg-warning",
+              )}
+            >
+              !
+            </span>
+            <div className={cn("flex-1 text-sm/[1.35] font-semibold", w.severity === "error" ? "text-danger-ink" : "text-warning-ink")}>
+              {w.message}
+            </div>
             <button
               type="button"
-              onClick={() => (w.itemIndex === null ? onEditMaterials() : onEditItem(w.itemIndex, w.palletIndex, w.fields))}
+              onClick={() =>
+                w.kind === "checklist"
+                  ? onEditChecklist()
+                  : w.itemIndex === null
+                    ? onEditMaterials()
+                    : onEditItem(w.itemIndex, w.palletIndex, w.fields)
+              }
               className="py-2 text-sm font-bold text-primary"
             >
               Fix
@@ -74,9 +111,13 @@ export function ReviewScreen({
           </div>
         ))}
         {warnings.length > 6 ? <div className="text-sm font-semibold text-warning-ink">and {warnings.length - 6} more warnings</div> : null}
-        <div className="flex-none text-[13px] font-medium text-faint">Tap Edit, or a pallet number, to fix it. You come straight back here.</div>
+        <div className="flex-none text-[13px] font-medium text-faint">
+          Tap Edit, or a pallet number, to fix it. You come straight back here.
+        </div>
         {warnings.length === 0 ? (
-          <div className="flex-none rounded-xl border border-success-border bg-success-bg p-3 text-[15px] font-bold text-success">✓ All counts match, no empty fields</div>
+          <div className="flex-none rounded-xl border border-success-border bg-success-bg p-3 text-[15px] font-bold text-success">
+            ✓ All counts match, no empty fields
+          </div>
         ) : null}
 
         <div className="grid flex-none grid-cols-[1fr_auto] gap-x-2 gap-y-0.5 rounded-xl border border-line bg-surface px-3 py-2.5">
@@ -124,7 +165,9 @@ export function ReviewScreen({
                   );
                 })}
               </div>
-              <div className="text-sm font-semibold text-muted">{batches.length ? `${batches.join(", ")}${firstExp ? ` · Exp ${firstExp}` : ""}` : "No batch"}</div>
+              <div className="text-sm font-semibold text-muted">
+                {batches.length ? `${batches.join(", ")}${firstExp ? ` · Exp ${firstExp}` : ""}` : "No batch"}
+              </div>
               <div className={cn("text-[15px] font-extrabold", STATUS_TEXT[status.state])}>{status.label}</div>
             </div>
           );
@@ -141,7 +184,9 @@ export function ReviewScreen({
       </Scroll>
       <BottomBar>
         {blocking.length ? (
-          <div className="mb-2 text-center text-sm font-semibold text-danger">Fix {blocking.length === 1 ? "the error" : `the ${blocking.length} errors`} above before signing.</div>
+          <div className="mb-2 text-center text-sm font-semibold text-danger">
+            Fix {blocking.length === 1 ? "the error" : `the ${blocking.length} errors`} above before signing.
+          </div>
         ) : null}
         <Button className="w-full" disabled={blocking.length > 0} onClick={onSign}>
           {warnings.length ? `Sign anyway (${warnings.length} warning${warnings.length === 1 ? "" : "s"})` : "Correct · Sign"}
