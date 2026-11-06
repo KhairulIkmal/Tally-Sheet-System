@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { FileText, ListOrdered } from "lucide-react";
+import { FileText, ListOrdered, Undo2 } from "lucide-react";
 import { signOut } from "@/lib/auth/actions";
 import { cn } from "@/lib/utils";
 import { submitSheetAction } from "@/lib/data/actions";
@@ -64,6 +64,10 @@ import { sampleDraft } from "@/lib/tally/sample";
 type Screen =
   "home" | "type" | "header" | "paper" | "picker" | "setup" | "pallets" | "items" | "materials" | "review" | "sign" | "preview" | "success";
 
+/** Edits closer together than this undo as one (typing a word). */
+const UNDO_GROUP_MS = 1000;
+const UNDO_LIMIT = 50;
+
 const STEP_OF: Partial<Record<Screen, number>> = {
   header: 0,
   picker: 1,
@@ -117,6 +121,13 @@ export function WorkerApp({ user, history, sheets }: { user: WorkerUser; history
   const [result, setResult] = useState<{ offline: boolean; reference: string; summary: string } | null>(null);
   const [toast, setToast] = useState("");
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Undo: the draft as it was before each change. Edits close together (typing a word) are one step.
+  const undoStack = useRef<Draft[]>([]);
+  const lastEditAt = useRef(0);
+  const draftRef = useRef<Draft | null>(null);
+  const [undoCount, setUndoCount] = useState(0);
+  /** The sheet the undo steps belong to: another sheet (new, sample, submitted) has nothing to undo. */
+  const undoSheet = useRef<string | null>(null);
   const sendingRef = useRef(false);
 
   // ── device storage ──────────────────────────────────────────────────
@@ -147,6 +158,10 @@ export function WorkerApp({ user, history, sheets }: { user: WorkerUser; history
   }, [user.id]);
 
   useEffect(() => {
+    draftRef.current = draft;
+  }, [draft]);
+
+  useEffect(() => {
     if (!hydrated) return;
     if (!saveDraft(user.id, draft) && draft) showToast("This phone's storage is full. The draft may not be saved.");
     // showToast is stable enough for this purpose.
@@ -171,6 +186,17 @@ export function WorkerApp({ user, history, sheets }: { user: WorkerUser; history
 
   /** Edits the draft. Any change after signing clears the signature: the worker signs what they see. */
   const update = useCallback((fn: (d: Draft) => void, opts?: { keepSignature?: boolean }) => {
+    const before = draftRef.current;
+    const now = Date.now();
+    if (before && undoSheet.current !== before.clientId) {
+      undoStack.current = [];
+      undoSheet.current = before.clientId;
+    }
+    if (before && now - lastEditAt.current > UNDO_GROUP_MS) {
+      undoStack.current = [...undoStack.current.slice(-(UNDO_LIMIT - 1)), before];
+      setUndoCount(undoStack.current.length);
+    }
+    lastEditAt.current = now;
     setDraft((prev) => {
       if (!prev) return prev;
       const next = structuredClone(prev);
@@ -183,6 +209,18 @@ export function WorkerApp({ user, history, sheets }: { user: WorkerUser; history
       return next;
     });
   }, []);
+
+  /** Puts the draft back as it was before the last change. */
+  function undo() {
+    const previous = undoStack.current.at(-1);
+    if (!previous || previous.clientId !== draftRef.current?.clientId) return;
+    undoStack.current = undoStack.current.slice(0, -1);
+    setUndoCount(undoStack.current.length);
+    lastEditAt.current = 0;
+    draftRef.current = previous;
+    setDraft(previous);
+    showToast("Last change undone");
+  }
 
   // ── outbox ──────────────────────────────────────────────────────────
   const flush = useCallback(async () => {
@@ -527,6 +565,19 @@ export function WorkerApp({ user, history, sheets }: { user: WorkerUser; history
       </button>
     ) : null;
 
+  const undoButton =
+    canSwitch && undoCount > 0 && draft && undoSheet.current === draft.clientId ? (
+      <button
+        type="button"
+        onClick={undo}
+        aria-label="Undo the last change"
+        title="Undo the last change"
+        className="mr-1 grid size-10 place-items-center rounded-lg border-[1.5px] border-field text-primary hover:bg-primary-soft"
+      >
+        <Undo2 aria-hidden className="size-5" />
+      </button>
+    ) : null;
+
   let body: React.ReactNode = null;
   if (screen === "home") {
     body = (
@@ -662,6 +713,16 @@ export function WorkerApp({ user, history, sheets }: { user: WorkerUser; history
           onChange={(patch) => setPick((p) => ({ ...p, ...patch }))}
           onCreate={createItem}
         />
+      );
+    } else if (screen === "pallets" && !curItem) {
+      // Undo took away the item being edited.
+      body = (
+        <div className="flex flex-1 flex-col items-center justify-center gap-3 p-6 text-center">
+          <p className="text-base font-semibold text-body">This item was undone.</p>
+          <button type="button" className="h-12 rounded-xl bg-primary px-5 font-bold text-white" onClick={() => go("items")}>
+            Back to the items
+          </button>
+        </div>
       );
     } else if (screen === "pallets" && curItem) {
       body = (
@@ -819,7 +880,12 @@ export function WorkerApp({ user, history, sheets }: { user: WorkerUser; history
             else go(back[screen] ?? "home");
           }}
           form={screen === "type" ? null : draft?.form}
-          action={modeSwitch}
+          action={
+            <>
+              {undoButton}
+              {modeSwitch}
+            </>
+          }
         />
       ) : null}
       {step !== undefined ? (
