@@ -21,6 +21,8 @@ export interface OutboxEntry {
   queuedAt: string;
   state: "pending" | "failed";
   error?: string;
+  /** Photos to upload before the sheet: their keys on this phone, by pallet number. */
+  photos?: { palletNo: number; key: string }[];
 }
 
 const draftKey = (userId: string) => `tally:draft:${userId}`;

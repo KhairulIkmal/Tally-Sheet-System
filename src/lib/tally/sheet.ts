@@ -51,6 +51,9 @@ export interface SheetPallet {
   pltType: string | null;
   /** What kind of pallet an Others pallet is. */
   pltOther: string;
+  /** The pallet has a photo; photoUrl is a short-lived link to it, null when it couldn't be signed. Never printed. */
+  hasPhoto?: boolean;
+  photoUrl?: string | null;
   contractNo: string;
   remark: string;
   lines: SheetLine[];

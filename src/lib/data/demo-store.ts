@@ -18,6 +18,8 @@ export const DEMO_USERS = {
 } as const;
 
 interface DemoState {
+  /** Pallet photos as data: URLs, by storage path. */
+  photos?: Record<string, string>;
   history: HistoryItem[];
   sheets: SheetDetail[];
   counter: Record<string, number>;
@@ -122,7 +124,15 @@ function paperExampleSheet(n: number, at: number): SheetDetail {
   const iso = new Date(at).toISOString();
   // name, unit, target, qtys, expired, prod, batches (one per pallet, the last repeats)
   const ITEMS: [string, string, number, number[], string, string, string[]][] = [
-    ["36X240G DAISY MARG", "CTN", 200, [40, 40, 40, 40, 40], "2027-04-16", "2026-04-17", ["1261704203", "1161704203", "1261704203", "1161704203", "1161704203"]],
+    [
+      "36X240G DAISY MARG",
+      "CTN",
+      200,
+      [40, 40, 40, 40, 40],
+      "2027-04-16",
+      "2026-04-17",
+      ["1261704203", "1161704203", "1261704203", "1161704203", "1161704203"],
+    ],
     ["24X480G DAISY MARG", "CTN", 200, [40, 40, 40, 40, 40], "2027-04-14", "2026-04-13", ["0381504203", "0361504203"]],
     ["12X1KG DAISY MARG", "CTN", 80, [54, 26], "2028-10-07", "2026-04-08", ["0260804103"]],
     ["18KG DAISY MARG-TIN", "TIN", 150, [48, 48, 48, 6], "2027-04-02", "2026-04-03", ["03303"]],
@@ -249,6 +259,13 @@ export function demoStore(actor: { id: string; name: string; roles: string[] }):
       return { ...s, events: isOffice ? s.events : [] };
     },
 
+    async uploadPalletPhoto(path, photo) {
+      if (!isWorker || !path.startsWith(`${actor.id}/`)) throw new StoreError("You don't have permission to do that.");
+      const st = state();
+      st.photos ??= {};
+      st.photos[path] ??= `data:image/jpeg;base64,${Buffer.from(await photo.arrayBuffer()).toString("base64")}`;
+    },
+
     async submitSheet(payload: SubmitPayload) {
       if (!isWorker) throw new StoreError("You don't have permission to do that.");
       const p = submitPayloadSchema.parse(payload);
@@ -267,6 +284,8 @@ export function demoStore(actor: { id: string; name: string; roles: string[] }):
           itemNo: i + 1,
           pltType: isLorry ? pl.pltType : null,
           pltOther: isLorry ? pl.pltOther : "",
+          hasPhoto: !!pl.photo,
+          photoUrl: (pl.photo && st.photos?.[pl.photo]) || null,
           contractNo: pl.contractNo,
           remark: pl.remark,
           lines: pl.lines.map((l) => ({ qty: l.qty, batch: l.batch, expired: l.expired, prod: l.prod })),
@@ -281,8 +300,18 @@ export function demoStore(actor: { id: string; name: string; roles: string[] }):
       // Same as tally.submit_sheet(): every item name goes into the shared history.
       for (const it of p.items) {
         const h = st.history.find((x) => x.name === it.name.trim().toUpperCase());
-        if (h) Object.assign(h, { unit: it.unit, qtyPerPallet: it.qtyPerPallet ?? h.qtyPerPallet, useCount: h.useCount + 1, lastUsedAt: now });
-        else st.history.push({ id: crypto.randomUUID(), name: it.name.trim().toUpperCase(), unit: it.unit, qtyPerPallet: it.qtyPerPallet, useCount: 1, lastUsedAt: now, isActive: true });
+        if (h)
+          Object.assign(h, { unit: it.unit, qtyPerPallet: it.qtyPerPallet ?? h.qtyPerPallet, useCount: h.useCount + 1, lastUsedAt: now });
+        else
+          st.history.push({
+            id: crypto.randomUUID(),
+            name: it.name.trim().toUpperCase(),
+            unit: it.unit,
+            qtyPerPallet: it.qtyPerPallet,
+            useCount: 1,
+            lastUsedAt: now,
+            isActive: true,
+          });
       }
       const sheet: SheetDetail = {
         // The demo store uses the client id as the sheet id, so a retried submit is a duplicate.

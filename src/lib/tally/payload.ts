@@ -21,6 +21,8 @@ const palletSchema = z.object({
   // The old "L" too: a phone may be holding a signed sheet from before the split, waiting to send.
   pltType: z.enum([OLD_LAM_SOON, ...PLT_TYPES] as [string, ...string[]]).nullable(),
   pltOther: text(PLT_OTHER_MAX).default(""),
+  /** The uploaded photo's path, filled in just before sending (photos.ts). */
+  photo: text(200).default(""),
   contractNo: text(60),
   remark: text(60),
   lines: z.array(lineSchema).min(1).max(MAX_LINES_PER_PALLET),
@@ -116,6 +118,7 @@ export function draftToPayload(draft: Draft, device: string): SubmitPayload {
       pallets: it.pallets.map((p) => ({
         pltType: isLorry ? p.pltType || null : null,
         pltOther: isLorry && p.pltType === "O" ? up(p.pltOther ?? "") : "",
+        photo: "",
         contractNo: isLorry ? up(p.contractNo) : "",
         remark: up(p.remark),
         lines: p.lines.map((l) => ({

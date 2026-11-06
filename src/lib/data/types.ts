@@ -57,6 +57,8 @@ export interface TallyStore {
   listSubmittedAt(since: string, until: string): Promise<string[]>;
   getSheet(id: string): Promise<SheetDetail | null>;
   submitSheet(payload: SubmitPayload): Promise<SubmitResult>;
+  /** A worker's pallet photo, before the sheet is submitted. Already stored counts as done. */
+  uploadPalletPhoto(path: string, photo: Blob): Promise<void>;
   setPrinted(id: string, printed: boolean): Promise<void>;
   /** Office: rename, change unit / qty per pallet, or hide an item history entry. */
   saveHistoryItem(input: HistoryItemInput): Promise<void>;

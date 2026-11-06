@@ -18,11 +18,17 @@ import {
   type DraftPallet,
 } from "@/lib/tally/draft";
 import { PltTypeButtons } from "./pallet-setup";
+import { PalletPhotoField } from "../pallet-photo";
 import { BottomBar, Button, PalletBadge, Scroll } from "../ui";
 
 type Mutator = (item: DraftItem, all: DraftItem[]) => void;
 
-const STATUS_BG = { none: "bg-solid text-on-solid", ok: "bg-success text-white", short: "bg-warning text-white", over: "bg-danger text-white" } as const;
+const STATUS_BG = {
+  none: "bg-solid text-on-solid",
+  ok: "bg-success text-white",
+  short: "bg-warning text-white",
+  over: "bg-danger text-white",
+} as const;
 
 function SameButton({ onClick, label }: { onClick: () => void; label: string }) {
   return (
@@ -166,14 +172,29 @@ function LineFields({
         </div>
       </div>
       <div className="grid grid-cols-2 gap-2">
-        <DateField label="EXPIRED" value={line.expired} placeholder="160427" hasPrev={hasPrev} onChange={(v) => onSet("expired", v)} onCopy={() => onCopy("expired")} />
-        <DateField label="PROD" value={line.prod} placeholder="160425" hasPrev={hasPrev} onChange={(v) => onSet("prod", v)} onCopy={() => onCopy("prod")} />
+        <DateField
+          label="EXPIRED"
+          value={line.expired}
+          placeholder="160427"
+          hasPrev={hasPrev}
+          onChange={(v) => onSet("expired", v)}
+          onCopy={() => onCopy("expired")}
+        />
+        <DateField
+          label="PROD"
+          value={line.prod}
+          placeholder="160425"
+          hasPrev={hasPrev}
+          onChange={(v) => onSet("prod", v)}
+          onCopy={() => onCopy("prod")}
+        />
       </div>
     </div>
   );
 }
 
 export function PalletDetailsScreen({
+  photoPrefix,
   form,
   items,
   itemIndex,
@@ -192,6 +213,8 @@ export function PalletDetailsScreen({
   saveLabel?: string;
   onUpdate: (mutate: Mutator) => void;
   onSave: () => void;
+  /** The sheet's id: photos are kept on the phone under it. */
+  photoPrefix: string;
 }) {
   const item = items[itemIndex];
   const [flash, setFlash] = useState<number | null>(focusPallet);
@@ -237,7 +260,9 @@ export function PalletDetailsScreen({
                     {mixed ? ` · ${p.lines.length} batches` : ""}
                   </div>
                   {mixed ? (
-                    <span className="self-start rounded-[5px] bg-solid px-2 py-0.5 text-[11px] font-bold tracking-[.06em] text-on-solid">MIXED PALLET</span>
+                    <span className="self-start rounded-[5px] bg-solid px-2 py-0.5 text-[11px] font-bold tracking-[.06em] text-on-solid">
+                      MIXED PALLET
+                    </span>
                   ) : null}
                 </div>
                 <span className="text-2xl font-extrabold">{palletQty(p) || ""}</span>
@@ -345,10 +370,18 @@ export function PalletDetailsScreen({
                   className="h-12 w-full rounded-[10px] border-[1.5px] border-field bg-surface-sunken px-3 text-[15px] font-semibold text-ink uppercase outline-none focus:border-primary focus:bg-surface"
                 />
               </div>
+              <PalletPhotoField
+                photo={p.photo}
+                keyPrefix={`${photoPrefix}/${p.id}`}
+                palletNo={no}
+                onChange={(photo) => setPallet(i, (pl) => void (pl.photo = photo))}
+              />
             </div>
           );
         })}
-        {item.pallets.length === 0 ? <div className="px-4 py-8 text-center text-base font-semibold text-muted">No pallets. Tap + Pallet.</div> : null}
+        {item.pallets.length === 0 ? (
+          <div className="px-4 py-8 text-center text-base font-semibold text-muted">No pallets. Tap + Pallet.</div>
+        ) : null}
       </Scroll>
       <BottomBar className="grid grid-cols-[1fr_1.4fr] gap-2.5">
         <Button

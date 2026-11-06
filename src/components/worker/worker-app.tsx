@@ -5,7 +5,10 @@ import { useRouter } from "next/navigation";
 import { FileText, ListOrdered, Undo2 } from "lucide-react";
 import { signOut } from "@/lib/auth/actions";
 import { cn } from "@/lib/utils";
-import { submitSheetAction } from "@/lib/data/actions";
+import { submitSheetAction, uploadPalletPhotoAction, type ActionResult } from "@/lib/data/actions";
+import type { SubmitResult } from "@/lib/data/types";
+import { photoObjectPath, photosToUpload, withPhotoPaths } from "@/lib/tally/photos";
+import { deletePhotosFor, getPhoto } from "./photo-store";
 import { normalizeUnit, type SheetForm, MAX_PALLETS } from "@/lib/tally/constants";
 import { formatDateTime } from "@/lib/tally/dates";
 import {
@@ -222,6 +225,32 @@ export function WorkerApp({ user, history, sheets }: { user: WorkerUser; history
     showToast("Last change undone");
   }
 
+  /**
+   * Sends one signed sheet: its pallet photos first (each into this worker's folder for the
+   * sheet), then the sheet with their paths. A photo no longer on the phone is left off.
+   * Safe to repeat: a photo already stored and a sheet already submitted both count as done.
+   */
+  const sendEntry = useCallback(
+    async (entry: OutboxEntry): Promise<ActionResult<SubmitResult>> => {
+      const paths = new Map<number, string>();
+      for (const ph of entry.photos ?? []) {
+        const blob = await getPhoto(ph.key);
+        if (!blob) continue;
+        const path = photoObjectPath(user.id, entry.clientId, ph.palletNo);
+        const form = new FormData();
+        form.set("path", path);
+        form.set("photo", new File([blob], `p${ph.palletNo}.jpg`, { type: "image/jpeg" }));
+        const up = await uploadPalletPhotoAction(form);
+        if (!up.ok) return up;
+        paths.set(ph.palletNo, path);
+      }
+      const res = await submitSheetAction(withPhotoPaths(entry.payload, paths));
+      if (res.ok) void deletePhotosFor(entry.clientId);
+      return res;
+    },
+    [user.id],
+  );
+
   // ── outbox ──────────────────────────────────────────────────────────
   const flush = useCallback(async () => {
     if (sendingRef.current) return;
@@ -233,7 +262,7 @@ export function WorkerApp({ user, history, sheets }: { user: WorkerUser; history
     let remaining = [...queue];
     for (const entry of queue) {
       try {
-        const res = await submitSheetAction(entry.payload);
+        const res = await sendEntry(entry);
         if (res.ok) {
           sent += 1;
           remaining = remaining.filter((e) => e.clientId !== entry.clientId);
@@ -252,7 +281,7 @@ export function WorkerApp({ user, history, sheets }: { user: WorkerUser; history
       showToast(`${sent} sheet${sent === 1 ? "" : "s"} sent to the office`);
       router.refresh();
     }
-  }, [router, user.id]);
+  }, [router, user.id, sendEntry]);
 
   useEffect(() => {
     if (!hydrated || !online) return;
@@ -351,6 +380,7 @@ export function WorkerApp({ user, history, sheets }: { user: WorkerUser; history
     if (draft && (draft.items.length > 0 || vehicleNo(draft))) {
       if (!window.confirm("Start a new sheet? The current draft will be discarded.")) return;
     }
+    if (draft) void deletePhotosFor(draft.clientId);
     setDraft(null);
     setCur(-1);
     setHeaderErrors({});
@@ -458,6 +488,7 @@ export function WorkerApp({ user, history, sheets }: { user: WorkerUser; history
       qty: formatQty(t.qty),
       queuedAt: new Date().toISOString(),
       state: "pending",
+      photos: photosToUpload(draft),
     };
 
     const queueAndFinish = () => {
@@ -477,7 +508,7 @@ export function WorkerApp({ user, history, sheets }: { user: WorkerUser; history
     setSubmitting(true);
     setSubmitError("");
     try {
-      const res = await submitSheetAction(payload);
+      const res = await sendEntry(entry);
       if (res.ok) {
         setDraft(null);
         setResult({ offline: false, reference: res.data.ref, summary });
@@ -597,7 +628,9 @@ export function WorkerApp({ user, history, sheets }: { user: WorkerUser; history
           go(mode === "paper" ? "paper" : draft.items.length ? "items" : "header");
         }}
         onDiscardDraft={() => {
-          if (window.confirm("Discard this draft? It can't be recovered.")) setDraft(null);
+          if (!window.confirm("Discard this draft? It can't be recovered.")) return;
+          if (draft) void deletePhotosFor(draft.clientId);
+          setDraft(null);
         }}
         onRetry={() => {
           const reset = loadOutbox(user.id).map((e) => ({ ...e, state: "pending" as const, error: undefined }));
@@ -727,6 +760,7 @@ export function WorkerApp({ user, history, sheets }: { user: WorkerUser; history
     } else if (screen === "pallets" && curItem) {
       body = (
         <PalletDetailsScreen
+          photoPrefix={draft.clientId}
           form={draft.form}
           items={items}
           itemIndex={cur}

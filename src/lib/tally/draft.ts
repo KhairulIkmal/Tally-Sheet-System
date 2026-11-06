@@ -25,12 +25,20 @@ export interface DraftLine {
   prod: string;
 }
 
+/** A pallet's photo, kept on the phone (IndexedDB) under `key` until the sheet is sent. */
+export interface PalletPhoto {
+  key: string;
+  takenAt: string;
+}
+
 export interface DraftPallet {
   id: string;
   /** "" until the worker chooses: a lorry sheet can't be signed with one left blank. */
   pltType: PltChoice;
   /** What kind of pallet an Others (O) pallet is. */
   pltOther?: string;
+  /** Optional evidence of the pallet's condition. Not printed. */
+  photo?: PalletPhoto;
   contractNo: string;
   remark: string;
   lines: DraftLine[];

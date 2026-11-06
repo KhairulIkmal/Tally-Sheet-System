@@ -59,4 +59,3 @@ it("rangeLabel", () => {
   expect(rangeLabel("2025-12-30", "2026-01-02", NOW)).toBe("30 Dec 2025 – 2 Jan 2026");
   expect(rangeLabel(null, null, NOW)).toBe("All dates");
 });
-

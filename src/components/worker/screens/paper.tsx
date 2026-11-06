@@ -44,6 +44,7 @@ import { PaperFooter } from "./paper-footer";
 import { AutoFillPanel } from "./paper-autofill";
 import { usePaperZoom } from "./paper-zoom";
 import { PltTypeButtons } from "./pallet-setup";
+import { PalletPhotoButton } from "../pallet-photo";
 import { DittoHandle, deleteRowMark, fillCell, useDeleteDrag, useFillDrag } from "./paper-fill";
 
 /** Header boxes in the printed order: two columns, left then right. */
@@ -417,7 +418,7 @@ export function PaperScreen({
                       <th className={cn(cell, "min-w-[100px] px-2")}>PROD</th>
                       <th className={cn(cell, "min-w-[120px] px-2")}>BATCH</th>
                       <th className={cn(cell, "min-w-[110px] px-2")}>REMARK</th>
-                      <th className={cn(cell, "w-[88px] px-2 text-center")} aria-label="Row actions" />
+                      <th className={cn(cell, "w-[124px] px-2 text-center")} aria-label="Row actions" />
                     </tr>
                   </thead>
                   <tbody>
@@ -676,6 +677,13 @@ export function PaperScreen({
                           </td>
                           <td className={cn(cell, "align-middle")}>
                             <div className="flex items-center justify-center gap-0.5 px-1">
+                              {/* Optional evidence of the pallet's condition: viewed by the office, never printed. */}
+                              <PalletPhotoButton
+                                photo={p.photo}
+                                keyPrefix={`${draft.clientId}/${p.id}`}
+                                palletNo={i + 1}
+                                onChange={(photo) => onItems((its) => updateRowPallet(its, i, (x) => ({ ...x, photo })))}
+                              />
                               <button
                                 type="button"
                                 title={p.lines.length > 1 ? "Remove the last batch" : "Add a batch (mixed pallet)"}

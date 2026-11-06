@@ -5,6 +5,7 @@ import { z } from "zod";
 import { hasRole, requireUser, storeFor } from "@/lib/auth/dal";
 import { normalizeUnit } from "@/lib/tally/constants";
 import { submitPayloadSchema } from "@/lib/tally/payload";
+import { PHOTO_MAX_BYTES, isOwnPhotoPath } from "@/lib/tally/photos";
 import { StoreError, type SubmitResult } from "./types";
 
 export type ActionResult<T = undefined> = { ok: true; data: T } | { ok: false; error: string; retry?: boolean };
@@ -41,6 +42,27 @@ export async function submitSheetAction(payload: unknown): Promise<ActionResult<
   }
 }
 
+/**
+ * One pallet photo, sent from the phone just before its sheet. Goes into the
+ * worker's own folder; the database checks the path and the role again.
+ */
+export async function uploadPalletPhotoAction(form: FormData): Promise<ActionResult> {
+  const user = await requireUser();
+  if (!hasRole(user, "worker")) return { ok: false, error: "Only a worker can add photos." };
+  const path = form.get("path");
+  const photo = form.get("photo");
+  if (typeof path !== "string" || !isOwnPhotoPath(path, user.id)) return { ok: false, error: "That photo can't be stored there." };
+  if (!(photo instanceof Blob) || photo.type !== "image/jpeg" || photo.size === 0 || photo.size > PHOTO_MAX_BYTES) {
+    return { ok: false, error: "The photo is too big or not a JPEG." };
+  }
+  try {
+    await storeFor(user).uploadPalletPhoto(path, photo);
+    return { ok: true, data: undefined };
+  } catch (e) {
+    return errorResult(e, "Couldn't upload a pallet photo. The sheet is kept on this phone and will be sent again.");
+  }
+}
+
 export async function setPrintedAction(sheetId: string, printed: boolean): Promise<ActionResult> {
   const user = await requireUser();
   if (!hasRole(user, "office")) return { ok: false, error: "Only the office can change this." };
@@ -58,7 +80,10 @@ export async function setPrintedAction(sheetId: string, printed: boolean): Promi
 const historyItemSchema = z.object({
   id: z.string().uuid(),
   name: z.string().trim().min(1, "Item name is required.").max(80),
-  unit: z.string().trim().regex(/^[A-Za-z0-9 .]{1,10}$/, "Unit: up to 10 letters or digits."),
+  unit: z
+    .string()
+    .trim()
+    .regex(/^[A-Za-z0-9 .]{1,10}$/, "Unit: up to 10 letters or digits."),
   qtyPerPallet: z.number().int().min(1).max(99999).nullable(),
   isActive: z.boolean(),
 });

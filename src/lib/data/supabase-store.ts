@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import type { SubmitPayload } from "@/lib/tally/payload";
 import type { SheetDetail, SheetSummary } from "@/lib/tally/sheet";
 import type { SheetForm } from "@/lib/tally/constants";
+import { PHOTO_BUCKET } from "@/lib/tally/photos";
 import { rangeBounds, safeSearch } from "./filters";
 import { StoreError, type HistoryItem, type HistoryItemInput, type SheetFilter, type SubmitResult, type TallyStore } from "./types";
 
@@ -68,17 +69,15 @@ export function supabaseStore(): TallyStore {
       if (!includeHidden) query = query.eq("is_active", true);
       const { data, error } = await query;
       if (error) fail(error, "Couldn't load the item history.");
-      return (data ?? []).map(
-        (p): HistoryItem => ({
-          id: p.id,
-          name: p.name,
-          unit: p.unit,
-          qtyPerPallet: p.qty_per_pallet,
-          useCount: p.use_count,
-          lastUsedAt: p.last_used_at,
-          isActive: p.is_active,
-        }),
-      );
+      return (data ?? []).map((p): HistoryItem => ({
+        id: p.id,
+        name: p.name,
+        unit: p.unit,
+        qtyPerPallet: p.qty_per_pallet,
+        useCount: p.use_count,
+        lastUsedAt: p.last_used_at,
+        isActive: p.is_active,
+      }));
     },
 
     async listMySheets(userId, limit) {
@@ -133,8 +132,17 @@ export function supabaseStore(): TallyStore {
 
       const [items, pallets, lines, events] = await Promise.all([
         supabase.from("sheet_items").select("item_no, name, unit, target_qty").eq("sheet_id", id).order("item_no"),
-        supabase.from("sheet_pallets").select("pallet_no, item_no, plt_type, plt_other, contract_no, remark").eq("sheet_id", id).order("pallet_no"),
-        supabase.from("pallet_lines").select("pallet_no, line_no, qty, batch, expired, prod").eq("sheet_id", id).order("pallet_no").order("line_no"),
+        supabase
+          .from("sheet_pallets")
+          .select("pallet_no, item_no, plt_type, plt_other, contract_no, remark, photo_path")
+          .eq("sheet_id", id)
+          .order("pallet_no"),
+        supabase
+          .from("pallet_lines")
+          .select("pallet_no, line_no, qty, batch, expired, prod")
+          .eq("sheet_id", id)
+          .order("pallet_no")
+          .order("line_no"),
         // Office only (RLS); a worker gets an empty list.
         supabase.from("sheet_events").select("event, at, actor_name").eq("sheet_id", id).order("at"),
       ]);
@@ -145,6 +153,14 @@ export function supabaseStore(): TallyStore {
         const list = linesByPallet.get(l.pallet_no) ?? [];
         list.push({ qty: l.qty, batch: l.batch ?? "", expired: l.expired, prod: l.prod });
         linesByPallet.set(l.pallet_no, list);
+      }
+
+      // Photos: links good for an hour, signed only for those the caller may read.
+      const photoPaths = (pallets.data ?? []).map((p) => p.photo_path).filter((x): x is string => !!x);
+      const photoUrls = new Map<string, string>();
+      if (photoPaths.length) {
+        const { data: signed } = await supabase.storage.from(PHOTO_BUCKET).createSignedUrls(photoPaths, 3600);
+        for (const x of signed ?? []) if (x.path && x.signedUrl) photoUrls.set(x.path, x.signedUrl);
       }
 
       return {
@@ -175,6 +191,8 @@ export function supabaseStore(): TallyStore {
           itemNo: p.item_no,
           pltType: p.plt_type ?? null,
           pltOther: p.plt_other ?? "",
+          hasPhoto: !!p.photo_path,
+          photoUrl: p.photo_path ? (photoUrls.get(p.photo_path) ?? null) : null,
           contractNo: p.contract_no ?? "",
           remark: p.remark ?? "",
           lines: linesByPallet.get(p.pallet_no) ?? [],
@@ -188,6 +206,16 @@ export function supabaseStore(): TallyStore {
       const { data, error } = await supabase.rpc("submit_sheet", { p: payload });
       if (error || !data) fail(error, "Couldn't submit the sheet. Please try again.");
       return { id: data.id, ref: data.ref, duplicate: !!data.duplicate };
+    },
+
+    async uploadPalletPhoto(path, photo) {
+      const supabase = await createClient();
+      const { error } = await supabase.storage.from(PHOTO_BUCKET).upload(path, photo, { contentType: "image/jpeg", upsert: false });
+      // Sent before and stored: a retry after a dropped connection.
+      if (error && !/exists|duplicate/i.test(error.message)) {
+        console.error("tally photo upload", error.message);
+        throw new Error("Photo upload failed");
+      }
     },
 
     async setPrinted(id, printed) {

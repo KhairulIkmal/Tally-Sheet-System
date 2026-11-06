@@ -30,6 +30,7 @@ export function SheetDetailView({ sheet }: { sheet: SheetDetail }) {
   const printed = sheet.status === "printed";
   const chip = STATUS_CHIP[sheet.status];
   const items = itemSummaries(sheet);
+  const photos = sheet.pallets.filter((p) => p.hasPhoto);
   const isContainer = sheet.form === "container";
   const h = sheet.header;
 
@@ -46,7 +47,9 @@ export function SheetDetailView({ sheet }: { sheet: SheetDetail }) {
   }
 
   const materials = isContainer
-    ? MATERIALS.filter((k) => sheet.materials[k]).map((k) => `${materialLabel(k)} ${sheet.materials[k]}`).join(" · ") || "None"
+    ? MATERIALS.filter((k) => sheet.materials[k])
+        .map((k) => `${materialLabel(k)} ${sheet.materials[k]}`)
+        .join(" · ") || "None"
     : [
         ...Object.entries(sheet.checks)
           .filter(([, c]) => c.qty || c.note)
@@ -78,9 +81,7 @@ export function SheetDetailView({ sheet }: { sheet: SheetDetail }) {
             <Link href={sheetsHref} className="flex h-9 items-center gap-1.5 rounded-lg bg-white/10 px-3 text-sm font-semibold">
               <ArrowLeft className="size-4" /> Sheets
             </Link>
-            <span className="text-sm font-medium opacity-80">
-              {pages > 1 ? `${pages} pages · ` : ""}A4 preview
-            </span>
+            <span className="text-sm font-medium opacity-80">{pages > 1 ? `${pages} pages · ` : ""}A4 preview</span>
           </div>
           <PaperViewer data={paper} variant="desk" maxFit={1.1} />
         </div>
@@ -131,7 +132,11 @@ export function SheetDetailView({ sheet }: { sheet: SheetDetail }) {
                 Printed it elsewhere? Mark as printed
               </button>
             ) : null}
-            {error ? <div role="alert" className="rounded-lg bg-danger-bg px-3 py-2 text-sm font-semibold text-danger-ink">{error}</div> : null}
+            {error ? (
+              <div role="alert" className="rounded-lg bg-danger-bg px-3 py-2 text-sm font-semibold text-danger-ink">
+                {error}
+              </div>
+            ) : null}
           </div>
 
           <dl className="grid grid-cols-[120px_1fr] gap-x-3 gap-y-2 border-b border-line px-6 py-[18px] text-[15px] font-medium">
@@ -170,6 +175,45 @@ export function SheetDetailView({ sheet }: { sheet: SheetDetail }) {
             <div className="text-[15px] font-medium">{materials}</div>
             {sheet.remark ? <div className="text-[15px] font-medium text-body">Remark: {sheet.remark}</div> : null}
 
+            {/* Evidence of each pallet's condition when it left. On screen only, never printed. */}
+            {photos.length ? (
+              <>
+                <div className="mt-1.5 text-xs font-bold tracking-[.06em] text-muted">PALLET PHOTOS · {photos.length}</div>
+                <div className="grid grid-cols-3 gap-2">
+                  {photos.map((p) =>
+                    p.photoUrl ? (
+                      <a
+                        key={p.palletNo}
+                        href={p.photoUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex flex-col gap-1 rounded-[10px] border border-line p-1.5 hover:border-primary"
+                        title={`Pallet ${p.palletNo}: open the full photo`}
+                      >
+                        {/* eslint-disable-next-line @next/next/no-img-element -- a short-lived signed link to a private photo */}
+                        <img
+                          src={p.photoUrl}
+                          alt={`Pallet ${p.palletNo}`}
+                          loading="lazy"
+                          className="aspect-square w-full rounded-md object-cover"
+                        />
+                        <span className="text-center text-xs font-bold">Pallet {p.palletNo}</span>
+                      </a>
+                    ) : (
+                      <div
+                        key={p.palletNo}
+                        className="flex aspect-square flex-col items-center justify-center rounded-[10px] border border-line text-center text-xs font-semibold text-muted"
+                      >
+                        Pallet {p.palletNo}
+                        <span>Photo unavailable</span>
+                      </div>
+                    ),
+                  )}
+                </div>
+                <div className="text-xs font-medium text-muted">Photos are kept 12 months and are not printed.</div>
+              </>
+            ) : null}
+
             {sheet.events.length ? (
               <>
                 <div className="mt-1.5 text-xs font-bold tracking-[.06em] text-muted">ACTIVITY</div>
@@ -187,7 +231,9 @@ export function SheetDetailView({ sheet }: { sheet: SheetDetail }) {
         </aside>
       </div>
 
-      {askPrinted && !printed ? <PrintedDialog pending={pending} onYes={() => togglePrinted(true)} onNo={() => setAskPrinted(false)} /> : null}
+      {askPrinted && !printed ? (
+        <PrintedDialog pending={pending} onYes={() => togglePrinted(true)} onNo={() => setAskPrinted(false)} />
+      ) : null}
 
       <div data-print-area className="hidden">
         <PaperPages data={paper} />
@@ -211,7 +257,12 @@ function PrintedDialog({ pending, onYes, onNo }: { pending: boolean; onYes: () =
       className="fixed inset-0 z-50 grid place-items-center bg-[rgba(6,16,36,.45)] p-4"
       onMouseDown={(e) => e.target === e.currentTarget && onNo()}
     >
-      <div role="dialog" aria-modal="true" aria-labelledby="printed-q" className="w-full max-w-[380px] rounded-2xl bg-surface p-6 shadow-[0_24px_60px_rgba(0,0,0,.3)]">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="printed-q"
+        className="w-full max-w-[380px] rounded-2xl bg-surface p-6 shadow-[0_24px_60px_rgba(0,0,0,.3)]"
+      >
         <span className="grid size-12 place-items-center rounded-xl bg-primary-soft text-primary">
           <Printer className="size-6" />
         </span>
@@ -220,10 +271,20 @@ function PrintedDialog({ pending, onYes, onNo }: { pending: boolean; onYes: () =
         </h2>
         <p className="mt-1 text-[15px] font-medium text-muted">Mark it as printed so other staff know this sheet is done.</p>
         <div className="mt-6 grid grid-cols-2 gap-2.5">
-          <button type="button" onClick={onNo} className="h-12 rounded-[10px] border-[1.5px] border-field text-[15px] font-bold hover:bg-canvas">
+          <button
+            type="button"
+            onClick={onNo}
+            className="h-12 rounded-[10px] border-[1.5px] border-field text-[15px] font-bold hover:bg-canvas"
+          >
             Not yet
           </button>
-          <button ref={yes} type="button" disabled={pending} onClick={onYes} className="h-12 rounded-[10px] bg-primary text-[15px] font-bold text-white disabled:opacity-60">
+          <button
+            ref={yes}
+            type="button"
+            disabled={pending}
+            onClick={onYes}
+            className="h-12 rounded-[10px] bg-primary text-[15px] font-bold text-white disabled:opacity-60"
+          >
             Yes, printed
           </button>
         </div>
@@ -265,7 +326,10 @@ function UndoPrintedMenu({ disabled, onUndo }: { disabled: boolean; onUndo: () =
         <MoreHorizontal className="size-5" />
       </button>
       {open ? (
-        <div role="menu" className="absolute top-[calc(100%+6px)] right-0 z-40 w-[270px] rounded-xl border border-line bg-surface p-1.5 shadow-[0_16px_40px_rgba(16,24,40,.18)]">
+        <div
+          role="menu"
+          className="absolute top-[calc(100%+6px)] right-0 z-40 w-[270px] rounded-xl border border-line bg-surface p-1.5 shadow-[0_16px_40px_rgba(16,24,40,.18)]"
+        >
           {confirm ? (
             <div className="p-2.5">
               <div className="text-[15px] font-bold">Mark as not printed?</div>

@@ -156,5 +156,8 @@ export function monthLabel(month: string): string {
  * digits, spaces and the separators used in container / D/O numbers.
  */
 export function safeSearch(q: string): string {
-  return q.replace(/[^A-Za-z0-9 \-/.]/g, "").trim().slice(0, 60);
+  return q
+    .replace(/[^A-Za-z0-9 \-/.]/g, "")
+    .trim()
+    .slice(0, 60);
 }
