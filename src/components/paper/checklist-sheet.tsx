@@ -1,4 +1,12 @@
-import { CONTAINER_CHECKS, GOODS_CHECKS, PACKING_CHECKS, type Check, type ChecklistPaper, type YesNo } from "@/lib/tally/checklist";
+import {
+  CHECKLIST_TEXT_MAX,
+  CONTAINER_CHECKS,
+  GOODS_CHECKS,
+  PACKING_CHECKS,
+  type Check,
+  type ChecklistPaper,
+  type YesNo,
+} from "@/lib/tally/checklist";
 import { PAPER_HEIGHT, PAPER_WIDTH } from "./paper-sheet";
 
 /**
@@ -20,6 +28,63 @@ function Meta({ label, value }: { label: string; value: string }) {
   );
 }
 
+/** The fields page 2 has the worker write in. */
+export type ChecklistTextField =
+  "transportAgent" | "pList" | "liftruckDriver" | "forkliftDriver" | "stackerStuffer" | "temperature" | "qcBy" | "department";
+export type TickSet = "container" | "goods" | "packing";
+
+/** Filling page 2 in on the form itself (paper view): tap a box to tick it, type on the lines. */
+export interface ChecklistEdit {
+  tick: (set: TickSet, key: string, v: YesNo) => void;
+  text: (field: ChecklistTextField, v: string) => void;
+}
+
+/** A blank on the form, typed into (paper view). Faintly shaded while empty. */
+function Blank({
+  field,
+  value,
+  label,
+  edit,
+  style,
+}: {
+  field: ChecklistTextField;
+  value: string;
+  label: string;
+  edit: ChecklistEdit;
+  style?: React.CSSProperties;
+}) {
+  const numeric = field === "temperature";
+  return (
+    <input
+      aria-label={label}
+      value={value}
+      inputMode={numeric ? "decimal" : "text"}
+      autoComplete="off"
+      onChange={(e) =>
+        edit.text(
+          field,
+          numeric ? e.target.value.replace(/[^0-9.-]/g, "").slice(0, 6) : e.target.value.toUpperCase().slice(0, CHECKLIST_TEXT_MAX),
+        )
+      }
+      style={{
+        font: `500 9.5px ${mono}`,
+        color: "#111",
+        textTransform: "uppercase",
+        border: 0,
+        borderRadius: 0,
+        outline: "none",
+        padding: "0 2px",
+        margin: 0,
+        minWidth: 0,
+        width: "100%",
+        height: "100%",
+        background: value ? "transparent" : "rgba(37, 99, 235, .08)",
+        ...style,
+      }}
+    />
+  );
+}
+
 function Value({ children, align = "start" }: { children: React.ReactNode; align?: "start" | "center" }) {
   return (
     <span
@@ -31,7 +96,19 @@ function Value({ children, align = "start" }: { children: React.ReactNode; align
 }
 
 /** The YES / NO boxes for one set of checks, with a ✓ in the chosen one. */
-function Ticks({ checks, values, labelWidth }: { checks: readonly Check[]; values: Partial<Record<string, YesNo>>; labelWidth: number }) {
+function Ticks({
+  checks,
+  values,
+  labelWidth,
+  set,
+  edit,
+}: {
+  checks: readonly Check[];
+  values: Partial<Record<string, YesNo>>;
+  labelWidth: number;
+  set: TickSet;
+  edit?: ChecklistEdit;
+}) {
   return (
     <div style={{ display: "grid", gridTemplateColumns: `${labelWidth}px 46px 46px`, rowGap: 0 }}>
       <span />
@@ -58,8 +135,31 @@ function Ticks({ checks, values, labelWidth }: { checks: readonly Check[]; value
               {c.label}
               {c.note ? <span style={{ fontWeight: 500 }}> {c.note}</span> : null}
             </span>
-            <span style={box(v === "yes", true)}>✓</span>
-            <span style={box(v === "no", false)}>✓</span>
+            {(["yes", "no"] as const).map((answer) =>
+              edit ? (
+                <button
+                  key={answer}
+                  type="button"
+                  aria-label={`${c.label} ${answer.toUpperCase()}`}
+                  aria-pressed={v === answer}
+                  onClick={() => edit.tick(set, c.key, v === answer ? "" : answer)}
+                  style={{
+                    ...box(v === answer, answer === "yes"),
+                    borderTop: 0,
+                    background: "transparent",
+                    padding: 0,
+                    margin: 0,
+                    cursor: "pointer",
+                  }}
+                >
+                  ✓
+                </button>
+              ) : (
+                <span key={answer} style={box(v === answer, answer === "yes")}>
+                  ✓
+                </span>
+              ),
+            )}
           </div>
         );
       })}
@@ -72,18 +172,21 @@ export function ChecklistSheet({
   form,
   page,
   pages,
+  edit,
 }: {
   data: ChecklistPaper;
   form: "container" | "lorry";
   page: number;
   pages: number;
+  /** Given in the paper view, where the worker fills the form in. */
+  edit?: ChecklistEdit;
 }) {
   const rows = Math.max(PRODUCT_ROWS, data.products.length);
-  const side: [string, string][] = [
-    ["P/LIST (OFFICE)", data.pList],
-    ["LIFTRUCK DRIVER", data.liftruckDriver],
-    ["FORKLIFT DRIVER", data.forkliftDriver],
-    ["STACKER / STUFFER", data.stackerStuffer],
+  const side: [string, string, ChecklistTextField?][] = [
+    ["P/LIST (OFFICE)", data.pList, "pList"],
+    ["LIFTRUCK DRIVER", data.liftruckDriver, "liftruckDriver"],
+    ["FORKLIFT DRIVER", data.forkliftDriver, "forkliftDriver"],
+    ["STACKER / STUFFER", data.stackerStuffer, "stackerStuffer"],
     ["", ""],
     ["TIME START", data.timeStart],
     ["TIME END", data.timeEnd],
@@ -147,8 +250,18 @@ export function ChecklistSheet({
             <Value>{data.contract}</Value>
           </div>
           <div style={{ ...cell, borderRight: 0, justifyContent: "center", fontWeight: 700 }}>
-            TRANSPORT / AGENT
-            {data.transportAgent ? <span style={{ font: `500 9.5px ${mono}`, marginLeft: 8 }}>{data.transportAgent}</span> : null}
+            <span style={{ flex: "none" }}>TRANSPORT / AGENT</span>
+            {edit ? (
+              <Blank
+                field="transportAgent"
+                label="Transport / Agent"
+                value={data.transportAgent}
+                edit={edit}
+                style={{ marginLeft: 8, flex: 1, height: 16 }}
+              />
+            ) : data.transportAgent ? (
+              <span style={{ font: `500 9.5px ${mono}`, marginLeft: 8 }}>{data.transportAgent}</span>
+            ) : null}
           </div>
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "310px 89px 1fr" }}>
@@ -186,11 +299,11 @@ export function ChecklistSheet({
             </div>
           </div>
           <div>
-            {side.map(([label, value], i) => (
+            {side.map(([label, value, field], i) => (
               <div key={i} style={{ display: "grid", gridTemplateColumns: "1fr 1fr" }}>
                 <div style={{ ...cell, fontWeight: 700 }}>{label}</div>
-                <div style={{ ...cell, borderRight: 0 }}>
-                  <Value>{value}</Value>
+                <div style={{ ...cell, borderRight: 0, padding: field && edit ? 0 : cell.padding }}>
+                  {field && edit ? <Blank field={field} label={label} value={value} edit={edit} /> : <Value>{value}</Value>}
                 </div>
               </div>
             ))}
@@ -210,16 +323,16 @@ export function ChecklistSheet({
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", columnGap: 34 }}>
         <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
           <div style={{ fontWeight: 700 }}>1) CONDITION OF THE {form === "lorry" ? "CONTAINER / LORRY" : "CONTAINER / LORRY"}</div>
-          <Ticks checks={CONTAINER_CHECKS} values={data.container} labelWidth={250} />
+          <Ticks checks={CONTAINER_CHECKS} values={data.container} labelWidth={250} set="container" edit={edit} />
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
           <div style={{ fontWeight: 700 }}>2) CONDITION OF DRUM / CTNS / TINS</div>
-          <Ticks checks={GOODS_CHECKS} values={data.goods} labelWidth={160} />
+          <Ticks checks={GOODS_CHECKS} values={data.goods} labelWidth={160} set="goods" edit={edit} />
           <div style={{ fontSize: 9, fontWeight: 700, marginTop: 4 }}>*Should be free from Damage/Contamination</div>
         </div>
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", columnGap: 34 }}>
-        <Ticks checks={PACKING_CHECKS} values={data.packing} labelWidth={250} />
+        <Ticks checks={PACKING_CHECKS} values={data.packing} labelWidth={250} set="packing" edit={edit} />
         <div style={{ display: "flex", flexDirection: "column", gap: 8, fontWeight: 700, fontSize: 9.5 }}>
           <span>APPLICABLE FOR AMBIENT PRODUCTS ONLY</span>
           <div style={{ display: "grid", gridTemplateColumns: "120px 1fr", alignItems: "center", gap: 8 }}>
@@ -234,7 +347,17 @@ export function ChecklistSheet({
                 font: `600 16px ${mono}`,
               }}
             >
-              {data.temperature}
+              {edit ? (
+                <Blank
+                  field="temperature"
+                  label="Environment temperature °C during stuffing"
+                  value={data.temperature}
+                  edit={edit}
+                  style={{ font: `600 16px ${mono}`, textAlign: "center" }}
+                />
+              ) : (
+                data.temperature
+              )}
             </span>
           </div>
         </div>
@@ -243,10 +366,31 @@ export function ChecklistSheet({
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", columnGap: 34, fontWeight: 700, marginTop: 4 }}>
         <div>
           4) QC / GOODS INSPECTIONS BY:{" "}
-          <span style={{ font: `500 9.5px ${mono}`, borderBottom: line, padding: "0 30px 0 6px" }}>{data.qcBy}</span>
+          {edit ? (
+            <Blank
+              field="qcBy"
+              label="QC / Goods inspections by"
+              value={data.qcBy}
+              edit={edit}
+              style={{ width: 150, height: 16, borderBottom: line, marginLeft: 4 }}
+            />
+          ) : (
+            <span style={{ font: `500 9.5px ${mono}`, borderBottom: line, padding: "0 30px 0 6px" }}>{data.qcBy}</span>
+          )}
         </div>
         <div>
-          DEPARTMENT: <span style={{ font: `500 9.5px ${mono}`, borderBottom: line, padding: "0 30px 0 6px" }}>{data.department}</span>
+          DEPARTMENT:{" "}
+          {edit ? (
+            <Blank
+              field="department"
+              label="Department"
+              value={data.department}
+              edit={edit}
+              style={{ width: 150, height: 16, borderBottom: line, marginLeft: 4 }}
+            />
+          ) : (
+            <span style={{ font: `500 9.5px ${mono}`, borderBottom: line, padding: "0 30px 0 6px" }}>{data.department}</span>
+          )}
         </div>
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", columnGap: 34, fontWeight: 700, marginTop: 18 }}>

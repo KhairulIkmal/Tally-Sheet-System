@@ -40,9 +40,9 @@ import {
 } from "@/lib/tally/paper-rows";
 import type { ItemSuggestion } from "../pick";
 import { BottomBar, Button } from "../ui";
-import { itemPalletsText, itemRowMarks, itemTotalText } from "@/lib/tally/sheet";
+import { itemPalletsText, itemRowMarks, itemTotalText, paperFromDraft } from "@/lib/tally/sheet";
 import { PaperFooter } from "./paper-footer";
-import { ChecklistForm } from "./checklist";
+import { ChecklistSheet } from "@/components/paper/checklist-sheet";
 import { AutoFillPanel } from "./paper-autofill";
 import { usePaperZoom } from "./paper-zoom";
 import { PltTypeButtons } from "./pallet-setup";
@@ -821,17 +821,29 @@ export function PaperScreen({
                     <span className="text-lg font-extrabold tracking-[.04em]">PAGE 2 · STUFFING / LOADING CHECKLIST</span>
                     <span className="text-xs font-bold text-muted">WH-FR-001</span>
                   </div>
-                  <ChecklistForm
-                    draft={draft}
-                    wide
-                    onEdit={(fn) =>
-                      onEdit((d) => {
-                        const c = structuredClone(draftChecklist(d));
-                        fn(c);
-                        d.checklist = c;
-                      })
-                    }
-                  />
+                  {/* The form as printed: tap a YES / NO box to tick it, type on its blanks. */}
+                  <div className="w-fit border border-line shadow-sm">
+                    <ChecklistSheet
+                      data={paperFromDraft(draft, signerName).checklist!}
+                      form={draft.form}
+                      page={2}
+                      pages={2}
+                      edit={{
+                        tick: (set, key, v) =>
+                          onEdit((d) => {
+                            const c = structuredClone(draftChecklist(d));
+                            (c[set] as Record<string, string>)[key] = v;
+                            d.checklist = c;
+                          }),
+                        text: (field, v) =>
+                          onEdit((d) => {
+                            const c = structuredClone(draftChecklist(d));
+                            c[field] = v;
+                            d.checklist = c;
+                          }),
+                      }}
+                    />
+                  </div>
                 </div>
                 <p className="mt-1 text-xs font-medium text-muted">
                   Tap a field to zoom in on it; Done shows the whole sheet again. Each row is filled on its own. ◯ marks a short pallet (CTN
