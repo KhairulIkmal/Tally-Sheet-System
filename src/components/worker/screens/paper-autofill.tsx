@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { QUICK_UNITS, normalizeUnit, type PltType, type SheetForm, MAX_PALLETS } from "@/lib/tally/constants";
+import { QUICK_UNITS, normalizeUnit, type PltChoice, type SheetForm, MAX_PALLETS } from "@/lib/tally/constants";
 import { PltTypeButtons } from "./pallet-setup";
 import { buildPallets, newId, setupPallets, type DraftItem } from "@/lib/tally/draft";
 import type { ItemSuggestion } from "../pick";
@@ -32,7 +32,7 @@ export function AutoFillPanel({
   nextStart: number;
   /** Pallets the sheet still has space for. */
   room: number;
-  defaults: { pltType: PltType; pltOther?: string; contractNo: string };
+  defaults: { pltType: PltChoice; pltOther?: string; contractNo: string };
   onAdd: (item: DraftItem) => void;
   onClose: () => void;
 }) {
@@ -40,7 +40,7 @@ export function AutoFillPanel({
   const [unit, setUnit] = useState("CTN");
   const [total, setTotal] = useState("");
   const [per, setPer] = useState("");
-  const [pltType, setPltType] = useState<PltType>(defaults.pltType);
+  const [pltType, setPltType] = useState<PltChoice>(defaults.pltType);
   const [pltOther, setPltOther] = useState(defaults.pltOther ?? "");
   const [contractNo, setContractNo] = useState(defaults.contractNo);
 

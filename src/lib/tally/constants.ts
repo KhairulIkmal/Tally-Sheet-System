@@ -4,6 +4,8 @@ export type SheetForm = "container" | "lorry";
 /** Pallet type on the lorry form: Lam Soon 4-way or 2-way, ECR, Loscam, Others. */
 export type PltType = "L4" | "L2" | "E" | "C" | "O";
 export const PLT_TYPES: readonly PltType[] = ["L4", "L2", "E", "C", "O"];
+/** A pallet's PLT type on the phone: "" until the worker chooses one. */
+export type PltChoice = PltType | "";
 /** The full names, as written on the sheet. */
 export const PLT_TYPE_NAMES: Record<PltType, string> = {
   L4: "L4WAY",
@@ -53,7 +55,7 @@ export const PLT_LABELS: Record<PltGroup, string> = {
   O: "O - (OTHERS)",
 };
 
-export function pltGroup(type: PltType): PltGroup {
+export function pltGroup(type: PltChoice): PltGroup | "" {
   return type === "L4" || type === "L2" ? "L" : type;
 }
 

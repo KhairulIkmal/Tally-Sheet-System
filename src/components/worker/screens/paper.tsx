@@ -456,7 +456,7 @@ export function PaperScreen({
                                 <button
                                   type="button"
                                   data-zoom-pass
-                                  aria-label={`Pallet ${i + 1} PLT type: ${pltCellText(p.pltType, p.pltOther)}. Tap to change`}
+                                  aria-label={`Pallet ${i + 1} PLT type: ${pltCellText(p.pltType, p.pltOther) || "not chosen"}. Tap to change`}
                                   aria-haspopup="dialog"
                                   data-plt-cell
                                   onPointerDown={() => (pltDownOn.current = p.id)}
@@ -472,10 +472,14 @@ export function PaperScreen({
                                   }}
                                   className="flex h-11 w-full min-w-0 items-center gap-1 px-1.5 text-left text-[15px] font-bold hover:bg-primary-soft"
                                 >
-                                  <span className="min-w-0 flex-1 truncate">{pltCellText(p.pltType, p.pltOther)}</span>
+                                  {p.pltType ? (
+                                    <span className="min-w-0 flex-1 truncate">{pltCellText(p.pltType, p.pltOther)}</span>
+                                  ) : (
+                                    <span className="min-w-0 flex-1 truncate font-medium text-placeholder">Choose</span>
+                                  )}
                                   <ChevronDown aria-hidden className="size-4 flex-none text-muted" />
                                 </button>
-                                {above && !samePltType(above.pallet, p) ? (
+                                {above?.pallet.pltType && !samePltType(above.pallet, p) ? (
                                   <DittoHandle
                                     what="PLT type"
                                     value={pltCellText(above.pallet.pltType, above.pallet.pltOther)}
@@ -867,7 +871,7 @@ export function PaperScreen({
           nextStart={filled + 1}
           room={MAX_PALLETS - filled}
           defaults={{
-            pltType: lastFilled?.pltType ?? "L4",
+            pltType: lastFilled?.pltType ?? "",
             pltOther: lastFilled?.pltOther ?? "",
             contractNo: lastFilled?.contractNo ?? "",
           }}

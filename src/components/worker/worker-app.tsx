@@ -379,7 +379,7 @@ export function WorkerApp({ user, history, sheets }: { user: WorkerUser; history
 
   function openPicker() {
     const last = items[items.length - 1]?.pallets.at(-1);
-    setPick(blankPick({ pltType: last?.pltType ?? "L4", pltOther: last?.pltOther ?? "", contractNo: last?.contractNo ?? "" }));
+    setPick(blankPick({ pltType: last?.pltType ?? "", pltOther: last?.pltOther ?? "", contractNo: last?.contractNo ?? "" }));
     go("picker");
   }
 

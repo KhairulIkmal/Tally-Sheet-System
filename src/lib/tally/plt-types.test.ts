@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { lamSoonWayList, otherPalletList, pltCellText, pltSummary, pltTypeName } from "./constants";
 import { autoPltCounts, buildPallets, pltCounts, reviewWarnings, samePltType, upgradeDraftPlt } from "./draft";
 import { draftToPayload, submitPayloadSchema } from "./payload";
-import { fillDown, toRows } from "./paper-rows";
+import { addRow, fillDown, toRows } from "./paper-rows";
 import { sampleDraft } from "./sample";
 import { itemPalletsText, itemRowMarks, paperFromDraft, paperFromSheet, type SheetDetail } from "./sheet";
 
@@ -54,6 +54,34 @@ describe("a draft from an earlier version", () => {
     const up = upgradeDraftPlt(Object.assign(d, { pltOtherNote: " wood " }));
     expect(up.items[3].pallets[0].pltOther).toBe("WOOD");
     expect("pltOtherNote" in up).toBe(false);
+  });
+});
+
+describe("a new pallet's PLT type", () => {
+  it("starts blank, and a lorry sheet can't be signed with one left blank", () => {
+    const d = sampleDraft(at, "lorry");
+    d.items[0].pallets[0].pltType = "";
+    const w = reviewWarnings(d).find((x) => x.message === "Pallet 1: choose the PLT type");
+    expect(w?.severity).toBe("error");
+    expect(pltCounts(d).L).toBe(4);
+  });
+
+  it("a new row on the paper view starts blank", () => {
+    const d = sampleDraft(at, "lorry");
+    const rows = toRows(addRow(d.items));
+    expect(rows[rows.length - 1].pallet.pltType).toBe("");
+  });
+
+  it("same doesn't copy a blank down", () => {
+    const d = sampleDraft(at, "lorry");
+    toRows(d.items)[0].pallet.pltType = "";
+    expect(toRows(fillDown(d.items, 1, 2, { kind: "plt" }))[1].pallet.pltType).not.toBe("");
+  });
+
+  it("a container sheet doesn't ask for it", () => {
+    const d = sampleDraft(at, "container");
+    for (const it of d.items) for (const p of it.pallets) p.pltType = "";
+    expect(reviewWarnings(d).some((x) => x.message.includes("PLT type"))).toBe(false);
   });
 });
 

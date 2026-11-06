@@ -114,7 +114,7 @@ export function draftToPayload(draft: Draft, device: string): SubmitPayload {
       targetQty: it.targetQty && it.targetQty > 0 ? it.targetQty : null,
       qtyPerPallet: it.qtyPerPallet && it.qtyPerPallet > 0 ? it.qtyPerPallet : null,
       pallets: it.pallets.map((p) => ({
-        pltType: isLorry ? p.pltType : null,
+        pltType: isLorry ? p.pltType || null : null,
         pltOther: isLorry && p.pltType === "O" ? up(p.pltOther ?? "") : "",
         contractNo: isLorry ? up(p.contractNo) : "",
         remark: up(p.remark),

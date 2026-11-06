@@ -1,6 +1,20 @@
 import { describe, expect, it } from "vitest";
 import { buildPallets, type DraftItem } from "./draft";
-import { addRow, appendItem, dittoField, dittoItem, fillDown, fromRows, removeRows, removeRow, renameRow, setRowUnit, toRows, unnamedRows, updateRowPallet } from "./paper-rows";
+import {
+  addRow,
+  appendItem,
+  dittoField,
+  dittoItem,
+  fillDown,
+  fromRows,
+  removeRows,
+  removeRow,
+  renameRow,
+  setRowUnit,
+  toRows,
+  unnamedRows,
+  updateRowPallet,
+} from "./paper-rows";
 
 function item(name: string, qtys: number[], extra: Partial<DraftItem> = {}): DraftItem {
   return {
@@ -37,7 +51,8 @@ describe("paper rows", () => {
   it("adds an empty row, copying nothing", () => {
     const out = addRow([item("A", [32])]);
     expect(names(out)).toEqual(["A×1", "×1"]);
-    expect(out[1].pallets[0]).toMatchObject({ pltType: "L4", contractNo: "", lines: [{ qty: "", batch: "" }] });
+    // The PLT type too: the worker chooses it.
+    expect(out[1].pallets[0]).toMatchObject({ pltType: "", contractNo: "", lines: [{ qty: "", batch: "" }] });
     expect(unnamedRows(out)).toEqual([2]);
   });
 

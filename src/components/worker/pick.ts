@@ -1,4 +1,4 @@
-import { DEFAULT_UNIT, type PltType } from "@/lib/tally/constants";
+import { DEFAULT_UNIT, type PltChoice } from "@/lib/tally/constants";
 
 /** The "add item" form across the item name and pallet setup screens. */
 export interface PickState {
@@ -6,7 +6,7 @@ export interface PickState {
   unit: string;
   total: string;
   per: string;
-  pltType: PltType;
+  pltType: PltChoice;
   pltOther: string;
   contractNo: string;
 }
@@ -17,7 +17,7 @@ export function blankPick(defaults?: Partial<Pick<PickState, "pltType" | "pltOth
     unit: DEFAULT_UNIT,
     total: "",
     per: "",
-    pltType: defaults?.pltType ?? "L4",
+    pltType: defaults?.pltType ?? "",
     pltOther: defaults?.pltOther ?? "",
     contractNo: defaults?.contractNo ?? "",
   };

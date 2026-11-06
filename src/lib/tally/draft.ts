@@ -5,6 +5,7 @@ import {
   PLT_OTHER_MAX,
   pltGroup,
   type PltGroup,
+  type PltChoice,
   type CheckKey,
   type MaterialKey,
   type PltType,
@@ -27,7 +28,8 @@ export interface DraftLine {
 
 export interface DraftPallet {
   id: string;
-  pltType: PltType;
+  /** "" until the worker chooses: a lorry sheet can't be signed with one left blank. */
+  pltType: PltChoice;
   /** What kind of pallet an Others (O) pallet is. */
   pltOther?: string;
   contractNo: string;
@@ -110,10 +112,7 @@ export function newDraft(form: SheetForm, now: Date = new Date()): Draft {
     },
     items: [],
     materials: Object.fromEntries(MATERIALS.map((k) => [k, 0])) as Record<MaterialKey, number>,
-    checks: Object.fromEntries(CHECKS.map((k) => [k, { qty: 0, note: "" }])) as Record<
-      CheckKey,
-      { qty: number; note: string }
-    >,
+    checks: Object.fromEntries(CHECKS.map((k) => [k, { qty: 0, note: "" }])) as Record<CheckKey, { qty: number; note: string }>,
     pltAdjust: { L: 0, E: 0, C: 0, O: 0 },
     remark: "",
     signature: null,
@@ -244,7 +243,7 @@ export function setupPallets(total: number, perPallet: number, room = Infinity):
 
 export function buildPallets(
   qtys: (number | "")[],
-  defaults: { pltType: PltType; pltOther?: string; contractNo: string },
+  defaults: { pltType: PltChoice; pltOther?: string; contractNo: string },
 ): DraftPallet[] {
   return qtys.map((q) => ({
     id: newId(),
@@ -257,7 +256,7 @@ export function buildPallets(
 }
 
 /** Same PLT type, way included, and for an Others pallet the same type written. */
-export function samePltType(a: Pick<DraftPallet, "pltType" | "pltOther">, b: Pick<DraftPallet, "pltType" | "pltOther">): boolean {
+export function samePltType(a: { pltType: PltChoice; pltOther?: string }, b: { pltType: PltChoice; pltOther?: string }): boolean {
   return a.pltType === b.pltType && (a.pltType !== "O" || (a.pltOther ?? "").trim() === (b.pltOther ?? "").trim());
 }
 
@@ -287,15 +286,17 @@ export function copyPalletFrom(target: DraftPallet, source: DraftPallet): DraftP
 
 export function autoPltCounts(items: DraftItem[]): Record<PltGroup, number> {
   const counts: Record<PltGroup, number> = { L: 0, E: 0, C: 0, O: 0 };
-  for (const it of items) for (const p of it.pallets) counts[pltGroup(p.pltType)] += 1;
+  for (const it of items)
+    for (const p of it.pallets) {
+      const g = pltGroup(p.pltType);
+      if (g) counts[g] += 1;
+    }
   return counts;
 }
 
 export function pltCounts(draft: Pick<Draft, "items" | "pltAdjust">): Record<PltGroup, number> {
   const auto = autoPltCounts(draft.items);
-  return Object.fromEntries(
-    PLT_GROUPS.map((k) => [k, Math.max(0, auto[k] + (draft.pltAdjust[k] ?? 0))]),
-  ) as Record<PltGroup, number>;
+  return Object.fromEntries(PLT_GROUPS.map((k) => [k, Math.max(0, auto[k] + (draft.pltAdjust[k] ?? 0))])) as Record<PltGroup, number>;
 }
 
 // ── header validation ───────────────────────────────────────────────────
@@ -379,6 +380,15 @@ export function reviewWarnings(draft: Draft): Warning[] {
           itemIndex: i,
           palletIndex: pi,
           fields: [...bad].map((f) => FIELD_OF[f]),
+        });
+      }
+      if (draft.form === "lorry" && !p.pltType) {
+        warnings.push({
+          kind: "plt",
+          severity: "error",
+          message: `Pallet ${no}: choose the PLT type`,
+          itemIndex: i,
+          palletIndex: pi,
         });
       }
       if (draft.form === "lorry" && p.pltType === "O" && !p.pltOther?.trim()) {

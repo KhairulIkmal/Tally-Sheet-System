@@ -78,7 +78,7 @@ export function addRow(items: DraftItem[]): DraftItem[] {
     unit: "CTN",
     pallet: {
       id: newId(),
-      pltType: "L4",
+      pltType: "",
       contractNo: "",
       remark: "",
       lines: [blankLine()],
@@ -162,6 +162,7 @@ export function fillDown(items: DraftItem[], from: number, to: number, spec: Fil
   }
   if (spec.kind === "plt") {
     const { pltType, pltOther } = source.pallet;
+    if (!pltType) return items;
     for (let i = from; i <= last; i++) rows[i] = { ...rows[i], pallet: { ...rows[i].pallet, pltType, pltOther: pltOther ?? "" } };
     return fromRows(rows, items);
   }

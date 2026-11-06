@@ -263,7 +263,7 @@ export function PalletDetailsScreen({
                   <div className="flex flex-col gap-1">
                     <div className="flex h-7 items-center justify-between">
                       <span className="text-xs font-bold text-muted">PLT TYPE</span>
-                      {prev && !samePltType(prev, p) ? (
+                      {prev?.pltType && !samePltType(prev, p) ? (
                         <button
                           type="button"
                           aria-label="PLT type same as above"
@@ -361,7 +361,7 @@ export function PalletDetailsScreen({
               const last = it.pallets[it.pallets.length - 1] ?? previousPallet(all, itemIndex, 0);
               it.pallets.push({
                 id: newId(),
-                pltType: last?.pltType ?? "L4",
+                pltType: last?.pltType ?? "",
                 pltOther: last?.pltOther ?? "",
                 contractNo: last?.contractNo ?? "",
                 remark: "",

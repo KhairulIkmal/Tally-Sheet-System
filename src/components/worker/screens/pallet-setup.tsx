@@ -7,6 +7,7 @@ import {
   PLT_OTHER_MAX,
   pltCellText,
   pltGroup,
+  type PltChoice,
   type PltGroup,
   type PltType,
   type SheetForm,
@@ -70,7 +71,8 @@ export function PltTypeButtons({
   onOther,
   size = "md",
 }: {
-  value: PltType;
+  /** "" when none has been chosen yet: no button is lit. */
+  value: PltChoice;
   other: string;
   onChange: (t: PltType) => void;
   onOther: (v: string) => void;
@@ -93,7 +95,8 @@ export function PltTypeButtons({
             aria-checked={group === g}
             onClick={() => {
               setJustChoseOther(g === "O");
-              onChange(g === "L" ? (group === "L" ? value : "L4") : GROUP_TYPE[g]);
+              // L keeps the way already chosen, else starts on 4-WAY.
+              onChange(g === "L" ? (value === "L4" || value === "L2" ? value : "L4") : GROUP_TYPE[g]);
             }}
             className={cn(
               "flex items-center justify-center rounded-[9px] font-bold",
@@ -251,7 +254,7 @@ export function PalletSetupScreen({
                   {q === "" ? "Fill qty later" : partial ? "Remainder · not full" : "Full"}
                 </span>
                 <span className="min-w-4 text-center text-[13px] font-bold text-muted">
-                  {form === "lorry" ? pltCellText(pick.pltType, pick.pltOther) : ""}
+                  {form === "lorry" ? pltCellText(pick.pltType, pick.pltOther) || "—" : ""}
                 </span>
                 <span className="min-w-14 text-right text-xl font-bold">{q === "" ? "—" : q}</span>
               </div>
