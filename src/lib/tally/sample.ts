@@ -62,9 +62,44 @@ const items = (rows: [string, string, number, number[], string, string, string[]
  * a container sheet, /worker?sample=lorry a lorry one and
  * /worker?sample=lorry-full a lorry one with all 25 rows and every box at the
  * foot filled, and /worker?sample=container-full the same for a container
- * (with short pallets in the middle of items). It replaces the draft on this phone.
+ * (with short pallets in the middle of items), and /worker?sample=lorry-paper
+ * a lorry sheet copied from one a worker filled in on paper (read from a photo
+ * on 2026-11-05), to compare the two. It replaces the draft on this phone.
  */
-export function sampleDraft(now: Date = new Date(), form: "container" | "container-full" | "lorry" | "lorry-full" = "container"): Draft {
+export function sampleDraft(
+  now: Date = new Date(),
+  form: "container" | "container-full" | "lorry" | "lorry-full" | "lorry-paper" = "container",
+): Draft {
+  if (form === "lorry-paper") {
+    const d = newDraft("lorry", now);
+    // As read from the photo; the handwriting may have been read wrong in places.
+    Object.assign(d.header, { transferTo: "PETI LEMBS", doNo: "8195007724", lorryNo: "BEG 1067", date: "04/11/26" });
+    d.items = items([
+      [
+        "20KG PRAN MARG",
+        "CTN",
+        640,
+        Array(16).fill(40),
+        "03/08/27",
+        "03/11/26",
+        ["151", "151", "151", "161", "201", "201", "201", "201", "191", "211", "181", "201", "201", "021", "151", "181"],
+        ["L4"],
+        "8900003795",
+      ],
+      [
+        "18X1KG POTORI",
+        "CTN",
+        240,
+        Array(6).fill(40),
+        "01/11/27",
+        "01/11/26",
+        ["0260111303", "0260111303", "2160311303", "0360111303", "0160111303", "0360111303"],
+        ["L4"],
+        "EMSIA",
+      ],
+    ]);
+    return d;
+  }
   if (form === "container-full") {
     const d = newDraft("container", now);
     Object.assign(d.header, {
