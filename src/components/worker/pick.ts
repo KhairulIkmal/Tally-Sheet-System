@@ -6,6 +6,8 @@ export interface PickState {
   unit: string;
   total: string;
   per: string;
+  /** The qty per pallet the item's history filled in, to say so while it's unchanged. */
+  perFromHistory?: string;
   pltType: PltChoice;
   pltOther: string;
   contractNo: string;

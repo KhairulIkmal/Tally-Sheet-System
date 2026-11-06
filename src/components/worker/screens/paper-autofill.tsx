@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { QUICK_UNITS, normalizeUnit, type PltChoice, type SheetForm, MAX_PALLETS } from "@/lib/tally/constants";
-import { PltTypeButtons } from "./pallet-setup";
+import { PltTypeButtons, historyNote } from "./pallet-setup";
 import { buildPallets, newId, setupPallets, type DraftItem } from "@/lib/tally/draft";
 import type { ItemSuggestion } from "../pick";
 import { Button } from "../ui";
@@ -40,6 +40,7 @@ export function AutoFillPanel({
   const [unit, setUnit] = useState("CTN");
   const [total, setTotal] = useState("");
   const [per, setPer] = useState("");
+  const [perFromHistory, setPerFromHistory] = useState<string | undefined>();
   const [pltType, setPltType] = useState<PltChoice>(defaults.pltType);
   const [pltOther, setPltOther] = useState(defaults.pltOther ?? "");
   const [contractNo, setContractNo] = useState(defaults.contractNo);
@@ -102,7 +103,14 @@ export function AutoFillPanel({
               const hit = history.find((h) => h.name === v.trim());
               if (hit) {
                 setUnit(hit.unit);
-                if (hit.qtyPerPallet) setPer(String(hit.qtyPerPallet));
+                if (hit.qtyPerPallet) {
+                  setPer(String(hit.qtyPerPallet));
+                  setPerFromHistory(String(hit.qtyPerPallet));
+                }
+              } else if (perFromHistory) {
+                // The name no longer matches the item that filled it in.
+                if (per === perFromHistory) setPer("");
+                setPerFromHistory(undefined);
               }
             }}
           />
@@ -155,6 +163,9 @@ export function AutoFillPanel({
               className={field}
               onChange={(e) => setPer(e.target.value.replace(/\D/g, "").slice(0, 5))}
             />
+            {historyNote(per, perFromHistory) ? (
+              <span className="text-xs font-semibold text-muted">{historyNote(per, perFromHistory)}</span>
+            ) : null}
           </label>
         </div>
 

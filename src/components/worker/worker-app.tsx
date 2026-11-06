@@ -393,7 +393,11 @@ export function WorkerApp({ user, history, sheets }: { user: WorkerUser; history
       unit: normalizeUnit(pick.unit),
       targetQty: total > 0 ? total : null,
       qtyPerPallet: parseInt(pick.per, 10) || null,
-      pallets: buildPallets(setupQtys, { pltType: pick.pltType, pltOther: pick.pltOther, contractNo: pick.contractNo.trim().toUpperCase() }),
+      pallets: buildPallets(setupQtys, {
+        pltType: pick.pltType,
+        pltOther: pick.pltOther,
+        contractNo: pick.contractNo.trim().toUpperCase(),
+      }),
     };
     update((d) => {
       d.items.push(item);
@@ -628,9 +632,22 @@ export function WorkerApp({ user, history, sheets }: { user: WorkerUser; history
         <ItemNameScreen
           pick={pick}
           history={suggestionPool}
-          onName={(name) => setPick((p) => ({ ...p, name }))}
+          onName={(name) =>
+            // A qty per pallet the previous item's history filled in doesn't belong to this name.
+            setPick((p) => ({
+              ...p,
+              name,
+              ...(p.perFromHistory && p.per === p.perFromHistory ? { per: "" } : {}),
+              perFromHistory: undefined,
+            }))
+          }
           onUnit={(unit) => setPick((p) => ({ ...p, unit }))}
-          onSuggestion={(h) => setPick((p) => ({ ...p, name: h.name, unit: h.unit, per: h.qtyPerPallet ? String(h.qtyPerPallet) : p.per }))}
+          onSuggestion={(h) =>
+            setPick((p) => {
+              const fromHistory = h.qtyPerPallet ? String(h.qtyPerPallet) : undefined;
+              return { ...p, name: h.name, unit: h.unit, per: fromHistory ?? p.per, perFromHistory: fromHistory };
+            })
+          }
           onNext={() => pick.name.trim() && go("setup")}
         />
       );

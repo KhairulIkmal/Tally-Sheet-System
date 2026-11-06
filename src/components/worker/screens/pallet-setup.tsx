@@ -134,11 +134,14 @@ function NumberBox({
   value,
   placeholder,
   onChange,
+  note,
 }: {
   label: string;
   value: string;
   placeholder: string;
   onChange: (v: string) => void;
+  /** A small line under the box. */
+  note?: string;
 }) {
   return (
     <label className="flex flex-col gap-1.5">
@@ -151,8 +154,14 @@ function NumberBox({
         onChange={(e) => onChange(e.target.value.replace(/\D/g, "").slice(0, 5))}
         className="rounded-xl"
       />
+      {note ? <span className="text-xs font-semibold text-muted">{note}</span> : null}
     </label>
   );
+}
+
+/** The note under "per pallet" while it still holds the value filled in from the item's history. */
+export function historyNote(per: string, fromHistory: string | undefined): string | undefined {
+  return per && per === fromHistory ? "Auto-filled from this item's history. Change it if this load is different." : undefined;
 }
 
 export function PalletSetupScreen({
@@ -189,7 +198,13 @@ export function PalletSetupScreen({
       <Scroll className="gap-3 px-4 py-3.5">
         <div className="grid grid-cols-2 gap-2.5">
           <NumberBox label={`Total ${unit} (optional)`} value={pick.total} placeholder="150" onChange={(v) => onChange({ total: v })} />
-          <NumberBox label={`${unit} per pallet (optional)`} value={pick.per} placeholder="32" onChange={(v) => onChange({ per: v })} />
+          <NumberBox
+            label={`${unit} per pallet (optional)`}
+            value={pick.per}
+            placeholder="32"
+            onChange={(v) => onChange({ per: v })}
+            note={historyNote(pick.per, pick.perFromHistory)}
+          />
         </div>
         {!total ? (
           <div className="rounded-[10px] bg-primary-soft px-3.5 py-2.5 text-sm font-semibold text-primary">
