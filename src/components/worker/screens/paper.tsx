@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Calculator, Check, Plus, Trash2 } from "lucide-react";
+import { Calculator, Check, ChevronDown, Plus, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { PLT_TYPE_NAMES, PLT_TYPES, normalizeUnit, pltCellText, type SheetForm, MAX_PALLETS } from "@/lib/tally/constants";
+import { normalizeUnit, pltCellText, type SheetForm, MAX_PALLETS } from "@/lib/tally/constants";
 import { isValidPaperDate, normalizeDate } from "@/lib/tally/dates";
 import {
   blankLine,
@@ -43,7 +43,7 @@ import { itemPalletsText, itemRowMarks, itemTotalText } from "@/lib/tally/sheet"
 import { PaperFooter } from "./paper-footer";
 import { AutoFillPanel } from "./paper-autofill";
 import { usePaperZoom } from "./paper-zoom";
-import { PltOtherInput } from "./pallet-setup";
+import { PltTypeButtons } from "./pallet-setup";
 import { DittoHandle, deleteRowMark, fillCell, useDeleteDrag, useFillDrag } from "./paper-fill";
 
 /** Header boxes in the printed order: two columns, left then right. */
@@ -129,8 +129,9 @@ export function PaperScreen({
   onBackToReview?: () => void;
 }) {
   const [autoFill, setAutoFill] = useState(false);
-  // The row just changed to Others: its "type of pallet" box takes the cursor straight away.
-  const [askOther, setAskOther] = useState<string | null>(null);
+  // The pallet whose PLT type is being chosen, in the same buttons as the step-by-step.
+  const [pltPallet, setPltPallet] = useState<string | null>(null);
+  const pltDownOn = useRef<string | null>(null);
   // A cell from Fix stays marked while it is still empty or wrong.
   const needsFix = (i: number, k: LineField) => {
     if (!fix || fix.row !== i || !fix.fields?.includes(k)) return false;
@@ -444,26 +445,24 @@ export function PaperScreen({
                           {isLorry ? (
                             <td className={cell}>
                               <div className={cn("flex items-center", fill.covers({ kind: "plt" }, i) && fillCell)}>
-                                <select
-                                  value={p.pltType}
-                                  aria-label={`Pallet ${i + 1} PLT type`}
-                                  className="h-11 w-full min-w-0 bg-transparent px-1.5 text-[15px] font-bold outline-none focus:bg-primary-soft"
-                                  onChange={(e) => {
-                                    setAskOther(e.target.value === "O" ? p.id : null);
-                                    onItems((its) =>
-                                      updateRowPallet(its, i, (x) => ({
-                                        ...x,
-                                        pltType: e.target.value as typeof p.pltType,
-                                      })),
-                                    );
+                                <button
+                                  type="button"
+                                  data-zoom-pass
+                                  aria-label={`Pallet ${i + 1} PLT type: ${pltCellText(p.pltType, p.pltOther)}. Tap to change`}
+                                  aria-haspopup="dialog"
+                                  onPointerDown={() => (pltDownOn.current = p.id)}
+                                  onClick={(e) => {
+                                    // Only a tap that started here: a "same" beside it disappears once it has copied,
+                                    // and the browser's click for that tap then lands on this cell.
+                                    if (e.detail !== 0 && pltDownOn.current !== p.id) return;
+                                    pltDownOn.current = null;
+                                    setPltPallet(p.id);
                                   }}
+                                  className="flex h-11 w-full min-w-0 items-center gap-1 px-1.5 text-left text-[15px] font-bold hover:bg-primary-soft"
                                 >
-                                  {PLT_TYPES.map((k) => (
-                                    <option key={k} value={k}>
-                                      {PLT_TYPE_NAMES[k]}
-                                    </option>
-                                  ))}
-                                </select>
+                                  <span className="min-w-0 flex-1 truncate">{pltCellText(p.pltType, p.pltOther)}</span>
+                                  <ChevronDown aria-hidden className="size-4 flex-none text-muted" />
+                                </button>
                                 {above && !samePltType(above.pallet, p) ? (
                                   <DittoHandle
                                     what="PLT type"
@@ -478,15 +477,6 @@ export function PaperScreen({
                                   />
                                 ) : null}
                               </div>
-                              {p.pltType === "O" ? (
-                                <PltOtherInput
-                                  value={p.pltOther ?? ""}
-                                  label={`Pallet ${i + 1} type of pallet`}
-                                  autoFocus={askOther === p.id}
-                                  onChange={(v) => onItems((its) => updateRowPallet(its, i, (x) => ({ ...x, pltOther: v })))}
-                                  className="h-10 rounded-none border-0 border-t border-dashed border-ink/25 px-1.5 focus:bg-primary-soft"
-                                />
-                              ) : null}
                             </td>
                           ) : null}
                           {isLorry ? (
@@ -841,6 +831,22 @@ export function PaperScreen({
         ) : null}
       </div>
 
+      {pltPallet && rows.some((r) => r.pallet.id === pltPallet) ? (
+        <PltTypePanel
+          no={rows.findIndex((r) => r.pallet.id === pltPallet) + 1}
+          pallet={rows.find((r) => r.pallet.id === pltPallet)!.pallet}
+          onChange={(patch) =>
+            onItems((its) =>
+              updateRowPallet(
+                its,
+                rows.findIndex((r) => r.pallet.id === pltPallet),
+                (x) => ({ ...x, ...patch }),
+              ),
+            )
+          }
+          onClose={() => setPltPallet(null)}
+        />
+      ) : null}
       {autoFill ? (
         <AutoFillPanel
           form={form}
@@ -865,6 +871,50 @@ export function PaperScreen({
         </Button>
       </BottomBar>
     </>
+  );
+}
+
+/** The PLT type of one pallet, chosen with the same buttons as the step-by-step. */
+function PltTypePanel({
+  no,
+  pallet,
+  onChange,
+  onClose,
+}: {
+  no: number;
+  pallet: DraftItem["pallets"][number];
+  onChange: (patch: { pltType?: DraftItem["pallets"][number]["pltType"]; pltOther?: string }) => void;
+  onClose: () => void;
+}) {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
+  return (
+    <div
+      className="fixed inset-0 z-30 flex items-end justify-center bg-black/40 sm:items-center"
+      role="dialog"
+      aria-modal="true"
+      aria-label={`Pallet ${no} PLT type`}
+      onClick={(e) => e.target === e.currentTarget && onClose()}
+    >
+      <div className="flex w-full max-w-[420px] flex-col gap-3 rounded-t-2xl bg-surface p-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:rounded-2xl">
+        <div className="flex items-baseline justify-between">
+          <span className="text-base font-extrabold">Pallet {no}</span>
+          <span className="text-xs font-bold text-muted">PLT TYPE</span>
+        </div>
+        <PltTypeButtons
+          value={pallet.pltType}
+          other={pallet.pltOther ?? ""}
+          onChange={(t) => onChange({ pltType: t })}
+          onOther={(v) => onChange({ pltOther: v })}
+        />
+        <Button className="w-full" onClick={onClose}>
+          Done
+        </Button>
+      </div>
+    </div>
   );
 }
 

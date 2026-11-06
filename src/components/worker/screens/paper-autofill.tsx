@@ -3,8 +3,8 @@
 import { useMemo, useState } from "react";
 import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { PLT_TYPE_NAMES, PLT_TYPES, QUICK_UNITS, normalizeUnit, type PltType, type SheetForm, MAX_PALLETS } from "@/lib/tally/constants";
-import { PltOtherInput } from "./pallet-setup";
+import { QUICK_UNITS, normalizeUnit, type PltType, type SheetForm, MAX_PALLETS } from "@/lib/tally/constants";
+import { PltTypeButtons } from "./pallet-setup";
 import { buildPallets, newId, setupPallets, type DraftItem } from "@/lib/tally/draft";
 import type { ItemSuggestion } from "../pick";
 import { Button } from "../ui";
@@ -42,7 +42,6 @@ export function AutoFillPanel({
   const [per, setPer] = useState("");
   const [pltType, setPltType] = useState<PltType>(defaults.pltType);
   const [pltOther, setPltOther] = useState(defaults.pltOther ?? "");
-  const [justChoseOther, setJustChoseOther] = useState(false);
   const [contractNo, setContractNo] = useState(defaults.contractNo);
 
   const qtys = useMemo(() => setupPallets(parseInt(total, 10) || 0, parseInt(per, 10) || 0, room), [total, per, room]);
@@ -160,26 +159,11 @@ export function AutoFillPanel({
 
         {form === "lorry" ? (
           <div className="grid grid-cols-2 gap-2">
-            <label className="flex flex-col gap-1">
+            <div className="flex flex-col gap-1">
               <span className="text-xs font-bold text-muted">PLT TYPE</span>
-              <select
-                value={pltType}
-                onChange={(e) => {
-                  setJustChoseOther(e.target.value === "O");
-                  setPltType(e.target.value as PltType);
-                }}
-                className={cn(field, "normal-case")}
-              >
-                {PLT_TYPES.map((k) => (
-                  <option key={k} value={k}>
-                    {PLT_TYPE_NAMES[k]}
-                  </option>
-                ))}
-              </select>
-              {pltType === "O" ? (
-                <PltOtherInput value={pltOther} onChange={setPltOther} autoFocus={justChoseOther} className="h-10" />
-              ) : null}
-            </label>
+              {/* The same buttons as the step-by-step. */}
+              <PltTypeButtons size="sm" value={pltType} other={pltOther} onChange={setPltType} onOther={setPltOther} />
+            </div>
             <label className="flex flex-col gap-1">
               <span className="text-xs font-bold text-muted">CONTRACT NO</span>
               <input value={contractNo} className={field} onChange={(e) => setContractNo(e.target.value.toUpperCase())} />
