@@ -100,9 +100,9 @@ export function CameraCapture({
     const timer = window.setInterval(() => {
       const v = videoRef.current;
       if (!ctx || !v || v.readyState < 2 || !v.videoWidth) return;
-      // The middle of the picture, where the pallet's label should be.
-      const sw = v.videoWidth * 0.6;
-      const sh = v.videoHeight * 0.6;
+      // Most of the picture: the whole pallet is photographed, only the very edges are left out.
+      const sw = v.videoWidth * 0.8;
+      const sh = v.videoHeight * 0.8;
       const w = PROBE_W;
       const h = Math.max(1, Math.round((sh / sw) * w));
       probe.width = w;
@@ -180,12 +180,12 @@ export function CameraCapture({
         ) : (
           <>
             <video ref={videoRef} playsInline muted autoPlay className="absolute inset-0 size-full object-cover" aria-label="Camera" />
-            {/* The part that is measured: aim the pallet's label here. */}
+            {/* The whole picture is the sign: a coloured edge, green when sharp, red when not. */}
             <div
               aria-hidden
               className={cn(
-                "pointer-events-none absolute inset-[20%] rounded-2xl border-[3px] transition-colors",
-                ready ? "border-success" : "border-white/70",
+                "pointer-events-none absolute inset-0 border-[6px] transition-colors duration-200",
+                ready ? "border-success" : status === "starting" ? "border-transparent" : "border-danger/80",
               )}
             />
             <div
