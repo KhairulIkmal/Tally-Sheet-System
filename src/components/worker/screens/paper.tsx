@@ -432,6 +432,8 @@ export function PaperScreen({
                           className={cn(
                             del.covers(i) && deleteRowMark,
                             fix?.row === i && !fix.fields?.length && "outline-2 -outline-offset-2 outline-warning",
+                            // The row whose PLT type the panel is changing.
+                            pltPallet === p.id && "bg-primary-soft/50",
                           )}
                         >
                           <td
@@ -443,7 +445,13 @@ export function PaperScreen({
                             {i + 1}
                           </td>
                           {isLorry ? (
-                            <td className={cell}>
+                            <td
+                              className={cn(
+                                cell,
+                                pltPallet === p.id && "bg-primary-soft outline-[3px] -outline-offset-[3px] outline-primary",
+                              )}
+                              data-plt-editing={pltPallet === p.id || undefined}
+                            >
                               <div className={cn("flex items-center", fill.covers({ kind: "plt" }, i) && fillCell)}>
                                 <button
                                   type="button"
@@ -456,6 +464,9 @@ export function PaperScreen({
                                     // and the browser's click for that tap then lands on this cell.
                                     if (e.detail !== 0 && pltDownOn.current !== p.id) return;
                                     pltDownOn.current = null;
+                                    // Glide in on the cell, as a tap on a field does, so it can be seen being changed.
+                                    const td = e.currentTarget.closest("td");
+                                    if (td) zoomTo(td);
                                     setPltPallet(p.id);
                                   }}
                                   className="flex h-11 w-full min-w-0 items-center gap-1 px-1.5 text-left text-[15px] font-bold hover:bg-primary-soft"
@@ -778,7 +789,8 @@ export function PaperScreen({
             </div>
           </div>
         </div>
-        {zoomed ? (
+        {/* Hidden while the PLT type panel is open: its own Done is the one to press. */}
+        {zoomed && !pltPallet ? (
           <button
             type="button"
             aria-label="Done, show the whole sheet"
@@ -893,14 +905,15 @@ function PltTypePanel({
   }, [onClose]);
   return (
     <div
-      className="fixed inset-0 z-30 flex items-end justify-center bg-black/40 sm:items-center"
+      // Only lightly dimmed, so the marked cell stays easy to see.
+      className="fixed inset-0 z-30 flex items-end justify-center bg-black/10 sm:items-center"
       role="dialog"
       data-keep-zoom
       aria-modal="true"
       aria-label={`Pallet ${no} PLT type`}
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
-      <div className="flex w-full max-w-[420px] flex-col gap-3 rounded-t-2xl bg-surface p-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:rounded-2xl">
+      <div className="flex w-full max-w-[420px] flex-col gap-3 rounded-t-2xl bg-surface p-4 shadow-[0_-8px_30px_rgba(16,24,40,.25)] pb-[max(1rem,env(safe-area-inset-bottom))] sm:rounded-2xl">
         <div className="flex items-baseline justify-between">
           <span className="text-base font-extrabold">Pallet {no}</span>
           <span className="text-xs font-bold text-muted">PLT TYPE</span>
