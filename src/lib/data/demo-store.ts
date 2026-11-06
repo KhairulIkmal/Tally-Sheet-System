@@ -284,6 +284,7 @@ export function demoStore(actor: { id: string; name: string; roles: string[] }):
           itemNo: i + 1,
           pltType: isLorry ? pl.pltType : null,
           pltOther: isLorry ? pl.pltOther : "",
+          short: pl.short,
           hasPhoto: !!pl.photo,
           photoUrl: (pl.photo && st.photos?.[pl.photo]) || null,
           contractNo: pl.contractNo,

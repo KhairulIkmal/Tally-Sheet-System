@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Calculator, Check, ChevronDown, Plus, Trash2 } from "lucide-react";
+import { Calculator, Check, ChevronDown, Circle, Plus, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { normalizeUnit, pltCellText, type SheetForm, MAX_PALLETS } from "@/lib/tally/constants";
 import { isValidPaperDate, normalizeDate } from "@/lib/tally/dates";
@@ -200,7 +200,14 @@ export function PaperScreen({
       it.targetQty,
       unit,
     );
-    return itemRowMarks(it.name.trim(), unit, it.targetQty, qtys, form === "lorry").map((m, j) => {
+    return itemRowMarks(
+      it.name.trim(),
+      unit,
+      it.targetQty,
+      qtys,
+      form === "lorry",
+      it.pallets.map((p) => !!p.short),
+    ).map((m, j) => {
       const totalRow = j === (perPallet ? 2 : qtys.length > 1 ? 1 : 0);
       return {
         first: j === 0,
@@ -418,7 +425,7 @@ export function PaperScreen({
                       <th className={cn(cell, "min-w-[100px] px-2")}>PROD</th>
                       <th className={cn(cell, "min-w-[120px] px-2")}>BATCH</th>
                       <th className={cn(cell, "min-w-[110px] px-2")}>REMARK</th>
-                      <th className={cn(cell, "w-[124px] px-2 text-center")} aria-label="Row actions" />
+                      <th className={cn(cell, "w-[160px] px-2 text-center")} aria-label="Row actions" />
                     </tr>
                   </thead>
                   <tbody>
@@ -598,7 +605,7 @@ export function PaperScreen({
                                   return (
                                     <div
                                       key={li}
-                                      title={li === circleAt ? "Last pallet of this item" : undefined}
+                                      title={li === circleAt ? "Short pallet: CTN missing" : undefined}
                                       className={cn(
                                         "relative flex items-center",
                                         li > 0 && "border-t border-dashed border-ink/25",
@@ -608,7 +615,7 @@ export function PaperScreen({
                                       )}
                                       data-fix={needsFix(i, "qty") || undefined}
                                     >
-                                      {/* The item's last pallet is circled, as on paper: only the last batch's qty, drawn over the
+                                      {/* A short pallet is circled, as on paper: only the last batch's qty, drawn over the
                                     cell so the line keeps the same height as Expired, Prod and Batch beside it. */}
                                       {li === circleAt ? (
                                         <span
@@ -677,6 +684,19 @@ export function PaperScreen({
                           </td>
                           <td className={cn(cell, "align-middle")}>
                             <div className="flex items-center justify-center gap-0.5 px-1">
+                              <button
+                                type="button"
+                                aria-pressed={!!p.short}
+                                aria-label={`Pallet ${i + 1}: ${p.short ? "short, tap to unmark" : "mark short (CTN missing)"}`}
+                                title="Short pallet: CTN missing (damaged, sample, ...). Its qty is circled."
+                                onClick={() => onItems((its) => updateRowPallet(its, i, (x) => ({ ...x, short: !x.short })))}
+                                className={cn(
+                                  "grid size-9 place-items-center rounded-md hover:bg-danger-bg",
+                                  p.short ? "text-danger" : "text-muted",
+                                )}
+                              >
+                                <Circle className="size-4" strokeWidth={p.short ? 3 : 2} />
+                              </button>
                               {/* Optional evidence of the pallet's condition: viewed by the office, never printed. */}
                               <PalletPhotoButton
                                 photo={p.photo}
@@ -794,9 +814,9 @@ export function PaperScreen({
                 ) : null}
                 <PaperFooter draft={draft} signerName={signerName} onEdit={onEdit} />
                 <p className="mt-1 text-xs font-medium text-muted">
-                  Tap a field to zoom in on it; Done shows the whole sheet again. Each row is filled on its own. Tap ↑ same in a cell (PLT
-                  type, Item, Contract, Qty, Batch, Expired, Prod) to copy just that value from the row above. +B adds a second batch for a
-                  mixed pallet. Dates: type 160427 for 16/04/27.
+                  Tap a field to zoom in on it; Done shows the whole sheet again. Each row is filled on its own. ◯ marks a short pallet (CTN
+                  damaged, sample, ...): its qty is circled. Tap ↑ same in a cell (PLT type, Item, Contract, Qty, Batch, Expired, Prod) to
+                  copy just that value from the row above. +B adds a second batch for a mixed pallet. Dates: type 160427 for 16/04/27.
                 </p>
               </div>
             </div>

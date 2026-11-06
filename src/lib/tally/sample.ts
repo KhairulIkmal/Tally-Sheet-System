@@ -119,6 +119,8 @@ export function sampleDraft(
     ];
     mixed.remark = "MIXED BATCH";
     d.items[1].pallets[2].remark = "SHORT, BAL NEXT PLT";
+    d.items[1].pallets[2].short = true;
+    d.items[4].pallets[1].short = true;
     Object.assign(d.materials, {
       SAMPLE: 2,
       "EMPTY CTN": 5,
@@ -145,6 +147,7 @@ export function sampleDraft(
     ];
     mixed.remark = "MIXED BATCH";
     d.items[1].pallets[3].remark = "WRAP TORN, REWRAPPED";
+    d.items[0].pallets[4].short = true;
     d.checks.SAMPLE = { qty: 2, note: "FOR QC" };
     d.checks["EMPTY CTN"] = { qty: 5, note: "SPARE FOR DC" };
     d.checks.OTHERS = { qty: 1, note: "PALLET JACK" };

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ArrowUp, CalendarDays, X } from "lucide-react";
+import { ArrowUp, CalendarDays, Check, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { MAX_LINES_PER_PALLET, MAX_PALLETS, type SheetForm } from "@/lib/tally/constants";
 import { calendarInputToPaperDate, isValidPaperDate, normalizeDate } from "@/lib/tally/dates";
@@ -348,6 +348,31 @@ export function PalletDetailsScreen({
                   onRemove={() => setPallet(i, (pl) => void pl.lines.splice(j, 1))}
                 />
               ))}
+
+              <button
+                type="button"
+                role="switch"
+                aria-checked={!!p.short}
+                onClick={() => setPallet(i, (pl) => void (pl.short = !pl.short))}
+                className={cn(
+                  "flex h-12 items-center gap-3 rounded-[10px] border-[1.5px] px-3 text-left text-[15px] font-bold",
+                  p.short ? "border-danger bg-danger-bg text-danger-ink" : "border-field bg-surface text-ink",
+                )}
+              >
+                <span
+                  aria-hidden
+                  className={cn(
+                    "grid size-7 flex-none place-items-center rounded-full border-2",
+                    p.short ? "border-danger text-danger" : "border-field text-transparent",
+                  )}
+                >
+                  <Check className="size-4" strokeWidth={3} />
+                </span>
+                <span className="flex min-w-0 flex-col">
+                  Short pallet
+                  <span className="text-xs font-medium text-muted">CTN missing (damaged, sample, ...). Its qty is circled.</span>
+                </span>
+              </button>
 
               <div className="grid grid-cols-2 gap-2">
                 <button

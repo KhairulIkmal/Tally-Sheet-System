@@ -39,6 +39,8 @@ export interface DraftPallet {
   pltOther?: string;
   /** Optional evidence of the pallet's condition. Not printed. */
   photo?: PalletPhoto;
+  /** Marked by the worker: CTN missing (damaged, taken as a sample, ...). Its qty is circled. */
+  short?: boolean;
   contractNo: string;
   remark: string;
   lines: DraftLine[];

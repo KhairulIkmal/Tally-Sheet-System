@@ -51,6 +51,8 @@ export interface SheetPallet {
   pltType: string | null;
   /** What kind of pallet an Others pallet is. */
   pltOther: string;
+  /** Marked short by the worker. Null on sheets from before that, which circle each item's last pallet. */
+  short?: boolean | null;
   /** The pallet has a photo; photoUrl is a short-lived link to it, null when it couldn't be signed. Never printed. */
   hasPhoto?: boolean;
   photoUrl?: string | null;
@@ -182,6 +184,11 @@ export function itemRowMarks(
   palletQtys: number[],
   /** The lorry form says how the pallets split; the container form goes straight to the TOTAL. */
   sayPallets = true,
+  /**
+   * The pallets the worker marked short: their qty is circled. Left out for a sheet
+   * from before that, which circles each item's last pallet as it did then.
+   */
+  short?: boolean[],
 ): Pick<PaperRow, "item" | "itemSub" | "itemIsTotal" | "circled">[] {
   const total = itemTotalText(unit, targetQty, palletQtys);
   const pallets = sayPallets ? itemPalletsText(unit, palletQtys) : "";
@@ -192,7 +199,7 @@ export function itemRowMarks(
     item: text(j),
     itemSub: j === 0 && single && total ? total : undefined,
     itemIsTotal: j > 0 && j <= totalRow && !!text(j),
-    circled: j === palletQtys.length - 1 && q > 0,
+    circled: (short ? !!short[j] : j === palletQtys.length - 1) && q > 0,
   }));
 }
 
@@ -219,7 +226,8 @@ export function paperFromSheet(sheet: SheetDetail): PaperData {
   for (const it of sheet.items) {
     const pallets = sheet.pallets.filter((p) => p.itemNo === it.itemNo);
     const qtys = pallets.map((p) => p.lines.reduce((a, l) => a + (l.qty ?? 0), 0));
-    itemRowMarks(it.name, it.unit, it.targetQty, qtys, sheet.form === "lorry").forEach((m, j) => marks.set(pallets[j].palletNo, m));
+    const short = pallets.some((p) => p.short == null) ? undefined : pallets.map((p) => !!p.short);
+    itemRowMarks(it.name, it.unit, it.targetQty, qtys, sheet.form === "lorry", short).forEach((m, j) => marks.set(pallets[j].palletNo, m));
   }
   return {
     form: sheet.form,
@@ -258,7 +266,14 @@ export function paperFromDraft(draft: Draft, signerName: string, ref = "NOT SUBM
   let n = 0;
   for (const it of draft.items) {
     const unit = normalizeUnit(it.unit);
-    const marks = itemRowMarks(up(it.name), unit, it.targetQty, it.pallets.map(palletQty), draft.form === "lorry");
+    const marks = itemRowMarks(
+      up(it.name),
+      unit,
+      it.targetQty,
+      it.pallets.map(palletQty),
+      draft.form === "lorry",
+      it.pallets.map((p) => !!p.short),
+    );
     for (const [j, p] of it.pallets.entries()) {
       n += 1;
       rows.push({

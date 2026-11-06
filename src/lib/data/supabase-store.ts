@@ -134,7 +134,7 @@ export function supabaseStore(): TallyStore {
         supabase.from("sheet_items").select("item_no, name, unit, target_qty").eq("sheet_id", id).order("item_no"),
         supabase
           .from("sheet_pallets")
-          .select("pallet_no, item_no, plt_type, plt_other, contract_no, remark, photo_path")
+          .select("pallet_no, item_no, plt_type, plt_other, contract_no, remark, photo_path, short")
           .eq("sheet_id", id)
           .order("pallet_no"),
         supabase
@@ -191,6 +191,7 @@ export function supabaseStore(): TallyStore {
           itemNo: p.item_no,
           pltType: p.plt_type ?? null,
           pltOther: p.plt_other ?? "",
+          short: p.short ?? null,
           hasPhoto: !!p.photo_path,
           photoUrl: p.photo_path ? (photoUrls.get(p.photo_path) ?? null) : null,
           contractNo: p.contract_no ?? "",

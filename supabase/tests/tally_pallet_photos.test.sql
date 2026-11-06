@@ -6,7 +6,7 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 
-select plan(14);
+select plan(15);
 
 create temp table r (k text primary key, v jsonb);
 grant all on r to public;
@@ -53,9 +53,9 @@ create function pg_temp.sheet(p_client uuid, p_photo text) returns jsonb languag
     'header', jsonb_build_object('contractNo', 'c1', 'containerNo', 'tgcu 1', 'sealNo', 's1', 'siNo', 'si1', 'disport', 'pk'),
     'items', jsonb_build_array(jsonb_build_object('name', 'photo test', 'unit', 'ctn', 'targetQty', null, 'qtyPerPallet', null,
       'pallets', jsonb_build_array(
-        jsonb_build_object('pltType', null, 'contractNo', '', 'remark', '', 'photo', p_photo,
+        jsonb_build_object('pltType', null, 'contractNo', '', 'remark', '', 'photo', p_photo, 'short', true,
           'lines', jsonb_build_array(jsonb_build_object('qty', 40, 'batch', 'b', 'expired', null, 'prod', null))),
-        jsonb_build_object('pltType', null, 'contractNo', '', 'remark', '',
+        jsonb_build_object('pltType', null, 'contractNo', '', 'remark', '', 'short', false,
           'lines', jsonb_build_array(jsonb_build_object('qty', 40, 'batch', 'b', 'expired', null, 'prod', null)))))),
     'remark', '', 'signature', 'data:image/png;base64,AAAA', 'signedAt', '2026-11-06T07:00:00Z', 'device', 'pgtap'
   );
@@ -86,6 +86,8 @@ select pg_temp.keep('bad_sheet', to_jsonb(pg_temp.try($$ select tally.submit_she
   '00000000-0000-0000-0000-0000000008a1/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/p1.jpg')) $$)));
 select pg_temp.keep('s1_photos', (select jsonb_agg(jsonb_build_array(pallet_no, photo_path) order by pallet_no)
   from tally.sheet_pallets where sheet_id = (pg_temp.got('s1') ->> 'id')::uuid));
+select pg_temp.keep('s1_short', (select jsonb_agg(short order by pallet_no)
+  from tally.sheet_pallets where sheet_id = (pg_temp.got('s1') ->> 'id')::uuid));
 select pg_temp.keep('s2_photos', (select jsonb_agg(photo_path order by pallet_no)
   from tally.sheet_pallets where sheet_id = (pg_temp.got('s2') ->> 'id')::uuid));
 
@@ -112,6 +114,7 @@ select is(pg_temp.got('read_office'), 'true'::jsonb, 'the office may read every 
 select is(pg_temp.got('s1_photos'),
   '[[1, "00000000-0000-0000-0000-0000000008a1/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/p1.jpg"], [2, null]]'::jsonb,
   'submit records the uploaded photo on its pallet; a pallet without one has none');
+select is(pg_temp.got('s1_short'), '[true, false]'::jsonb, 'a pallet marked short is stored as short');
 select is(pg_temp.got('s2_photos'), '[null, null]'::jsonb, 'a photo that never arrived is left off, the sheet still goes in');
 select is(pg_temp.got('bad_other') #>> '{}', '22023', 'a photo in another worker''s folder is refused');
 select is(pg_temp.got('bad_sheet') #>> '{}', '22023', 'a photo from another sheet''s folder is refused');
