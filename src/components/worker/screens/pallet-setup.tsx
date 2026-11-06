@@ -45,6 +45,12 @@ export function PltOtherInput({
       placeholder="Type of pallet"
       aria-label={label}
       onChange={(e) => onChange(e.target.value.toUpperCase().slice(0, PLT_OTHER_MAX))}
+      // The keyboard's ✓ (Enter): done typing, so the keyboard goes away.
+      onKeyDown={(e) => {
+        if (e.key !== "Enter") return;
+        e.preventDefault();
+        e.currentTarget.blur();
+      }}
       className={cn(
         "w-full min-w-0 rounded-[9px] border-[1.5px] border-primary bg-surface px-2.5 text-[15px] font-semibold text-ink uppercase outline-none placeholder:font-medium placeholder:normal-case focus:border-2",
         className,
