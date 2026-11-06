@@ -21,6 +21,10 @@ interface PendingZoom {
   centre: boolean;
 }
 
+/** A panel opened over the sheet: while one is open, the sheet keeps its zoom. */
+const KEEP_ZOOM = "[data-keep-zoom]";
+const keepsZoom = (el: EventTarget | null) => el instanceof Element && !!el.closest(KEEP_ZOOM);
+
 const isField = (el: Element | null, within: Element | null): el is HTMLElement => !!el && !!within?.contains(el) && el.matches(FIELD);
 
 /**
@@ -259,13 +263,15 @@ export function usePaperZoom() {
       window.clearTimeout(blurTimer.current);
       if (isCompact(fitRef.current) && e.target.matches(FIELD)) zoomTo(e.target);
     },
-    onBlur() {
+    onBlur(e: React.FocusEvent<HTMLDivElement>) {
       window.clearTimeout(blurTimer.current);
       // The keyboard's own Done button: the field lost focus with no tap on the sheet.
       // Judged now, not when the timer runs: a delete confirm may hold the timer up for a long while.
       const fromTouch = heldRef.current || Date.now() - lastDownRef.current < TAP_MS;
-      if (fromTouch) return;
+      if (fromTouch || keepsZoom(e.relatedTarget)) return;
       blurTimer.current = window.setTimeout(() => {
+        // A panel over the sheet (PLT type, Auto-fill) took the focus: the sheet stays as it was.
+        if (keepsZoom(document.activeElement) || document.querySelector(KEEP_ZOOM)) return;
         const fittedAlready = zoomRef.current <= fitRef.current + 0.01;
         if (!fittedAlready && !isField(document.activeElement, scrollRef.current)) release();
       }, 250);

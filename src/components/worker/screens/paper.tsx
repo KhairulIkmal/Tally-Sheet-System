@@ -895,6 +895,7 @@ function PltTypePanel({
     <div
       className="fixed inset-0 z-30 flex items-end justify-center bg-black/40 sm:items-center"
       role="dialog"
+      data-keep-zoom
       aria-modal="true"
       aria-label={`Pallet ${no} PLT type`}
       onClick={(e) => e.target === e.currentTarget && onClose()}
