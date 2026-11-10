@@ -233,7 +233,7 @@ export function supabaseStore(): TallyStore {
 
     async listAudit(since, until) {
       const supabase = await createClient();
-      const [sheets, shorts, inRange, ofSheets] = await Promise.all([
+      const [sheets, inRange, ofSheets] = await Promise.all([
         supabase
           .from("sheets")
           .select(
@@ -243,13 +243,6 @@ export function supabaseStore(): TallyStore {
           .lt("submitted_at", until)
           .order("submitted_at", { ascending: false })
           .limit(AUDIT_ROW_LIMIT),
-        supabase
-          .from("sheet_pallets")
-          .select("sheet_id, sheets!inner(submitted_at)")
-          .eq("short", true)
-          .gte("sheets.submitted_at", since)
-          .lt("sheets.submitted_at", until)
-          .limit(AUDIT_ROW_LIMIT * 5),
         // What happened in the range, whichever sheet it was on.
         supabase
           .from("sheet_events")
@@ -266,10 +259,21 @@ export function supabaseStore(): TallyStore {
           .lt("sheets.submitted_at", until)
           .limit(AUDIT_ROW_LIMIT * 5),
       ]);
-      for (const r of [sheets, shorts, inRange, ofSheets]) if (r.error) fail(r.error, "Couldn't load the audit log.");
+      for (const r of [sheets, inRange, ofSheets]) if (r.error) fail(r.error, "Couldn't load the audit log.");
 
+      // Short pallets of those sheets. sheet_pallets links to sheets only through sheet_items, so by id, a batch at a time.
       const shortCount = new Map<string, number>();
-      for (const p of (shorts.data ?? []) as { sheet_id: string }[]) shortCount.set(p.sheet_id, (shortCount.get(p.sheet_id) ?? 0) + 1);
+      const sheetIds = ((sheets.data ?? []) as { id: string }[]).map((r) => r.id);
+      for (let i = 0; i < sheetIds.length; i += 150) {
+        const { data: shorts, error } = await supabase
+          .from("sheet_pallets")
+          .select("sheet_id")
+          .eq("short", true)
+          .in("sheet_id", sheetIds.slice(i, i + 150))
+          .limit(AUDIT_ROW_LIMIT * 5);
+        if (error) fail(error, "Couldn't load the audit log.");
+        for (const p of (shorts ?? []) as { sheet_id: string }[]) shortCount.set(p.sheet_id, (shortCount.get(p.sheet_id) ?? 0) + 1);
+      }
 
       type EventRow = { id: number; sheet_id: string; event: AuditEvent["event"]; at: string; actor_name: string | null };
       const events = new Map<number, AuditEvent>();
