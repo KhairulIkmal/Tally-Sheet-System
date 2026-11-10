@@ -60,6 +60,8 @@ function Blank({
       value={value}
       inputMode={numeric ? "decimal" : "text"}
       autoComplete="off"
+      // The field being filled turns blue, as on page 1. An empty one is faintly blue, to show it's still to fill.
+      className={value ? "bg-transparent focus:bg-primary-soft" : "bg-[rgba(37,99,235,.08)] focus:bg-primary-soft"}
       onChange={(e) =>
         edit.text(
           field,
@@ -78,7 +80,6 @@ function Blank({
         minWidth: 0,
         width: "100%",
         height: "100%",
-        background: value ? "transparent" : "rgba(37, 99, 235, .08)",
         ...style,
       }}
     />
@@ -151,9 +152,10 @@ function Ticks({
                   aria-label={`${c.label} ${answer.toUpperCase()}`}
                   aria-pressed={v === answer}
                   onClick={() => edit.tick(set, c.key, v === answer ? "" : answer)}
+                  // The box being tapped (or zoomed in on) turns blue, as on page 1.
+                  className="bg-transparent focus:bg-primary-soft"
                   style={{
                     ...box(v === answer, answer === "yes"),
-                    background: "transparent",
                     padding: 0,
                     margin: 0,
                     cursor: "pointer",
