@@ -224,7 +224,9 @@ function Ticks({
                     edit.tick(set, c.key, v === answer ? "" : answer)
                   }
                   // The box being tapped (or zoomed in on) turns blue, as on page 1.
-                  className="bg-transparent focus:bg-primary-soft"
+                  // data-zoom-mark: the paper zoom marks the box last tapped, as phones (iPhone) don't focus a tapped button.
+                  data-zoom-mark=""
+                  className="bg-transparent focus:bg-primary-soft data-zoom-on:bg-primary-soft"
                   style={{
                     ...box(v === answer, answer === "yes"),
                     padding: 0,

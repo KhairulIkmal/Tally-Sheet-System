@@ -1,7 +1,19 @@
 "use client";
 
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
-import { centredScroll, clampZoom, fieldZoom, fitZoom, isCompact } from "@/lib/tally/paper-zoom";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
+import {
+  centredScroll,
+  clampZoom,
+  fieldZoom,
+  fitZoom,
+  isCompact,
+} from "@/lib/tally/paper-zoom";
 
 const FIELD = "input,select,textarea";
 /** Tapping any of these isn't a tap on the blank part of the sheet. */
@@ -23,9 +35,20 @@ interface PendingZoom {
 
 /** A panel opened over the sheet: while one is open, the sheet keeps its zoom. */
 const KEEP_ZOOM = "[data-keep-zoom]";
-const keepsZoom = (el: EventTarget | null) => el instanceof Element && !!el.closest(KEEP_ZOOM);
+const keepsZoom = (el: EventTarget | null) =>
+  el instanceof Element && !!el.closest(KEEP_ZOOM);
 
-const isField = (el: Element | null, within: Element | null): el is HTMLElement => !!el && !!within?.contains(el) && el.matches(FIELD);
+/** A box that shows it's the one being filled while tapped (data-zoom-on), as a focused field does. */
+const MARK = "[data-zoom-mark]";
+const clearMarks = (within: Element | null) =>
+  within
+    ?.querySelectorAll("[data-zoom-on]")
+    .forEach((m) => m.removeAttribute("data-zoom-on"));
+
+const isField = (
+  el: Element | null,
+  within: Element | null,
+): el is HTMLElement => !!el && !!within?.contains(el) && el.matches(FIELD);
 
 /**
  * The paper sheet's zoom. It sits fitted to the screen width, and on a small
@@ -63,7 +86,10 @@ export function usePaperZoom() {
     setZoomState(z);
   }, []);
 
-  const setZoom = useCallback((z: number) => apply(clampZoom(z, fitRef.current)), [apply]);
+  const setZoom = useCallback(
+    (z: number) => apply(clampZoom(z, fitRef.current)),
+    [apply],
+  );
 
   /** Scrolls an element to the middle of the part of the sheet the keyboard leaves showing. */
   const centre = useCallback((el: Element, behavior: ScrollBehavior) => {
@@ -71,15 +97,30 @@ export function usePaperZoom() {
     if (!sc) return;
     const view = sc.getBoundingClientRect();
     const vv = window.visualViewport;
-    const bottom = vv ? Math.min(view.bottom, vv.offsetTop + vv.height) : view.bottom;
+    const bottom = vv
+      ? Math.min(view.bottom, vv.offsetTop + vv.height)
+      : view.bottom;
     const hidden = Math.max(0, view.bottom - bottom);
     // Room to bring the last rows up above the keyboard.
     sc.style.paddingBottom = hidden ? `${hidden + 16}px` : "";
     const box = el.getBoundingClientRect();
-    const sticky = el.closest("table")?.querySelector("th.sticky")?.getBoundingClientRect().width ?? 0;
+    const sticky =
+      el.closest("table")?.querySelector("th.sticky")?.getBoundingClientRect()
+        .width ?? 0;
     sc.scrollTo({
-      top: centredScroll(sc.scrollTop, box.top - view.top, box.height, bottom - view.top),
-      left: centredScroll(sc.scrollLeft, box.left - view.left, box.width, sc.clientWidth, sticky),
+      top: centredScroll(
+        sc.scrollTop,
+        box.top - view.top,
+        box.height,
+        bottom - view.top,
+      ),
+      left: centredScroll(
+        sc.scrollLeft,
+        box.left - view.left,
+        box.width,
+        sc.clientWidth,
+        sticky,
+      ),
       behavior,
     });
   }, []);
@@ -91,12 +132,22 @@ export function usePaperZoom() {
       // Already on the way to a new zoom (a row, then its first field): just change where to.
       const waiting = pendingRef.current;
       if (waiting) {
-        pendingRef.current = { el, from: el.getBoundingClientRect(), fromZoom: waiting.fromZoom, centre: true };
+        pendingRef.current = {
+          el,
+          from: el.getBoundingClientRect(),
+          fromZoom: waiting.fromZoom,
+          centre: true,
+        };
         return;
       }
       const next = fieldZoom(zoomRef.current, fitRef.current);
       if (next !== zoomRef.current) {
-        pendingRef.current = { el, from: el.getBoundingClientRect(), fromZoom: zoomRef.current, centre: true };
+        pendingRef.current = {
+          el,
+          from: el.getBoundingClientRect(),
+          fromZoom: zoomRef.current,
+          centre: true,
+        };
         apply(next);
       } else centre(el, "smooth");
     },
@@ -111,8 +162,15 @@ export function usePaperZoom() {
     if (sc) sc.style.paddingBottom = "";
     const last = lastRef.current?.isConnected ? lastRef.current : null;
     const el = last ?? sheetRef.current;
-    if (el) pendingRef.current = { el, from: el.getBoundingClientRect(), fromZoom: zoomRef.current, centre: !!last };
+    if (el)
+      pendingRef.current = {
+        el,
+        from: el.getBoundingClientRect(),
+        fromZoom: zoomRef.current,
+        centre: !!last,
+      };
     lastRef.current = null;
+    clearMarks(scrollRef.current);
     apply(fitRef.current);
   }, [apply]);
 
@@ -123,7 +181,12 @@ export function usePaperZoom() {
     glideAnim.current?.cancel();
     if (p.centre) centre(p.el, "auto");
     const box = glideRef.current;
-    if (!box || zoom === p.fromZoom || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    if (
+      !box ||
+      zoom === p.fromZoom ||
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    )
+      return;
     // The new layout is in place. Start it drawn exactly where the old one was and let
     // it settle: only a transform, so the phone doesn't lay the sheet out on every frame.
     const scale = p.fromZoom / zoom;
@@ -131,10 +194,16 @@ export function usePaperZoom() {
     const to = p.el.getBoundingClientRect();
     const x = p.from.left - origin.left - scale * (to.left - origin.left);
     const y = p.from.top - origin.top - scale * (to.top - origin.top);
-    glideAnim.current = box.animate([{ transform: `translate(${x}px, ${y}px) scale(${scale})` }, { transform: "none" }], {
-      duration: GLIDE_MS,
-      easing: "cubic-bezier(.2, .8, .2, 1)",
-    });
+    glideAnim.current = box.animate(
+      [
+        { transform: `translate(${x}px, ${y}px) scale(${scale})` },
+        { transform: "none" },
+      ],
+      {
+        duration: GLIDE_MS,
+        easing: "cubic-bezier(.2, .8, .2, 1)",
+      },
+    );
   }, [zoom, centre]);
 
   // Fit to the width now and whenever it changes (turning the phone). Measured at
@@ -144,7 +213,8 @@ export function usePaperZoom() {
     const sheet = sheetRef.current;
     if (!sc || !sheet) return;
     const measure = () => {
-      if (zoomRef.current === 1) naturalRef.current = sheet.getBoundingClientRect().width;
+      if (zoomRef.current === 1)
+        naturalRef.current = sheet.getBoundingClientRect().width;
       const next = fitZoom(sc.clientWidth, naturalRef.current);
       const wasFitted = zoomRef.current <= fitRef.current + 0.01;
       fitRef.current = next;
@@ -169,8 +239,14 @@ export function usePaperZoom() {
   const settleFit = useCallback(() => {
     const sc = scrollRef.current;
     // The glide's wrapper, which the glide doesn't scale: the scroller's own width would count the glide.
-    const laidOut = glideRef.current?.parentElement?.getBoundingClientRect().width ?? 0;
-    if (!sc || zoomRef.current > fitRef.current + 0.01 || laidOut <= sc.clientWidth + 0.5) return;
+    const laidOut =
+      glideRef.current?.parentElement?.getBoundingClientRect().width ?? 0;
+    if (
+      !sc ||
+      zoomRef.current > fitRef.current + 0.01 ||
+      laidOut <= sc.clientWidth + 0.5
+    )
+      return;
     const next = fitZoom(sc.clientWidth, laidOut / zoomRef.current);
     if (next >= zoomRef.current) return;
     fitRef.current = next;
@@ -193,7 +269,8 @@ export function usePaperZoom() {
       const nowOpen = window.innerHeight - vv.height > KEYBOARD_MIN;
       const active = document.activeElement;
       // The room made for the keyboard goes with it (a drag closes it and stays zoomed).
-      if (!nowOpen && scrollRef.current) scrollRef.current.style.paddingBottom = "";
+      if (!nowOpen && scrollRef.current)
+        scrollRef.current.style.paddingBottom = "";
       if (isField(active, scrollRef.current) && isCompact(fitRef.current)) {
         if (open && !nowOpen) release();
         else centre(active, "smooth");
@@ -209,9 +286,11 @@ export function usePaperZoom() {
     const el = scrollRef.current;
     if (!el) return;
     let pinch: { dist: number; zoom: number } | null = null;
-    const dist = (t: TouchList) => Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY);
+    const dist = (t: TouchList) =>
+      Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY);
     const onStart = (e: TouchEvent) => {
-      if (e.touches.length === 2) pinch = { dist: dist(e.touches), zoom: zoomRef.current };
+      if (e.touches.length === 2)
+        pinch = { dist: dist(e.touches), zoom: zoomRef.current };
     };
     const onMove = (e: TouchEvent) => {
       if (pinch && e.touches.length === 2) {
@@ -261,19 +340,29 @@ export function usePaperZoom() {
   const scrollProps = {
     onFocus(e: React.FocusEvent<HTMLDivElement>) {
       window.clearTimeout(blurTimer.current);
-      if (isCompact(fitRef.current) && e.target.matches(FIELD)) zoomTo(e.target);
+      if (isCompact(fitRef.current) && e.target.matches(FIELD))
+        zoomTo(e.target);
     },
     onBlur(e: React.FocusEvent<HTMLDivElement>) {
       window.clearTimeout(blurTimer.current);
       // The keyboard's own Done button: the field lost focus with no tap on the sheet.
       // Judged now, not when the timer runs: a delete confirm may hold the timer up for a long while.
-      const fromTouch = heldRef.current || Date.now() - lastDownRef.current < TAP_MS;
+      const fromTouch =
+        heldRef.current || Date.now() - lastDownRef.current < TAP_MS;
       if (fromTouch || keepsZoom(e.relatedTarget)) return;
       blurTimer.current = window.setTimeout(() => {
         // A panel over the sheet (PLT type, Auto-fill) took the focus: the sheet stays as it was.
-        if (keepsZoom(document.activeElement) || document.querySelector(KEEP_ZOOM)) return;
+        if (
+          keepsZoom(document.activeElement) ||
+          document.querySelector(KEEP_ZOOM)
+        )
+          return;
         const fittedAlready = zoomRef.current <= fitRef.current + 0.01;
-        if (!fittedAlready && !isField(document.activeElement, scrollRef.current)) release();
+        if (
+          !fittedAlready &&
+          !isField(document.activeElement, scrollRef.current)
+        )
+          release();
       }, 250);
     },
     onPointerDownCapture(e: React.PointerEvent<HTMLDivElement>) {
@@ -281,10 +370,20 @@ export function usePaperZoom() {
       lastDownRef.current = Date.now();
       heldRef.current = true;
       downOnControlRef.current = !!target.closest(CONTROL);
+      // Mark the box tapped, and only it, on a small screen where the sheet zooms.
+      if (isCompact(fitRef.current)) {
+        clearMarks(scrollRef.current);
+        target.closest(MARK)?.setAttribute("data-zoom-on", "");
+      }
       swallowRef.current = null;
       const fitted = zoomRef.current <= fitRef.current + 0.01;
       const button = target.closest("button");
-      if (button && fitted && isCompact(fitRef.current) && !target.closest("[data-zoom-pass]")) {
+      if (
+        button &&
+        fitted &&
+        isCompact(fitRef.current) &&
+        !target.closest("[data-zoom-pass]")
+      ) {
         // Stops a hold-and-drag from starting; the click below does the zooming.
         swallowRef.current = button;
         e.stopPropagation();
@@ -300,10 +399,20 @@ export function usePaperZoom() {
       zoomTo(el.closest("td") ?? el);
     },
     onClick(e: React.MouseEvent<HTMLDivElement>) {
-      if (downOnControlRef.current || (e.target as Element).closest(CONTROL)) return;
+      if (downOnControlRef.current || (e.target as Element).closest(CONTROL))
+        return;
       if (zoomRef.current > fitRef.current + 0.01) release();
     },
   };
 
-  return { zoom, zoomed: zoom > fit + 0.01, zoomTo, release, scrollRef, sheetRef, glideRef, scrollProps };
+  return {
+    zoom,
+    zoomed: zoom > fit + 0.01,
+    zoomTo,
+    release,
+    scrollRef,
+    sheetRef,
+    glideRef,
+    scrollProps,
+  };
 }
