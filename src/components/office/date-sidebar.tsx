@@ -3,13 +3,25 @@
 import { useState } from "react";
 import { ChevronLeft, ChevronRight, X } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { addDays, addMonths, monthGrid, monthLabel, rangeLabel } from "@/lib/data/filters";
-import type { KlDate, SheetFilter } from "@/lib/data/types";
+import {
+  addDays,
+  addMonths,
+  monthGrid,
+  monthLabel,
+  rangeLabel,
+} from "@/lib/data/filters";
+import type { KlDate } from "@/lib/data/types";
+
+type Range = { from: KlDate | null; to: KlDate | null };
 
 const WEEKDAYS = ["M", "T", "W", "T", "F", "S", "S"];
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
-  return <div className="mb-3 text-xs font-bold tracking-[.08em] text-muted">{children}</div>;
+  return (
+    <div className="mb-3 text-xs font-bold tracking-[.08em] text-muted">
+      {children}
+    </div>
+  );
 }
 
 /** Whole days from a to b (both YYYY-MM-DD). */
@@ -24,24 +36,37 @@ export function DateSidebar({
   dayCounts,
   onChange,
   onMonth,
+  quickRanges: customQuick,
+  help,
 }: {
-  filter: SheetFilter;
+  filter: Range;
   month: string;
   today: KlDate;
   dayCounts: Record<KlDate, number>;
-  onChange: (patch: Partial<SheetFilter>) => void;
+  onChange: (range: Range) => void;
   onMonth: (month: string) => void;
+  /** Replaces the quick range buttons. */
+  quickRanges?: [string, Range][];
+  /** Replaces the hint at the bottom. */
+  help?: string;
 }) {
   // First click of a range; the second click completes it.
   const [anchor, setAnchor] = useState<KlDate | null>(null);
   // While picking the second day: the day under the mouse, to preview the range.
   const [hover, setHover] = useState<KlDate | null>(null);
   const { from, to } = filter;
-  const preview = anchor && hover && hover !== anchor ? (anchor < hover ? [anchor, hover] : [hover, anchor]) : null;
+  const preview =
+    anchor && hover && hover !== anchor
+      ? anchor < hover
+        ? [anchor, hover]
+        : [hover, anchor]
+      : null;
 
   function pickDay(day: KlDate) {
     if (anchor && anchor !== day) {
-      onChange(anchor < day ? { from: anchor, to: day } : { from: day, to: anchor });
+      onChange(
+        anchor < day ? { from: anchor, to: day } : { from: day, to: anchor },
+      );
       setAnchor(null);
     } else {
       onChange({ from: day, to: day });
@@ -49,13 +74,13 @@ export function DateSidebar({
     }
   }
 
-  function quick(range: { from: KlDate | null; to: KlDate | null }) {
+  function quick(range: Range) {
     setAnchor(null);
     onChange(range);
   }
 
   const thisMonth = today.slice(0, 7);
-  const quickRanges: [string, { from: KlDate | null; to: KlDate | null }][] = [
+  const quickRanges: [string, Range][] = customQuick ?? [
     ["Today", { from: today, to: today }],
     ["Yesterday", { from: addDays(today, -1), to: addDays(today, -1) }],
     ["7 days", { from: addDays(today, -6), to: today }],
@@ -64,7 +89,10 @@ export function DateSidebar({
   ];
 
   return (
-    <aside data-noprint className="flex w-[290px] flex-none flex-col overflow-y-auto border-l border-line bg-surface px-5 pt-7 pb-5">
+    <aside
+      data-noprint
+      className="flex w-[290px] flex-none flex-col overflow-y-auto border-l border-line bg-surface px-5 pt-7 pb-5"
+    >
       <SectionLabel>DATE</SectionLabel>
       <div className="mb-3 flex items-center justify-between">
         <button
@@ -94,7 +122,12 @@ export function DateSidebar({
           </span>
         ))}
       </div>
-      <div className="grid grid-cols-7 gap-y-1" role="grid" aria-label={monthLabel(month)} onMouseLeave={() => setHover(null)}>
+      <div
+        className="grid grid-cols-7 gap-y-1"
+        role="grid"
+        aria-label={monthLabel(month)}
+        onMouseLeave={() => setHover(null)}
+      >
         {monthGrid(month).flatMap((week, w) =>
           week.map((day, i) => {
             if (!day) return <span key={`${w}-${i}`} />;
@@ -102,10 +135,20 @@ export function DateSidebar({
             const count = dayCounts[day] ?? 0;
             const isEnd = day === from || day === to || day === anchor;
             const inBand = !!from && !!to && day > from && day < to;
-            const inPreview = !!preview && day >= preview[0] && day <= preview[1] && day !== anchor;
+            const inPreview =
+              !!preview &&
+              day >= preview[0] &&
+              day <= preview[1] &&
+              day !== anchor;
             // Each picked tile fills a beat after the one before it, from the start of the range.
-            const step = from && (isEnd || inBand) && day !== anchor ? Math.min(31, daysBetween(from, day)) : 0;
-            const delay = { animationDelay: `${step * 28}ms`, transitionDelay: `${step * 28}ms` };
+            const step =
+              from && (isEnd || inBand) && day !== anchor
+                ? Math.min(31, daysBetween(from, day))
+                : 0;
+            const delay = {
+              animationDelay: `${step * 28}ms`,
+              transitionDelay: `${step * 28}ms`,
+            };
             return (
               <button
                 key={day}
@@ -117,11 +160,15 @@ export function DateSidebar({
                 aria-label={`${day}${count ? `, ${count} sheet${count === 1 ? "" : "s"}` : ""}`}
                 className={cn(
                   "relative flex h-11 flex-col items-center justify-center text-[15px] leading-none transition-colors duration-200",
-                  isEnd ? "text-white" : !inBand && "rounded-md hover:bg-canvas",
+                  isEnd
+                    ? "text-white"
+                    : !inBand && "rounded-md hover:bg-canvas",
                   day === today ? "font-extrabold" : "font-semibold",
                   future && "text-placeholder hover:bg-transparent",
                 )}
-                style={isEnd ? { transitionDelay: delay.transitionDelay } : undefined}
+                style={
+                  isEnd ? { transitionDelay: delay.transitionDelay } : undefined
+                }
               >
                 {isEnd || inBand ? (
                   <span
@@ -140,10 +187,18 @@ export function DateSidebar({
                   />
                 ) : null}
                 {inPreview ? (
-                  <span aria-hidden className="absolute inset-0 rounded-md border-2 border-dashed border-primary/45 bg-primary-soft/50" />
+                  <span
+                    aria-hidden
+                    className="absolute inset-0 rounded-md border-2 border-dashed border-primary/45 bg-primary-soft/50"
+                  />
                 ) : null}
                 <span className="relative">{Number(day.slice(8))}</span>
-                <span className={cn("relative mt-1 h-2.5 text-[10px] font-bold", isEnd ? "text-white/85" : "text-primary")}>
+                <span
+                  className={cn(
+                    "relative mt-1 h-2.5 text-[10px] font-bold",
+                    isEnd ? "text-white/85" : "text-primary",
+                  )}
+                >
                   {count || ""}
                 </span>
               </button>
@@ -154,7 +209,7 @@ export function DateSidebar({
 
       <div className="mt-4 flex h-7 items-center justify-between text-[13px] font-medium text-muted">
         <span>Selected: {rangeLabel(from, to)}</span>
-        {from || anchor ? (
+        {(from || anchor) && !customQuick ? (
           <button
             type="button"
             onClick={() => quick({ from: null, to: null })}
@@ -176,7 +231,9 @@ export function DateSidebar({
               aria-pressed={active}
               className={cn(
                 "h-9 rounded-full border px-3.5 text-[13px] font-bold",
-                active ? "border-solid bg-solid text-on-solid" : "border-field bg-surface text-ink hover:bg-canvas",
+                active
+                  ? "border-solid bg-solid text-on-solid"
+                  : "border-field bg-surface text-ink hover:bg-canvas",
               )}
             >
               {label}
@@ -187,8 +244,8 @@ export function DateSidebar({
 
       <span className="flex-1" />
       <p className="mt-6 text-xs leading-relaxed font-medium text-muted">
-        Click a day, then a second day to select a range. Clear removes the date filter. The small number is how many sheets were submitted
-        that day.
+        {help ??
+          "Click a day, then a second day to select a range. Clear removes the date filter. The small number is how many sheets were submitted that day."}
       </p>
     </aside>
   );
