@@ -7,7 +7,7 @@ import {
   type ChecklistPaper,
   type YesNo,
 } from "@/lib/tally/checklist";
-import { PAPER_HEIGHT, PAPER_WIDTH } from "./paper-sheet";
+import { BoldSignature, PAPER_HEIGHT, PAPER_WIDTH } from "./paper-sheet";
 
 /**
  * Page 2: WH-FR-001 Stuffing / Loading Checklist, laid out like the paper form.
@@ -102,13 +102,18 @@ function Ticks({
   labelWidth,
   set,
   edit,
+  groups,
 }: {
   checks: readonly Check[];
   values: Partial<Record<string, YesNo>>;
   labelWidth: number;
   set: TickSet;
   edit?: ChecklistEdit;
+  /** Rows per box where the form draws the boxes apart (A–D, E–H, I); one box when left out. */
+  groups?: number[];
 }) {
+  const starts = new Set<number>();
+  for (let at = 0, g = 0; g < (groups ?? []).length; at += groups![g], g++) starts.add(at);
   return (
     <div style={{ display: "grid", gridTemplateColumns: `${labelWidth}px 46px 46px`, rowGap: 0 }}>
       <span />
@@ -116,8 +121,11 @@ function Ticks({
       <span style={{ border: thick, borderLeft: 0, borderBottom: line, textAlign: "center", fontWeight: 700, fontSize: 9 }}>NO</span>
       {checks.map((c, i) => {
         const v = values[c.key];
-        const last = i === checks.length - 1;
+        const last = i === checks.length - 1 || (i > 0 && starts.has(i + 1));
+        const opens = i > 0 && starts.has(i);
         const box = (on: boolean, first: boolean): React.CSSProperties => ({
+          borderTop: opens ? thick : 0,
+          marginTop: opens ? 5 : 0,
           borderLeft: first ? thick : line,
           borderRight: first ? line : thick,
           borderBottom: last ? thick : line,
@@ -131,7 +139,7 @@ function Ticks({
         });
         return (
           <div key={c.key} style={{ display: "contents" }}>
-            <span style={{ fontSize: 9, fontWeight: 700, lineHeight: "11px", padding: "2px 6px 2px 0" }}>
+            <span style={{ fontSize: 9, fontWeight: 700, lineHeight: "11px", padding: "2px 6px 2px 0", marginTop: opens ? 5 : 0 }}>
               {c.label}
               {c.note ? <span style={{ fontWeight: 500 }}> {c.note}</span> : null}
             </span>
@@ -145,7 +153,6 @@ function Ticks({
                   onClick={() => edit.tick(set, c.key, v === answer ? "" : answer)}
                   style={{
                     ...box(v === answer, answer === "yes"),
-                    borderTop: 0,
                     background: "transparent",
                     padding: 0,
                     margin: 0,
@@ -323,7 +330,7 @@ export function ChecklistSheet({
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", columnGap: 34 }}>
         <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
           <div style={{ fontWeight: 700 }}>1) CONDITION OF THE {form === "lorry" ? "CONTAINER / LORRY" : "CONTAINER / LORRY"}</div>
-          <Ticks checks={CONTAINER_CHECKS} values={data.container} labelWidth={250} set="container" edit={edit} />
+          <Ticks checks={CONTAINER_CHECKS} values={data.container} labelWidth={250} set="container" edit={edit} groups={[4, 4, 1]} />
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
           <div style={{ fontWeight: 700 }}>2) CONDITION OF DRUM / CTNS / TINS</div>
@@ -396,7 +403,25 @@ export function ChecklistSheet({
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", columnGap: 34, fontWeight: 700, marginTop: 18 }}>
         <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-start" }}>
           <div>
-            CHECK BY: <span style={{ font: `500 9.5px ${mono}`, borderBottom: line, padding: "0 40px 0 6px" }}>{data.checkBy}</span>
+            CHECK BY: {/* Signed, as the clerk does on paper: page 1's signature. */}
+            <span
+              style={{
+                display: "inline-flex",
+                alignItems: "flex-end",
+                justifyContent: "center",
+                width: 200,
+                height: 34,
+                borderBottom: line,
+                verticalAlign: "bottom",
+                marginLeft: 4,
+              }}
+            >
+              {data.signature ? (
+                <BoldSignature src={data.signature} height={32} />
+              ) : edit ? (
+                <span style={{ fontSize: 8.5, fontWeight: 500, color: "#888", paddingBottom: 2 }}>Your signature from page 1</span>
+              ) : null}
+            </span>
           </div>
           <span style={{ marginLeft: 90, fontSize: 9 }}>(TALLY CLERK)</span>
         </div>

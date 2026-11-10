@@ -157,11 +157,11 @@ function RuledRemark({ label, labelWidth, text, step }: { label: string; labelWi
  */
 const INK_NUDGE = ["0.5px, 0", "-0.5px, 0", "0, 0.5px", "0, -0.5px"];
 
-function BoldSignature({ src }: { src: string }) {
+export function BoldSignature({ src, height = 42 }: { src: string; height?: number }) {
   return (
     <span style={{ position: "relative", display: "inline-block", lineHeight: 0 }}>
       {/* eslint-disable-next-line @next/next/no-img-element -- a data: URL signature, not a static asset */}
-      <img src={src} alt="Signature" style={{ maxHeight: 42, maxWidth: 220, objectFit: "contain" }} />
+      <img src={src} alt="Signature" style={{ maxHeight: height, maxWidth: 220, objectFit: "contain" }} />
       {INK_NUDGE.map((n) => (
         // eslint-disable-next-line @next/next/no-img-element -- a data: URL signature, not a static asset
         <img

@@ -5,6 +5,7 @@ import {
   cleanChecklist,
   clockTime,
   effectivePacking,
+  fullYearDate,
   packingFromSheet,
   type PackingFacts,
 } from "./checklist";
@@ -131,5 +132,12 @@ describe("page 2 on the sheet", () => {
   it("shows the time in Malaysia", () => {
     expect(clockTime("2026-11-06T06:30:00Z")).toBe("14:30");
     expect(clockTime(null)).toBe("");
+  });
+});
+
+describe("fullYearDate", () => {
+  it("writes the Issued Date with the full year, as on the form", () => {
+    expect(fullYearDate("10/11/26")).toBe("10/11/2026");
+    expect(fullYearDate("")).toBe("");
   });
 });

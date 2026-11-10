@@ -12,7 +12,7 @@ import {
   type SheetForm,
 } from "./constants";
 import { formatDateTime, isoToPaperDate } from "./dates";
-import { clockTime, cleanChecklist, effectivePacking, type ChecklistPaper, type Checklist } from "./checklist";
+import { clockTime, cleanChecklist, fullYearDate, effectivePacking, type ChecklistPaper, type Checklist } from "./checklist";
 import { draftChecklist, formatQty, itemQty, packingFacts, palletQty, pltCounts, totals, type Draft, type QtyByUnit } from "./draft";
 
 export type SheetStatus = "submitted" | "printed";
@@ -268,7 +268,7 @@ export function paperFromSheet(sheet: SheetDetail): PaperData {
             qty: sheet.pallets.filter((p) => p.itemNo === it.itemNo).reduce((a, p) => a + p.lines.reduce((b, l) => b + (l.qty ?? 0), 0), 0),
           }));
           return {
-            issuedDate: isoToPaperDate(sheet.date),
+            issuedDate: fullYearDate(isoToPaperDate(sheet.date)),
             siNo: sheet.header.siNo,
             contract: sheet.form === "container" ? sheet.header.contractNo : sheet.header.doNo,
             transportAgent: c.transportAgent,
@@ -288,6 +288,7 @@ export function paperFromSheet(sheet: SheetDetail): PaperData {
             qcBy: c.qcBy,
             department: c.department,
             checkBy: sheet.preparedByName.toUpperCase(),
+            signature: sheet.signature || null,
           };
         })()
       : null,
@@ -354,7 +355,7 @@ export function paperFromDraft(draft: Draft, signerName: string, ref = "NOT SUBM
     checklist: (() => {
       const c = draftChecklist(draft);
       return {
-        issuedDate: h.date,
+        issuedDate: fullYearDate(h.date),
         siNo: up(h.siNo),
         contract: draft.form === "container" ? up(h.contractNo) : up(h.doNo),
         transportAgent: up(c.transportAgent),
@@ -374,6 +375,7 @@ export function paperFromDraft(draft: Draft, signerName: string, ref = "NOT SUBM
         qcBy: up(c.qcBy),
         department: up(c.department),
         checkBy: signerName.toUpperCase(),
+        signature: draft.signature,
       };
     })(),
     totalPallets: t.pallets,

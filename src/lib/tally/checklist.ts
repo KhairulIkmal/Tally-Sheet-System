@@ -161,6 +161,14 @@ export interface ChecklistPaper {
   qcBy: string;
   department: string;
   checkBy: string;
+  /** Page 1's signature, which also signs CHECK BY (as the clerk does on paper). */
+  signature: string | null;
+}
+
+/** "10/11/26" → "10/11/2026", as the Issued Date is written on the form. */
+export function fullYearDate(paperDate: string): string {
+  const m = /^(\d{2})\/(\d{2})\/(\d{2})$/.exec(paperDate.trim());
+  return m ? `${m[1]}/${m[2]}/20${m[3]}` : paperDate;
 }
 
 /** A checklist as it comes back from the database or the payload: anything unexpected is dropped. */
