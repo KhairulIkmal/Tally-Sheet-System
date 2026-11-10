@@ -67,7 +67,12 @@ export function DateSidebar({
     <aside data-noprint className="flex w-[290px] flex-none flex-col overflow-y-auto border-l border-line bg-surface px-5 pt-7 pb-5">
       <SectionLabel>DATE</SectionLabel>
       <div className="mb-3 flex items-center justify-between">
-        <button type="button" aria-label="Previous month" onClick={() => onMonth(addMonths(month, -1))} className="rounded-md p-1.5 text-muted hover:bg-canvas">
+        <button
+          type="button"
+          aria-label="Previous month"
+          onClick={() => onMonth(addMonths(month, -1))}
+          className="rounded-md p-1.5 text-muted hover:bg-canvas"
+        >
           <ChevronLeft className="size-4" />
         </button>
         <span className="text-[17px] font-bold">{monthLabel(month)}</span>
@@ -134,9 +139,13 @@ export function DateSidebar({
                     )}
                   />
                 ) : null}
-                {inPreview ? <span aria-hidden className="absolute inset-0 rounded-md border-2 border-dashed border-primary/45 bg-primary-soft/50" /> : null}
+                {inPreview ? (
+                  <span aria-hidden className="absolute inset-0 rounded-md border-2 border-dashed border-primary/45 bg-primary-soft/50" />
+                ) : null}
                 <span className="relative">{Number(day.slice(8))}</span>
-                <span className={cn("relative mt-1 h-2.5 text-[10px] font-bold", isEnd ? "text-white/85" : "text-primary")}>{count || ""}</span>
+                <span className={cn("relative mt-1 h-2.5 text-[10px] font-bold", isEnd ? "text-white/85" : "text-primary")}>
+                  {count || ""}
+                </span>
               </button>
             );
           }),
@@ -178,7 +187,8 @@ export function DateSidebar({
 
       <span className="flex-1" />
       <p className="mt-6 text-xs leading-relaxed font-medium text-muted">
-        Click a day, then a second day to select a range. Clear removes the date filter. The small number is how many sheets were submitted that day.
+        Click a day, then a second day to select a range. Clear removes the date filter. The small number is how many sheets were submitted
+        that day.
       </p>
     </aside>
   );

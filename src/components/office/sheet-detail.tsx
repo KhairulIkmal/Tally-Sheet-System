@@ -5,7 +5,9 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Check, MoreHorizontal, Printer, Undo2 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { setPrintedAction } from "@/lib/data/actions";
+import { logSheetEventAction, setPrintedAction } from "@/lib/data/actions";
+import { auditOfDetail, sheetFlags, sheetTimeline } from "@/lib/tally/audit";
+import { FlagChips, SheetTimeline } from "./audit-bits";
 import { MATERIALS, lamSoonWayList, materialLabel, otherPalletList, pltSummary } from "@/lib/tally/constants";
 import { formatDateTime, isoToPaperDate } from "@/lib/tally/dates";
 import { formatQty } from "@/lib/tally/draft";
@@ -15,8 +17,6 @@ import { PaperViewer } from "@/components/paper/paper-viewer";
 import { FormBadge } from "@/components/worker/ui";
 import { STATUS_CHIP } from "./sheets-list";
 import { useSheetsHref } from "./sheets-return";
-
-const EVENT_LABEL = { submitted: "Submitted and signed by", printed: "Marked printed by", unprinted: "Printed mark removed by" } as const;
 
 export function SheetDetailView({ sheet }: { sheet: SheetDetail }) {
   const router = useRouter();
@@ -33,6 +33,17 @@ export function SheetDetailView({ sheet }: { sheet: SheetDetail }) {
   const photos = sheet.pallets.filter((p) => p.hasPhoto);
   const isContainer = sheet.form === "container";
   const h = sheet.header;
+  const audit = auditOfDetail(sheet);
+  const flags = sheetFlags(audit.sheet, audit.events);
+  const timeline = sheetTimeline(audit.sheet, audit.events);
+
+  // Opening the sheet goes in the audit log (the database keeps one per person per 30 minutes).
+  const logged = useRef("");
+  useEffect(() => {
+    if (logged.current === sheet.id) return;
+    logged.current = sheet.id;
+    void logSheetEventAction(sheet.id, "viewed").catch(() => {});
+  }, [sheet.id]);
 
   function togglePrinted(next: boolean) {
     setError("");
@@ -94,6 +105,14 @@ export function SheetDetailView({ sheet }: { sheet: SheetDetail }) {
             </div>
             <div className="text-[28px] font-extrabold">{sheet.vehicleNo}</div>
             <div className="font-mono text-[15px] font-semibold text-muted">{sheet.ref}</div>
+            <FlagChips flags={flags} className="mt-0.5" />
+            {flags
+              .filter((f) => f.kind === "checklist")
+              .map((f) => (
+                <div key={f.kind} className="rounded-lg bg-danger-bg px-3 py-2 text-sm font-semibold text-danger-ink">
+                  Page 2: {f.detail}
+                </div>
+              ))}
             {printed ? (
               <div className="mt-1.5 flex items-center gap-2.5 rounded-[10px] border border-line bg-surface-sunken py-2 pr-1.5 pl-3 text-sm font-semibold text-body">
                 <span className="grid size-6 flex-none place-items-center rounded-full bg-body text-white">
@@ -112,6 +131,12 @@ export function SheetDetailView({ sheet }: { sheet: SheetDetail }) {
                 setTimeout(() => {
                   window.print();
                   if (!printed) setAskPrinted(true);
+                  // Already printed: this is a reprint, which the audit log keeps.
+                  else
+                    void logSheetEventAction(sheet.id, "reprinted").then(
+                      (r) => r.ok && router.refresh(),
+                      () => {},
+                    );
                 }, 100);
               }}
               className={cn(
@@ -214,19 +239,13 @@ export function SheetDetailView({ sheet }: { sheet: SheetDetail }) {
               </>
             ) : null}
 
-            {sheet.events.length ? (
-              <>
-                <div className="mt-1.5 text-xs font-bold tracking-[.06em] text-muted">ACTIVITY</div>
-                {[...sheet.events].reverse().map((e, i) => (
-                  <div key={i} className="grid grid-cols-[110px_1fr] text-sm font-medium">
-                    <span className="text-faint">{formatDateTime(e.at)}</span>
-                    <span>
-                      {EVENT_LABEL[e.event]} {e.actorName}
-                    </span>
-                  </div>
-                ))}
-              </>
-            ) : null}
+            <div className="mt-1.5 flex items-baseline justify-between text-xs font-bold tracking-[.06em] text-muted">
+              <span>TIMELINE</span>
+              <Link href={`/office/audit?q=${encodeURIComponent(sheet.ref)}`} className="tracking-normal text-primary hover:underline">
+                Audit log
+              </Link>
+            </div>
+            <SheetTimeline steps={timeline} />
           </div>
         </aside>
       </div>

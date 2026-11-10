@@ -9,6 +9,7 @@ import { useSheetsHref } from "./sheets-return";
 const LINKS = [
   { href: "/office", label: "Sheets", match: (p: string) => p === "/office" || p.startsWith("/office/sheets") },
   { href: "/office/items", label: "Item history", match: (p: string) => p.startsWith("/office/items") },
+  { href: "/office/audit", label: "Audit log", match: (p: string) => p.startsWith("/office/audit") },
 ];
 
 /**

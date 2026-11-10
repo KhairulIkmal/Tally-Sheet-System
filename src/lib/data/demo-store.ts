@@ -3,7 +3,8 @@ import "server-only";
 import { submitPayloadSchema, type SubmitPayload } from "@/lib/tally/payload";
 import type { SheetDetail, SheetSummary } from "@/lib/tally/sheet";
 import { rangeBounds } from "./filters";
-import { cleanChecklist } from "@/lib/tally/checklist";
+import { CONTAINER_CHECKS, GOODS_CHECKS, blankChecklist, cleanChecklist } from "@/lib/tally/checklist";
+import { auditOfDetail } from "@/lib/tally/audit";
 import { StoreError, type HistoryItem, type TallyStore } from "./types";
 
 /**
@@ -58,7 +59,39 @@ function seed(): DemoState {
     seedSheet(2, "container", now - 26 * 3600_000, "submitted"),
     paperExampleSheet(3, now - 3600_000),
   ];
+  withAuditStory(sheets);
   return { history, sheets, counter: { [period(new Date())]: 2 } };
+}
+
+/** Something for each audit flag to show in the demo: a checklist issue, a late send, a reprint, short pallets. */
+function withAuditStory(sheets: SheetDetail[]) {
+  const iso = (t: number) => new Date(t).toISOString();
+  const page2 = (bad: Partial<Record<"noRust" | "dented", "yes" | "no">>) => {
+    const c = blankChecklist();
+    Object.assign(c, { transportAgent: "LAM SOON TRANSPORT", qcBy: "NURUL AINA", department: "QC", temperature: "31" });
+    for (const x of CONTAINER_CHECKS) c.container[x.key] = "yes";
+    for (const x of GOODS_CHECKS) c.goods[x.key] = x.key === "cleanliness" || x.key === "sealing" ? "yes" : "no";
+    if (bad.noRust) c.container.noRust = bad.noRust;
+    if (bad.dented) c.goods.dented = bad.dented;
+    return c;
+  };
+  const [lorry, container] = sheets;
+  // Lorry: rust in the lorry, loading took 4h 50m, opened and printed twice.
+  const l = Date.parse(lorry.submittedAt);
+  lorry.signedAt = iso(l - 2 * 60_000);
+  lorry.checklist = { ...page2({ noRust: "no", dented: "yes" }), timeStart: iso(l - 292 * 60_000), timeEnd: lorry.signedAt };
+  lorry.events = [
+    { event: "submitted", at: lorry.submittedAt, actorName: DEMO_USERS.worker.name },
+    { event: "viewed", at: iso(l + 20 * 60_000), actorName: DEMO_USERS.office.name },
+    { event: "printed", at: iso(l + 22 * 60_000), actorName: DEMO_USERS.office.name },
+    { event: "reprinted", at: iso(l + 95 * 60_000), actorName: DEMO_USERS.office.name },
+  ];
+  lorry.printedAt = iso(l + 22 * 60_000);
+  // Container: signed, then sent 3h 10m later (offline), with a short pallet.
+  const c = Date.parse(container.submittedAt);
+  container.signedAt = iso(c - 190 * 60_000);
+  container.checklist = { ...page2({}), timeStart: iso(c - 245 * 60_000), timeEnd: container.signedAt };
+  container.pallets[3].short = true;
 }
 
 function seedSheet(n: number, form: "container" | "lorry", at: number, status: "submitted" | "printed"): SheetDetail {
@@ -369,6 +402,35 @@ export function demoStore(actor: { id: string; name: string; roles: string[] }):
         Object.assign(s, { status: "submitted", printedAt: null, printedByName: null });
         s.events.push({ event: "unprinted", at: now, actorName: actor.name });
       }
+    },
+
+    async listAudit(since, until) {
+      if (!isOffice) throw new StoreError("You don't have permission to do that.");
+      const all = state().sheets;
+      const sheets = all.filter((s) => s.submittedAt >= since && s.submittedAt < until);
+      const ids = new Set(sheets.map((s) => s.id));
+      const events = all.flatMap((s) =>
+        s.events
+          .filter((e) => ids.has(s.id) || (e.at >= since && e.at < until))
+          .map((e) => ({ sheetId: s.id, event: e.event, at: e.at, actorName: e.actorName })),
+      );
+      const others = all
+        .filter((s) => !ids.has(s.id) && s.events.some((e) => e.at >= since && e.at < until))
+        .map((s) => ({ id: s.id, ref: s.ref, form: s.form, vehicleNo: s.vehicleNo }));
+      return { sheets: sheets.map((s) => auditOfDetail(s).sheet), events, others };
+    },
+
+    async logSheetEvent(id, event) {
+      if (!isOffice) throw new StoreError("You don't have permission to do that.");
+      const s = state().sheets.find((x) => x.id === id);
+      if (!s) throw new StoreError("Sheet not found.");
+      if (event === "reprinted" && s.status !== "printed") throw new StoreError("Only a sheet marked printed can be printed again.");
+      const now = new Date();
+      const recent = s.events.some(
+        (e) => e.event === "viewed" && e.actorName === actor.name && now.getTime() - Date.parse(e.at) < 30 * 60_000,
+      );
+      if (event === "viewed" && recent) return;
+      s.events.push({ event, at: now.toISOString(), actorName: actor.name });
     },
 
     async saveHistoryItem(input) {

@@ -51,7 +51,8 @@ export function ItemHistoryManager({ items }: { items: HistoryItem[] }) {
     });
   }
 
-  const input = "h-11 rounded-lg border-[1.5px] border-field bg-surface px-3 text-[15px] font-semibold uppercase outline-none focus:border-primary";
+  const input =
+    "h-11 rounded-lg border-[1.5px] border-field bg-surface px-3 text-[15px] font-semibold uppercase outline-none focus:border-primary";
 
   return (
     <div className="min-h-0 flex-1 overflow-y-auto px-7 py-6">
@@ -78,7 +79,14 @@ export function ItemHistoryManager({ items }: { items: HistoryItem[] }) {
             <div className="grid grid-cols-[2fr_1fr_1fr] gap-3">
               <label className="flex flex-col gap-1">
                 <span className="text-sm font-bold text-body">Name</span>
-                <input autoFocus required maxLength={80} value={editing.name} onChange={(e) => setEditing({ ...editing, name: e.target.value })} className={input} />
+                <input
+                  autoFocus
+                  required
+                  maxLength={80}
+                  value={editing.name}
+                  onChange={(e) => setEditing({ ...editing, name: e.target.value })}
+                  className={input}
+                />
               </label>
               <label className="flex flex-col gap-1">
                 <span className="text-sm font-bold text-body">Unit</span>
@@ -100,7 +108,12 @@ export function ItemHistoryManager({ items }: { items: HistoryItem[] }) {
               </label>
             </div>
             <label className="flex items-center gap-2 text-[15px] font-semibold">
-              <input type="checkbox" checked={editing.isActive} onChange={(e) => setEditing({ ...editing, isActive: e.target.checked })} className="size-5" />
+              <input
+                type="checkbox"
+                checked={editing.isActive}
+                onChange={(e) => setEditing({ ...editing, isActive: e.target.checked })}
+                className="size-5"
+              />
               Suggest to workers
             </label>
             {error ? (
@@ -135,7 +148,10 @@ export function ItemHistoryManager({ items }: { items: HistoryItem[] }) {
           {shown.map((p) => (
             <div
               key={p.id}
-              className={cn("grid h-[50px] items-center border-b border-line-soft px-4 text-[15px] font-medium", !p.isActive && "text-faint")}
+              className={cn(
+                "grid h-[50px] items-center border-b border-line-soft px-4 text-[15px] font-medium",
+                !p.isActive && "text-faint",
+              )}
               style={{ gridTemplateColumns: COLS }}
             >
               <span className="truncate font-semibold">{p.name}</span>
@@ -144,7 +160,12 @@ export function ItemHistoryManager({ items }: { items: HistoryItem[] }) {
               <span className="text-right">{p.useCount}×</span>
               <span className="pl-6 text-sm text-muted">{formatDateTime(p.lastUsedAt) || "—"}</span>
               <span>
-                <span className={cn("rounded-full px-2.5 py-0.5 text-xs font-bold", p.isActive ? "bg-success-bg text-success" : "bg-chip text-muted")}>
+                <span
+                  className={cn(
+                    "rounded-full px-2.5 py-0.5 text-xs font-bold",
+                    p.isActive ? "bg-success-bg text-success" : "bg-chip text-muted",
+                  )}
+                >
                   {p.isActive ? "Suggested" : "Hidden"}
                 </span>
               </span>
@@ -152,7 +173,13 @@ export function ItemHistoryManager({ items }: { items: HistoryItem[] }) {
                 type="button"
                 onClick={() => {
                   setError("");
-                  setEditing({ id: p.id, name: p.name, unit: p.unit, per: p.qtyPerPallet ? String(p.qtyPerPallet) : "", isActive: p.isActive });
+                  setEditing({
+                    id: p.id,
+                    name: p.name,
+                    unit: p.unit,
+                    per: p.qtyPerPallet ? String(p.qtyPerPallet) : "",
+                    isActive: p.isActive,
+                  });
                 }}
                 className="text-right text-sm font-bold text-primary"
               >

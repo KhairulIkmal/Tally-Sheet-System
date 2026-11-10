@@ -70,7 +70,7 @@ export interface SheetItem {
 }
 
 export interface SheetEvent {
-  event: "submitted" | "printed" | "unprinted";
+  event: "submitted" | "printed" | "unprinted" | "viewed" | "reprinted";
   at: string;
   actorName: string;
 }

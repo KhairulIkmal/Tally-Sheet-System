@@ -103,3 +103,18 @@ export async function saveHistoryItemAction(input: unknown): Promise<ActionResul
     return errorResult(e, "Couldn't save the item. Please try again.");
   }
 }
+
+/** Office: record opening a sheet, or printing a printed one again (audit log). Never shown as an error. */
+export async function logSheetEventAction(sheetId: string, event: "viewed" | "reprinted"): Promise<ActionResult> {
+  const user = await requireUser();
+  if (!hasRole(user, "office")) return { ok: false, error: "Only the office can do that." };
+  if (!z.string().uuid().safeParse(sheetId).success || (event !== "viewed" && event !== "reprinted"))
+    return { ok: false, error: "Not found." };
+  try {
+    await storeFor(user).logSheetEvent(sheetId, event);
+    if (event === "reprinted") revalidatePath(`/office/sheets/${sheetId}`);
+    return { ok: true, data: undefined };
+  } catch (e) {
+    return errorResult(e, "Couldn't record that.");
+  }
+}

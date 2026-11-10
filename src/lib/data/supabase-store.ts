@@ -5,8 +5,13 @@ import type { SubmitPayload } from "@/lib/tally/payload";
 import type { SheetDetail, SheetSummary } from "@/lib/tally/sheet";
 import type { SheetForm } from "@/lib/tally/constants";
 import { PHOTO_BUCKET } from "@/lib/tally/photos";
+import { cleanChecklist } from "@/lib/tally/checklist";
+import type { AuditData, AuditEvent, AuditSheet } from "@/lib/tally/audit";
 import { rangeBounds, safeSearch } from "./filters";
 import { StoreError, type HistoryItem, type HistoryItemInput, type SheetFilter, type SubmitResult, type TallyStore } from "./types";
+
+/** Rows the audit log reads per query; the range is capped at AUDIT_MAX_DAYS. */
+const AUDIT_ROW_LIMIT = 2000;
 
 const SUMMARY_COLUMNS =
   "id, ref, form, sheet_date, container_no, lorry_no, contract_no, do_no, total_pallets, qty_by_unit, prepared_by, prepared_by_name, submitted_at, status";
@@ -224,6 +229,90 @@ export function supabaseStore(): TallyStore {
       const supabase = await createClient();
       const { error } = await supabase.rpc("set_sheet_printed", { p_sheet_id: id, p_printed: printed });
       if (error) fail(error, "Couldn't update the sheet.");
+    },
+
+    async listAudit(since, until) {
+      const supabase = await createClient();
+      const [sheets, shorts, inRange, ofSheets] = await Promise.all([
+        supabase
+          .from("sheets")
+          .select(
+            "id, ref, form, container_no, lorry_no, prepared_by_name, total_pallets, qty_by_unit, submitted_at, signed_at, status, checklist",
+          )
+          .gte("submitted_at", since)
+          .lt("submitted_at", until)
+          .order("submitted_at", { ascending: false })
+          .limit(AUDIT_ROW_LIMIT),
+        supabase
+          .from("sheet_pallets")
+          .select("sheet_id, sheets!inner(submitted_at)")
+          .eq("short", true)
+          .gte("sheets.submitted_at", since)
+          .lt("sheets.submitted_at", until)
+          .limit(AUDIT_ROW_LIMIT * 5),
+        // What happened in the range, whichever sheet it was on.
+        supabase
+          .from("sheet_events")
+          .select("id, sheet_id, event, at, actor_name, sheets(id, ref, form, container_no, lorry_no)")
+          .gte("at", since)
+          .lt("at", until)
+          .order("at", { ascending: false })
+          .limit(AUDIT_ROW_LIMIT * 3),
+        // Everything that has happened to the sheets in the range, for their flags.
+        supabase
+          .from("sheet_events")
+          .select("id, sheet_id, event, at, actor_name, sheets!inner(submitted_at)")
+          .gte("sheets.submitted_at", since)
+          .lt("sheets.submitted_at", until)
+          .limit(AUDIT_ROW_LIMIT * 5),
+      ]);
+      for (const r of [sheets, shorts, inRange, ofSheets]) if (r.error) fail(r.error, "Couldn't load the audit log.");
+
+      const shortCount = new Map<string, number>();
+      for (const p of (shorts.data ?? []) as { sheet_id: string }[]) shortCount.set(p.sheet_id, (shortCount.get(p.sheet_id) ?? 0) + 1);
+
+      type EventRow = { id: number; sheet_id: string; event: AuditEvent["event"]; at: string; actor_name: string | null };
+      const events = new Map<number, AuditEvent>();
+      for (const e of [...((inRange.data ?? []) as EventRow[]), ...((ofSheets.data ?? []) as EventRow[])])
+        events.set(e.id, { sheetId: e.sheet_id, event: e.event, at: e.at, actorName: e.actor_name ?? "" });
+
+      type SheetRow = SummaryRow & { signed_at: string; checklist: (Record<string, unknown> & { timeStart?: string | null }) | null };
+      const rows = (sheets.data ?? []) as unknown as SheetRow[];
+      const ids = new Set(rows.map((r) => r.id));
+      const others = new Map<string, AuditData["others"][number]>();
+      for (const e of (inRange.data ?? []) as unknown as {
+        sheets: { id: string; ref: string; form: SheetForm; container_no: string | null; lorry_no: string | null } | null;
+      }[]) {
+        const s = e.sheets;
+        if (s && !ids.has(s.id))
+          others.set(s.id, { id: s.id, ref: s.ref, form: s.form, vehicleNo: (s.form === "container" ? s.container_no : s.lorry_no) ?? "" });
+      }
+
+      return {
+        sheets: rows.map((r): AuditSheet => ({
+          id: r.id,
+          ref: r.ref,
+          form: r.form,
+          vehicleNo: (r.form === "container" ? r.container_no : r.lorry_no) ?? "",
+          preparedByName: r.prepared_by_name,
+          totalPallets: r.total_pallets,
+          qtyByUnit: r.qty_by_unit ?? {},
+          startedAt: typeof r.checklist?.timeStart === "string" ? r.checklist.timeStart : null,
+          signedAt: r.signed_at,
+          submittedAt: r.submitted_at,
+          status: r.status,
+          checklist: r.checklist ? cleanChecklist(r.checklist) : null,
+          shortPallets: shortCount.get(r.id) ?? 0,
+        })),
+        events: [...events.values()],
+        others: [...others.values()],
+      };
+    },
+
+    async logSheetEvent(id, event) {
+      const supabase = await createClient();
+      const { error } = await supabase.rpc("log_sheet_event", { p_sheet_id: id, p_event: event });
+      if (error) fail(error, "Couldn't record that.");
     },
 
     async saveHistoryItem(input: HistoryItemInput) {

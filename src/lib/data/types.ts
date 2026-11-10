@@ -1,5 +1,6 @@
 import type { SubmitPayload } from "@/lib/tally/payload";
 import type { SheetDetail, SheetSummary } from "@/lib/tally/sheet";
+import type { AuditData } from "@/lib/tally/audit";
 
 /**
  * An item name that has been used on a submitted sheet. Saved
@@ -60,6 +61,10 @@ export interface TallyStore {
   /** A worker's pallet photo, before the sheet is submitted. Already stored counts as done. */
   uploadPalletPhoto(path: string, photo: Blob): Promise<void>;
   setPrinted(id: string, printed: boolean): Promise<void>;
+  /** Office: the sheets received in [since, until) and the events of that time and of those sheets (audit log). */
+  listAudit(since: string, until: string): Promise<AuditData>;
+  /** Office: record opening a sheet (once per person per 30 minutes) or printing a printed one again. */
+  logSheetEvent(id: string, event: "viewed" | "reprinted"): Promise<void>;
   /** Office: rename, change unit / qty per pallet, or hide an item history entry. */
   saveHistoryItem(input: HistoryItemInput): Promise<void>;
 }

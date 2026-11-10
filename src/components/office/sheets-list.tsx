@@ -150,7 +150,9 @@ export function SheetsList({
               { value: "container", label: "Container", count: formCounts.container, icon: Container, tone: "text-container" },
               { value: "lorry", label: "Lorry", count: formCounts.lorry, icon: Truck, tone: "text-lorry" },
             ]}
-            activeClass={filter.form === "lorry" ? "border-lorry bg-lorry-bg text-lorry" : "border-container bg-container-bg text-container"}
+            activeClass={
+              filter.form === "lorry" ? "border-lorry bg-lorry-bg text-lorry" : "border-container bg-container-bg text-container"
+            }
           />
           {!isDefault || q ? (
             <button
@@ -170,10 +172,18 @@ export function SheetsList({
           </span>
         </div>
 
-        <div className={cn("mx-7 mb-5 flex min-h-0 flex-1 flex-col overflow-hidden rounded-[10px] border border-line bg-surface", pending && "opacity-70")}>
+        <div
+          className={cn(
+            "mx-7 mb-5 flex min-h-0 flex-1 flex-col overflow-hidden rounded-[10px] border border-line bg-surface",
+            pending && "opacity-70",
+          )}
+        >
           <div className="flex min-h-0 flex-1 flex-col overflow-x-auto">
             <div className="flex min-h-0 min-w-[1040px] flex-1 flex-col">
-              <div className="grid h-11 flex-none items-center border-b border-line bg-surface-sunken text-xs font-bold tracking-[.06em] text-muted" style={{ gridTemplateColumns: COLS }}>
+              <div
+                className="grid h-11 flex-none items-center border-b border-line bg-surface-sunken text-xs font-bold tracking-[.06em] text-muted"
+                style={{ gridTemplateColumns: COLS }}
+              >
                 <span />
                 <button type="button" onClick={() => setAsc(!asc)} className="pl-3.5 text-left">
                   DATE {asc ? "↑" : "↓"}
@@ -194,7 +204,10 @@ export function SheetsList({
                     <Link
                       key={s.id}
                       href={`/office/sheets/${s.id}`}
-                      className={cn("grid h-[50px] items-center border-b border-line-soft text-[15px] font-medium hover:bg-primary-soft", fresh ? "bg-primary-soft/50" : "bg-surface")}
+                      className={cn(
+                        "grid h-[50px] items-center border-b border-line-soft text-[15px] font-medium hover:bg-primary-soft",
+                        fresh ? "bg-primary-soft/50" : "bg-surface",
+                      )}
                       style={{ gridTemplateColumns: COLS }}
                     >
                       <span className={cn("h-full", fresh ? "bg-primary" : s.status === "printed" ? "bg-field" : "bg-success")} />
@@ -219,7 +232,9 @@ export function SheetsList({
                       </span>
                       <span className="truncate pl-6">{s.preparedByName}</span>
                       <span className="flex items-center gap-2">
-                        <span className={cn("flex h-6 items-center rounded-full px-2.5 text-xs font-bold", chip.className)}>{chip.label}</span>
+                        <span className={cn("flex h-6 items-center rounded-full px-2.5 text-xs font-bold", chip.className)}>
+                          {chip.label}
+                        </span>
                         {fresh ? <span className="text-[11px] font-bold tracking-[.06em] text-primary">NEW</span> : null}
                       </span>
                     </Link>
