@@ -496,7 +496,7 @@ export function AuditView({
         quickRanges={presets}
         onChange={(r) => r.from && r.to && go(r.from, r.to)}
         onMonth={(m) => go(from, to, m)}
-        help={`Click a day, then a second day to select a range (up to ${AUDIT_MAX_DAYS} days). The small number is how many sheets were received that day.`}
+        help={`Click a day, then a second day to select a range (up to ${AUDIT_MAX_DAYS} days). Click the month to jump to another month or year. The small number is how many sheets were received that day.`}
       />
     </div>
   );
