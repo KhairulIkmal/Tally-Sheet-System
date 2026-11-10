@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Calculator, Check, ChevronDown, Circle, Plus, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { normalizeUnit, pltCellText, type SheetForm, MAX_PALLETS } from "@/lib/tally/constants";
@@ -43,6 +43,7 @@ import { BottomBar, Button } from "../ui";
 import { itemPalletsText, itemRowMarks, itemTotalText, paperFromDraft } from "@/lib/tally/sheet";
 import { PaperFooter } from "./paper-footer";
 import { ChecklistSheet } from "@/components/paper/checklist-sheet";
+import { PAPER_WIDTH } from "@/components/paper/paper-sheet";
 import { AutoFillPanel } from "./paper-autofill";
 import { usePaperZoom } from "./paper-zoom";
 import { PltTypeButtons } from "./pallet-setup";
@@ -169,6 +170,24 @@ export function PaperScreen({
   const rows = toRows(items);
   // A blank row tapped: once it exists, go to it and start on its first field.
   const openRow = useRef<number | null>(null);
+  // Page 2 is the A4 form, much narrower than page 1's table: drawn as wide as page 1, so both read at the same size.
+  const tableRef = useRef<HTMLTableElement>(null);
+  const a4Ref = useRef<HTMLDivElement>(null);
+  const [page2Scale, setPage2Scale] = useState(1);
+  useLayoutEffect(() => {
+    const table = tableRef.current;
+    const a4 = a4Ref.current;
+    if (!table || !a4) return;
+    // Both under the sheet's zoom, so their ratio is the same at any zoom.
+    const measure = () => {
+      const next = Math.max(1, table.offsetWidth / a4.offsetWidth);
+      setPage2Scale((old) => (Math.abs(old - next) > 0.01 ? next : old));
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(table);
+    return () => ro.disconnect();
+  }, []);
   const rowCount = rows.length;
   useEffect(() => {
     const at = openRow.current;
@@ -413,7 +432,7 @@ export function PaperScreen({
                     <Calculator className="size-4" /> Auto-fill item
                   </button>
                 </div>
-                <table className="w-full border-collapse text-left">
+                <table ref={tableRef} className="w-full border-collapse text-left">
                   <thead>
                     <tr className="bg-surface-sunken text-[11px] leading-tight font-bold tracking-[.04em] text-body">
                       <th className={cn(cell, "sticky left-0 z-10 w-12 bg-surface-sunken px-1 py-2 text-center")}>
@@ -822,7 +841,8 @@ export function PaperScreen({
                     <span className="text-xs font-bold text-muted">WH-FR-001</span>
                   </div>
                   {/* The form as printed: tap a YES / NO box to tick it, type on its blanks. */}
-                  <div className="w-fit border border-line shadow-sm">
+                  <div ref={a4Ref} aria-hidden style={{ width: PAPER_WIDTH + 2, height: 0 }} />
+                  <div className="w-fit border border-line shadow-sm" style={{ zoom: page2Scale }}>
                     <ChecklistSheet
                       data={paperFromDraft(draft, signerName).checklist!}
                       form={draft.form}
