@@ -88,6 +88,41 @@ function Stacked({ values, align, circled = false }: { values: string[]; align: 
   );
 }
 
+/**
+ * A pallet remark in its narrow column: written smaller and over more lines as
+ * it gets longer, the way it would be squeezed in by hand, so all of it shows
+ * in the row (up to the 60 characters a remark can have).
+ */
+function RemarkText({ text, form }: { text: string; form: PaperData["form"] }) {
+  // Characters that fit on one line at the normal size: the lorry column is the narrower one.
+  const perLine = form === "container" ? 17 : 11;
+  const n = text.length;
+  const [size, lineHeight, lines] =
+    n <= perLine
+      ? [form === "container" ? 9 : 8.5, 11, 1]
+      : n <= perLine * 2.6
+        ? [7, 8, 3]
+        : n <= perLine * 4
+          ? [6, 6.6, 4]
+          : [5.2, 5.8, 4];
+  return (
+    <span
+      style={{
+        fontSize: size,
+        lineHeight: `${lineHeight}px`,
+        whiteSpace: lines > 1 ? "normal" : "nowrap",
+        overflowWrap: "anywhere",
+        display: "-webkit-box",
+        WebkitBoxOrient: "vertical",
+        WebkitLineClamp: lines,
+        overflow: "hidden",
+      }}
+    >
+      {text}
+    </span>
+  );
+}
+
 function Cell({ children, center, last, bold }: { children?: React.ReactNode; center?: boolean; last?: boolean; bold?: boolean }) {
   return (
     <div
@@ -255,7 +290,7 @@ function rowsFor(form: PaperData["form"], rows: PaperRow[], highlightMixed: bool
         <Stacked values={p} align="center" />
         <Stacked values={b} align="start" />
         <Cell last>
-          <span style={{ fontSize: form === "container" ? 9 : 8.5 }}>{r.remark}</span>
+          <RemarkText text={r.remark} form={form} />
         </Cell>
       </div>
     );
